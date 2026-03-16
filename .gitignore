@@ -1,0 +1,22 @@
+# Lucene-specific
+index/
+write.lock
+
+# Build artifacts
+target/
+build/
+out/
+bin/
+*.class
+*.jar
+
+# IDEs
+.idea/
+.vscode/
+.settings/
+.project
+.classpath
+
+# Data (if applicable)
+data/
+corpus/
