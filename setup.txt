@@ -1,3 +1,6 @@
+Download the data and put it under "data/raw" folder.
+
+
 Initial setup steps:
 
 1. Install "conda" in the device - it manages python environments
