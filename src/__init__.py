@@ -1,0 +1,1 @@
+"""Minimal Whoosh project package."""

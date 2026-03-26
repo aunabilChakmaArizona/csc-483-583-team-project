@@ -1,0 +1,16 @@
+Initial setup steps:
+
+1. Install "conda" in the device - it manages python environments
+2. run "conda create -n csc-483-583-project python=3.10" - this will create new environments for our project
+3. run "conda activate csc-483-583-project" - this will activate the conda environment that we created
+4. run "pip install -r requirements.txt" - install necessary libararies under this environment
+5. run "conda deactivate" - exit the environment
+
+
+To edit/run any experiments: 
+
+1. activate the conda environment (see step 3 above), 
+2. write/run the codes/experiments, 
+3. If done, deactivate the conda environment (see step 5 above) at the end.
+
+
