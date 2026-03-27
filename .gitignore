@@ -5,6 +5,7 @@ index/*
 index/whoosh_index/*
 !index/whoosh_index/.gitkeep
 write.lock
+data/processed/wiki_articles.sqlite3
 
 # main data
 *data/raw/wiki-subset-20140602*
