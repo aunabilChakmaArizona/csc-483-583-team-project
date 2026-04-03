@@ -6,9 +6,11 @@ index/whoosh_index/*
 !index/whoosh_index/.gitkeep
 write.lock
 data/processed/wiki_articles.sqlite3
+data/processed/wiki_articles_step1_remove_stop_words.sqlite3
 
 # main data
 *data/raw/wiki-subset-20140602*
+*.sqlite3*
 
 # Python cache and virtualenvs
 __pycache__/

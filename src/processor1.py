@@ -7,10 +7,11 @@ import sqlite3
 import time
 
 
-DEFAULT_RAW_DIR = Path("data/raw/wiki-subset-20140602")
-DEFAULT_DB_PATH = Path("data/processed/wiki_articles.sqlite3")
-DEFAULT_QUESTIONS_PATH = Path("data/raw/questions.txt")
-DEFAULT_QUESTIONS_JSON_PATH = Path("data/processed/questions.json")
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_RAW_DIR = PROJECT_ROOT / "data/raw/wiki-subset-20140602"
+DEFAULT_DB_PATH = PROJECT_ROOT / "data/processed/wiki_articles.sqlite3"
+DEFAULT_QUESTIONS_PATH = PROJECT_ROOT / "data/raw/questions.txt"
+DEFAULT_QUESTIONS_JSON_PATH = PROJECT_ROOT / "data/processed/questions.json"
 
 
 @dataclass(frozen=True)
