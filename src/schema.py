@@ -27,3 +27,14 @@ def get_whoosh_default_schema() -> Schema:
         article_index=NUMERIC(stored=True, sortable=True),
         is_redirect=NUMERIC(stored=True),
     )
+
+
+def get_whoosh_title_body_schema() -> Schema:
+    """Return a schema that indexes both article titles and cleaned bodies."""
+    return Schema(
+        title=TEXT(stored=True),
+        body=TEXT(stored=True),
+        source_file=ID(stored=True),
+        article_index=NUMERIC(stored=True, sortable=True),
+        is_redirect=NUMERIC(stored=True),
+    )

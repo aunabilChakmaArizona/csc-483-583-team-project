@@ -7,6 +7,9 @@ index/whoosh_index/*
 !index/whoosh_default_index/
 index/whoosh_default_index/*
 !index/whoosh_default_index/.gitkeep
+!index/whoosh_title_body_index/
+index/whoosh_title_body_index/*
+!index/whoosh_title_body_index/.gitkeep
 write.lock
 data/processed/wiki_articles.sqlite3
 data/processed/wiki_articles_step1_remove_stop_words.sqlite3

@@ -6,9 +6,9 @@ import argparse
 import time
 
 try:
-    from src.search import search, search_whoosh_default
+    from src.search import search, search_whoosh_default, search_whoosh_title_body
 except ModuleNotFoundError:
-    from search import search, search_whoosh_default
+    from search import search, search_whoosh_default, search_whoosh_title_body
 
 
 def parse_args() -> argparse.Namespace:
@@ -17,14 +17,20 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--limit", type=int, default=10)
     parser.add_argument(
         "--mode",
-        choices=["token", "whoosh"],
+        choices=["token", "whoosh", "whoosh_title_body"],
         default="token",
-        help="token uses processor3 tokens; whoosh uses Whoosh's default analyzer index.",
+        help=(
+            "token uses processor3 tokens; whoosh searches cleaned body; "
+            "whoosh_title_body searches cleaned title and body."
+        ),
     )
     return parser.parse_args()
 
 
 def run_search(query: str, limit: int, mode: str) -> list[dict]:
+    if mode == "whoosh_title_body":
+        return search_whoosh_title_body(query, limit=limit)
+
     if mode == "whoosh":
         return search_whoosh_default(query, limit=limit)
 

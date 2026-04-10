@@ -12,10 +12,10 @@ import time
 
 try:
     from src.processor1_parse import DEFAULT_QUESTIONS_JSON_PATH
-    from src.search import multi_search, multi_search_whoosh_default
+    from src.search import multi_search, multi_search_whoosh_default, multi_search_whoosh_title_body
 except ModuleNotFoundError:
     from processor1_parse import DEFAULT_QUESTIONS_JSON_PATH
-    from search import multi_search, multi_search_whoosh_default
+    from search import multi_search, multi_search_whoosh_default, multi_search_whoosh_title_body
 
 
 TOP_K_VALUES = [1, 5, 10, 20, 50, 100]
@@ -33,9 +33,12 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Evaluate the first 100 Jeopardy questions.")
     parser.add_argument(
         "--mode",
-        choices=["token", "whoosh"],
+        choices=["token", "whoosh", "whoosh_title_body"],
         default="token",
-        help="token uses processor3 tokens; whoosh uses Whoosh's default analyzer index.",
+        help=(
+            "token uses processor3 tokens; whoosh searches cleaned body; "
+            "whoosh_title_body searches cleaned title and body."
+        ),
     )
     parser.add_argument(
         "--query-mode",
@@ -99,7 +102,7 @@ def entity_query_text(query_text: str) -> str:
         keep_token = token.like_num or token.pos_ in {"NOUN", "PROPN"}
         if token.i not in covered_token_indexes and keep_token and len(token.text) > 1:
             spans.append((token.i, token.i + 1, token.text))
-        
+
     spans.sort(key=lambda span: span[0])
     return " ".join(text for _, _, text in spans)
 
@@ -127,6 +130,9 @@ def search_questions(
     include_category: bool,
 ) -> list[dict]:
     queries = [question_query(question, query_mode, include_category) for question in questions]
+
+    if mode == "whoosh_title_body":
+        return multi_search_whoosh_title_body(queries, limit=limit)
 
     if mode == "whoosh":
         return multi_search_whoosh_default(queries, limit=limit)
