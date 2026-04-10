@@ -23,12 +23,17 @@ except ModuleNotFoundError:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Compare token and Whoosh query processing.")
     parser.add_argument("--limit", type=int, default=100)
+    parser.add_argument(
+        "--include-category",
+        action="store_true",
+        help="Use category plus clue as the base query.",
+    )
     return parser.parse_args()
 
 
-def load_clues(path: Path = DEFAULT_QUESTIONS_JSON_PATH, limit: int = 100) -> list[str]:
+def load_questions(path: Path = DEFAULT_QUESTIONS_JSON_PATH, limit: int = 100) -> list[dict]:
     rows = json.loads(path.read_text(encoding="utf-8"))
-    return [row["clue"] for row in rows[:limit]]
+    return rows[:limit]
 
 
 def whoosh_query_terms(query: str, body_field) -> list[str]:
@@ -37,22 +42,31 @@ def whoosh_query_terms(query: str, body_field) -> list[str]:
 
 def main() -> None:
     args = parse_args()
-    clues = load_clues(limit=args.limit)
+    questions = load_questions(limit=args.limit)
     whoosh_index = open_whoosh_index(DEFAULT_WHOOSH_INDEX_DIR)
     body_field = whoosh_index.schema["body"]
 
-    for question_number, clue in enumerate(clues, start=1):
-        entity_query = entity_query_text(clue)
-        token_terms = normalize_query_terms(clue)
-        whoosh_terms = whoosh_query_terms(clue, body_field)
+    for question_number, question in enumerate(questions, start=1):
+        clue = question["clue"]
+        category_query = f"{question['category']} {question['clue']}"
+        base_query = category_query if args.include_category else clue
+        entity_query = entity_query_text(base_query)
+        token_terms = normalize_query_terms(base_query)
+        whoosh_terms = whoosh_query_terms(base_query, body_field)
+        token_category_terms = normalize_query_terms(category_query)
+        whoosh_category_terms = whoosh_query_terms(category_query, body_field)
         token_entity_terms = normalize_query_terms(entity_query)
         whoosh_entity_terms = whoosh_query_terms(entity_query, body_field)
         print(
             f"{question_number}\n"
             f"raw={clue}\n"
+            f"base_query={base_query}\n"
+            f"category_query={category_query}\n"
             f"entity_noun={entity_query}\n"
             f"token={' '.join(token_terms)}\n"
             f"whoosh={' '.join(whoosh_terms)}\n"
+            f"token_category={' '.join(token_category_terms)}\n"
+            f"whoosh_category={' '.join(whoosh_category_terms)}\n"
             f"token_entity={' '.join(token_entity_terms)}\n"
             f"whoosh_entity={' '.join(whoosh_entity_terms)}\n\n\n"
         )

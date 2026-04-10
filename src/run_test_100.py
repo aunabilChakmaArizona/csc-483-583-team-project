@@ -41,7 +41,12 @@ def parse_args() -> argparse.Namespace:
         "--query-mode",
         choices=["full", "entity"],
         default="full",
-        help="full uses the original clue; entity keeps entities, nouns, and numbers.",
+        help="full uses the whole query text; entity keeps entities, nouns, and numbers.",
+    )
+    parser.add_argument(
+        "--include-category",
+        action="store_true",
+        help="Add the question category before the clue.",
     )
     return parser.parse_args()
 
@@ -99,11 +104,19 @@ def entity_query_text(query_text: str) -> str:
     return " ".join(text for _, _, text in spans)
 
 
-def question_query(question: JeopardyQuestion, query_mode: str) -> str:
-    if query_mode == "entity":
-        return entity_query_text(question.clue)
+def question_text(question: JeopardyQuestion, include_category: bool) -> str:
+    if include_category:
+        return f"{question.category} {question.clue}"
 
     return question.clue
+
+
+def question_query(question: JeopardyQuestion, query_mode: str, include_category: bool) -> str:
+    query_text = question_text(question, include_category)
+    if query_mode == "entity":
+        return entity_query_text(query_text)
+
+    return query_text
 
 
 def search_questions(
@@ -111,8 +124,9 @@ def search_questions(
     limit: int,
     mode: str,
     query_mode: str,
+    include_category: bool,
 ) -> list[dict]:
-    queries = [question_query(question, query_mode) for question in questions]
+    queries = [question_query(question, query_mode, include_category) for question in questions]
 
     if mode == "whoosh":
         return multi_search_whoosh_default(queries, limit=limit)
@@ -124,10 +138,17 @@ def evaluate_questions(
     questions: list[JeopardyQuestion],
     mode: str = "token",
     query_mode: str = "full",
+    include_category: bool = False,
     top_k_values: list[int] = TOP_K_VALUES,
 ) -> dict[int, float]:
     max_k = max(top_k_values)
-    searches = search_questions(questions, limit=max_k, mode=mode, query_mode=query_mode)
+    searches = search_questions(
+        questions,
+        limit=max_k,
+        mode=mode,
+        query_mode=query_mode,
+        include_category=include_category,
+    )
     correct_counts = {k: 0 for k in top_k_values}
 
     for question, search_result in zip(questions, searches):
@@ -148,9 +169,11 @@ def print_metrics(
     elapsed: float,
     mode: str,
     query_mode: str,
+    include_category: bool,
 ) -> None:
     print(f"Mode: {mode}")
     print(f"Query mode: {query_mode}")
+    print(f"Include category: {include_category}")
     print(f"Questions: {total}")
     print(f"Time: {elapsed:.2f}s")
 
@@ -164,7 +187,12 @@ def main() -> None:
     questions = load_questions(questions_path)[:100]
 
     start_time = time.time()
-    metrics = evaluate_questions(questions, mode=args.mode, query_mode=args.query_mode)
+    metrics = evaluate_questions(
+        questions,
+        mode=args.mode,
+        query_mode=args.query_mode,
+        include_category=args.include_category,
+    )
     elapsed = time.time() - start_time
 
     print_metrics(
@@ -173,6 +201,7 @@ def main() -> None:
         elapsed=elapsed,
         mode=args.mode,
         query_mode=args.query_mode,
+        include_category=args.include_category,
     )
 
 
