@@ -16,3 +16,14 @@ def get_schema() -> Schema:
         article_index=NUMERIC(stored=True, sortable=True),
         is_redirect=NUMERIC(stored=True),
     )
+
+
+def get_whoosh_default_schema() -> Schema:
+    """Return a schema that lets Whoosh analyze cleaned article text."""
+    return Schema(
+        title=STORED,
+        body=TEXT(stored=True),
+        source_file=ID(stored=True),
+        article_index=NUMERIC(stored=True, sortable=True),
+        is_redirect=NUMERIC(stored=True),
+    )

@@ -1,5 +1,8 @@
 """Evaluate search quality on the first 100 Jeopardy questions."""
 
+# python -m src.run_test_100 --mode whoosh
+
+import argparse
 from dataclasses import dataclass
 import json
 from pathlib import Path
@@ -8,10 +11,10 @@ import time
 
 try:
     from src.processor1_parse import DEFAULT_QUESTIONS_JSON_PATH
-    from src.search import multi_search
+    from src.search import multi_search, multi_search_whoosh_default
 except ModuleNotFoundError:
     from processor1_parse import DEFAULT_QUESTIONS_JSON_PATH
-    from search import multi_search
+    from search import multi_search, multi_search_whoosh_default
 
 
 TOP_K_VALUES = [1, 5, 10, 20, 50, 100]
@@ -23,6 +26,17 @@ class JeopardyQuestion:
     category: str
     clue: str
     answer: str
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Evaluate the first 100 Jeopardy questions.")
+    parser.add_argument(
+        "--mode",
+        choices=["token", "whoosh"],
+        default="token",
+        help="token uses processor3 tokens; whoosh uses Whoosh's default analyzer index.",
+    )
+    return parser.parse_args()
 
 
 def load_questions(path: Path = DEFAULT_QUESTIONS_JSON_PATH) -> list[JeopardyQuestion]:
@@ -44,12 +58,22 @@ def is_correct_at_k(results: list[dict], answers: set[str], k: int) -> bool:
     return bool(top_titles & answers)
 
 
+def search_questions(questions: list[JeopardyQuestion], limit: int, mode: str) -> list[dict]:
+    queries = [question.clue for question in questions]
+
+    if mode == "whoosh":
+        return multi_search_whoosh_default(queries, limit=limit)
+
+    return multi_search(queries, limit=limit)
+
+
 def evaluate_questions(
     questions: list[JeopardyQuestion],
+    mode: str = "token",
     top_k_values: list[int] = TOP_K_VALUES,
 ) -> dict[int, float]:
     max_k = max(top_k_values)
-    searches = multi_search([question.clue for question in questions], limit=max_k)
+    searches = search_questions(questions, limit=max_k, mode=mode)
     correct_counts = {k: 0 for k in top_k_values}
 
     for question, search_result in zip(questions, searches):
@@ -64,7 +88,8 @@ def evaluate_questions(
     return {k: correct_counts[k] / total for k in top_k_values}
 
 
-def print_metrics(metrics: dict[int, float], total: int, elapsed: float) -> None:
+def print_metrics(metrics: dict[int, float], total: int, elapsed: float, mode: str) -> None:
+    print(f"Mode: {mode}")
     print(f"Questions: {total}")
     print(f"Time: {elapsed:.2f}s")
 
@@ -73,14 +98,15 @@ def print_metrics(metrics: dict[int, float], total: int, elapsed: float) -> None
 
 
 def main() -> None:
+    args = parse_args()
     questions_path = Path(DEFAULT_QUESTIONS_JSON_PATH)
     questions = load_questions(questions_path)[:100]
 
     start_time = time.time()
-    metrics = evaluate_questions(questions)
+    metrics = evaluate_questions(questions, mode=args.mode)
     elapsed = time.time() - start_time
 
-    print_metrics(metrics, total=len(questions), elapsed=elapsed)
+    print_metrics(metrics, total=len(questions), elapsed=elapsed, mode=args.mode)
 
 
 if __name__ == "__main__":

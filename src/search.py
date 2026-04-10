@@ -4,12 +4,17 @@ from functools import lru_cache
 from pathlib import Path
 
 from whoosh import query as whoosh_query
+from whoosh.qparser import QueryParser
 from whoosh.scoring import BM25F
 
 try:
+    from src.processor4_whoosh_index import DEFAULT_INDEX_DIR as DEFAULT_WHOOSH_INDEX_DIR
+    from src.processor4_whoosh_index import open_index as open_whoosh_index
     from src.processor4_index import DEFAULT_INDEX_DIR, open_index
     from src.processor3_tokenize import load_stop_words, tokenize_body
 except ModuleNotFoundError:
+    from processor4_whoosh_index import DEFAULT_INDEX_DIR as DEFAULT_WHOOSH_INDEX_DIR
+    from processor4_whoosh_index import open_index as open_whoosh_index
     from processor4_index import DEFAULT_INDEX_DIR, open_index
     from processor3_tokenize import load_stop_words, tokenize_body
 
@@ -86,4 +91,48 @@ def multi_search(
                 print(f"[multi_search] Queries: {index_number}/{total}")
 
     print(f"[multi_search] Finished queries: {total}/{total}")
+    return all_results
+
+
+def search_whoosh_default(
+    query: str,
+    limit: int = 10,
+    index_dir: Path = DEFAULT_WHOOSH_INDEX_DIR,
+) -> list[dict]:
+    """Search the index built from cleaned text using Whoosh's default analyzer."""
+    index = open_whoosh_index(index_dir)
+    with index.searcher(weighting=BM25F()) as searcher:
+        parsed_query = QueryParser("body", schema=index.schema).parse(query)
+        results = searcher.search(parsed_query, limit=limit)
+        return serialize_results(results)
+
+
+def multi_search_whoosh_default(
+    queries: list[str],
+    limit: int = 10,
+    index_dir: Path = DEFAULT_WHOOSH_INDEX_DIR,
+    progress_every: int = 10,
+) -> list[dict]:
+    """Search multiple queries against the Whoosh-default index with one index open."""
+    index = open_whoosh_index(index_dir)
+    total = len(queries)
+    all_results = []
+
+    with index.searcher(weighting=BM25F()) as searcher:
+        parser = QueryParser("body", schema=index.schema)
+
+        for index_number, query_text in enumerate(queries, start=1):
+            parsed_query = parser.parse(query_text)
+            results = searcher.search(parsed_query, limit=limit)
+            all_results.append(
+                {
+                    "query": query_text,
+                    "results": serialize_results(results),
+                }
+            )
+
+            if progress_every and index_number % progress_every == 0:
+                print(f"[multi_search_whoosh] Queries: {index_number}/{total}")
+
+    print(f"[multi_search_whoosh] Finished queries: {total}/{total}")
     return all_results
