@@ -7,11 +7,11 @@ from whoosh import query as whoosh_query
 from whoosh.scoring import BM25F
 
 try:
-    from src.processor4 import DEFAULT_INDEX_DIR, open_index
-    from src.processor3 import load_stop_words, tokenize_body
+    from src.processor4_index import DEFAULT_INDEX_DIR, open_index
+    from src.processor3_tokenize import load_stop_words, tokenize_body
 except ModuleNotFoundError:
-    from processor4 import DEFAULT_INDEX_DIR, open_index
-    from processor3 import load_stop_words, tokenize_body
+    from processor4_index import DEFAULT_INDEX_DIR, open_index
+    from processor3_tokenize import load_stop_words, tokenize_body
 
 
 @lru_cache(maxsize=1)

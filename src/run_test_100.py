@@ -7,10 +7,10 @@ import re
 import time
 
 try:
-    from src.processor1 import DEFAULT_QUESTIONS_JSON_PATH
+    from src.processor1_parse import DEFAULT_QUESTIONS_JSON_PATH
     from src.search import multi_search
 except ModuleNotFoundError:
-    from processor1 import DEFAULT_QUESTIONS_JSON_PATH
+    from processor1_parse import DEFAULT_QUESTIONS_JSON_PATH
     from search import multi_search
 
 

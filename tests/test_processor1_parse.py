@@ -1,4 +1,4 @@
-from src.processor1 import parse_articles_from_text
+from src.processor1_parse import parse_articles_from_text
 
 
 def test_parse_articles_from_text_splits_on_double_bracket_headers():

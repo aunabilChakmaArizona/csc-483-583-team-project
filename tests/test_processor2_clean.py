@@ -1,4 +1,4 @@
-from src.processor2 import clean_body
+from src.processor2_clean import clean_body
 
 
 def test_clean_body_removes_requested_wiki_markup():

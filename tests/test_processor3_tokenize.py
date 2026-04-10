@@ -1,4 +1,4 @@
-from src.processor3 import tokenize_body
+from src.processor3_tokenize import tokenize_body
 
 
 def test_tokenize_body_applies_requested_pipeline():

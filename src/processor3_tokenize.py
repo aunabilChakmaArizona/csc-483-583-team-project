@@ -27,7 +27,7 @@ def load_stop_words() -> set[str]:
     try:
         from spacy.lang.en.stop_words import STOP_WORDS
     except ModuleNotFoundError as error:
-        raise RuntimeError("spaCy is required for processor3 stop-word removal.") from error
+        raise RuntimeError("spaCy is required for processor3_tokenize stop-word removal.") from error
 
     return set(STOP_WORDS)
 
@@ -173,7 +173,7 @@ def materialize_tokenized_articles(
 
             if total % 1000 == 0:
                 elapsed = time.time() - start_time
-                print(f"[processor3] Articles: {total} | Elapsed: {elapsed:.2f}s")
+                print(f"[processor3_tokenize] Articles: {total} | Elapsed: {elapsed:.2f}s")
 
             if len(batch) >= batch_size:
                 write_batch(output_connection, batch)
@@ -183,7 +183,7 @@ def materialize_tokenized_articles(
         output_connection.commit()
 
     elapsed = time.time() - start_time
-    print(f"[processor3] Finished | Articles: {total} | Elapsed: {elapsed:.2f}s")
+    print(f"[processor3_tokenize] Finished | Articles: {total} | Elapsed: {elapsed:.2f}s")
     return total
 
 

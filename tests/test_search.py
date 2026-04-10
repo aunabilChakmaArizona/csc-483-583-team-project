@@ -1,6 +1,6 @@
 import sqlite3
 
-from src.processor4 import materialize_whoosh_index
+from src.processor4_index import materialize_whoosh_index
 from src.search import multi_search, search
 
 
@@ -58,7 +58,7 @@ def test_search_returns_empty_list_for_blank_query(tmp_path, monkeypatch):
     assert search("   ", index_dir=index_dir) == []
 
 
-def test_search_normalizes_query_with_processor3_pipeline(tmp_path, monkeypatch):
+def test_search_normalizes_query_with_processor3_tokenize_pipeline(tmp_path, monkeypatch):
     db_path = tmp_path / "wiki_articles_step2_tokens.sqlite3"
     index_dir = tmp_path / "whoosh_index"
     initialize_articles_database(db_path)
@@ -82,7 +82,7 @@ def test_multi_search_reuses_single_index_open(tmp_path, monkeypatch):
     def counting_open_index(path):
         nonlocal open_calls
         open_calls += 1
-        from src.processor4 import open_index as real_open_index
+        from src.processor4_index import open_index as real_open_index
 
         return real_open_index(path)
 

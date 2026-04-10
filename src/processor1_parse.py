@@ -58,7 +58,7 @@ def parse_articles_from_text(text: str, source_file: str = "<memory>") -> list[W
     article_index = 0
     start_time = time.time()
 
-    print(f"[processor] Start file: {source_file}")
+    print(f"[processor1_parse] Start file: {source_file}")
 
     for line in text.splitlines():
         if is_article_header(line):
@@ -68,7 +68,7 @@ def parse_articles_from_text(text: str, source_file: str = "<memory>") -> list[W
                 if article_index % 1000 == 0:
                     elapsed = time.time() - start_time
                     print(
-                        f"[processor] File: {source_file} | Articles: {article_index} | Elapsed: {elapsed:.2f}s"
+                        f"[processor1_parse] File: {source_file} | Articles: {article_index} | Elapsed: {elapsed:.2f}s"
                     )
             title = get_article_title(line)
             body_lines = []
@@ -80,7 +80,7 @@ def parse_articles_from_text(text: str, source_file: str = "<memory>") -> list[W
 
     elapsed = time.time() - start_time
     print(
-        f"[processor] Finished file: {source_file} | Articles: {len(articles)} | Elapsed: {elapsed:.2f}s"
+        f"[processor1_parse] Finished file: {source_file} | Articles: {len(articles)} | Elapsed: {elapsed:.2f}s"
     )
 
     return articles

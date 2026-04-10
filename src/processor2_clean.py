@@ -144,7 +144,7 @@ def materialize_cleaned_articles(
 
             if total % 1000 == 0:
                 elapsed = time.time() - start_time
-                print(f"[processor2] Articles: {total} | Elapsed: {elapsed:.2f}s")
+                print(f"[processor2_clean] Articles: {total} | Elapsed: {elapsed:.2f}s")
 
             if len(batch) >= batch_size:
                 write_batch(output_connection, batch)
@@ -154,7 +154,7 @@ def materialize_cleaned_articles(
         output_connection.commit()
 
     elapsed = time.time() - start_time
-    print(f"[processor2] Finished | Articles: {total} | Elapsed: {elapsed:.2f}s")
+    print(f"[processor2_clean] Finished | Articles: {total} | Elapsed: {elapsed:.2f}s")
     return total
 
 

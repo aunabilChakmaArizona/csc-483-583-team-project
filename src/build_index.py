@@ -3,13 +3,13 @@
 from pathlib import Path
 
 try:
-    from src.processor4 import (
+    from src.processor4_index import (
         DEFAULT_INDEX_DIR,
         DEFAULT_INPUT_DB_PATH,
         materialize_whoosh_index,
     )
 except ModuleNotFoundError:
-    from processor4 import DEFAULT_INDEX_DIR, DEFAULT_INPUT_DB_PATH, materialize_whoosh_index
+    from processor4_index import DEFAULT_INDEX_DIR, DEFAULT_INPUT_DB_PATH, materialize_whoosh_index
 
 
 def build_index(

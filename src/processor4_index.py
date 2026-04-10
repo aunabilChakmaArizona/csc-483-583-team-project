@@ -91,7 +91,7 @@ def materialize_whoosh_index(
 
         if total % 1000 == 0:
             elapsed = time.time() - start_time
-            print(f"[processor4] Articles: {total} | Elapsed: {elapsed:.2f}s")
+            print(f"[processor4_index] Articles: {total} | Elapsed: {elapsed:.2f}s")
 
         if len(batch) >= batch_size:
             write_batch(writer, batch)
@@ -101,7 +101,7 @@ def materialize_whoosh_index(
     writer.commit()
 
     elapsed = time.time() - start_time
-    print(f"[processor4] Finished | Articles: {total} | Elapsed: {elapsed:.2f}s")
+    print(f"[processor4_index] Finished | Articles: {total} | Elapsed: {elapsed:.2f}s")
     return total
 
 
