@@ -66,14 +66,24 @@ def multi_search(
     queries: list[str],
     limit: int = 10,
     index_dir: Path = DEFAULT_INDEX_DIR,
+    progress_every: int = 10,
 ) -> list[dict]:
     """Return search results for multiple queries while loading the index once."""
     index = open_index(index_dir)
+    total = len(queries)
+    all_results = []
+
     with index.searcher(weighting=BM25F()) as searcher:
-        return [
-            {
-                "query": query,
-                "results": search_with_searcher(searcher, query, limit=limit),
-            }
-            for query in queries
-        ]
+        for index_number, query in enumerate(queries, start=1):
+            all_results.append(
+                {
+                    "query": query,
+                    "results": search_with_searcher(searcher, query, limit=limit),
+                }
+            )
+
+            if progress_every and index_number % progress_every == 0:
+                print(f"[multi_search] Queries: {index_number}/{total}")
+
+    print(f"[multi_search] Finished queries: {total}/{total}")
+    return all_results
