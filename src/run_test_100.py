@@ -1,9 +1,10 @@
 """Evaluate search quality on the first 100 Jeopardy questions."""
 
-# python -m src.run_test_100 --mode whoosh
+# python -m src.run_test_100 --mode whoosh --query-mode entity
 
 import argparse
 from dataclasses import dataclass
+from functools import lru_cache
 import json
 from pathlib import Path
 import re
@@ -36,6 +37,12 @@ def parse_args() -> argparse.Namespace:
         default="token",
         help="token uses processor3 tokens; whoosh uses Whoosh's default analyzer index.",
     )
+    parser.add_argument(
+        "--query-mode",
+        choices=["full", "entity"],
+        default="full",
+        help="full uses the original clue; entity keeps entities, nouns, and numbers.",
+    )
     return parser.parse_args()
 
 
@@ -58,8 +65,54 @@ def is_correct_at_k(results: list[dict], answers: set[str], k: int) -> bool:
     return bool(top_titles & answers)
 
 
-def search_questions(questions: list[JeopardyQuestion], limit: int, mode: str) -> list[dict]:
-    queries = [question.clue for question in questions]
+@lru_cache(maxsize=1)
+def load_entity_model():
+    try:
+        import spacy
+    except ModuleNotFoundError as error:
+        raise RuntimeError("spaCy is required for --query-mode entity.") from error
+
+    try:
+        return spacy.load("en_core_web_sm")
+    except OSError as error:
+        raise RuntimeError(
+            "spaCy model en_core_web_sm is required for --query-mode entity. "
+            "Install it with: python -m spacy download en_core_web_sm"
+        ) from error
+
+
+def entity_query_text(query_text: str) -> str:
+    doc = load_entity_model()(query_text)
+    spans = [(entity.start, entity.end, entity.text) for entity in doc.ents]
+    covered_token_indexes = {
+        token_index
+        for start, end, _ in spans
+        for token_index in range(start, end)
+    }
+
+    for token in doc:
+        keep_token = token.like_num or token.pos_ in {"NOUN", "PROPN"}
+        if token.i not in covered_token_indexes and keep_token and len(token.text) > 1:
+            spans.append((token.i, token.i + 1, token.text))
+        
+    spans.sort(key=lambda span: span[0])
+    return " ".join(text for _, _, text in spans)
+
+
+def question_query(question: JeopardyQuestion, query_mode: str) -> str:
+    if query_mode == "entity":
+        return entity_query_text(question.clue)
+
+    return question.clue
+
+
+def search_questions(
+    questions: list[JeopardyQuestion],
+    limit: int,
+    mode: str,
+    query_mode: str,
+) -> list[dict]:
+    queries = [question_query(question, query_mode) for question in questions]
 
     if mode == "whoosh":
         return multi_search_whoosh_default(queries, limit=limit)
@@ -70,10 +123,11 @@ def search_questions(questions: list[JeopardyQuestion], limit: int, mode: str) -
 def evaluate_questions(
     questions: list[JeopardyQuestion],
     mode: str = "token",
+    query_mode: str = "full",
     top_k_values: list[int] = TOP_K_VALUES,
 ) -> dict[int, float]:
     max_k = max(top_k_values)
-    searches = search_questions(questions, limit=max_k, mode=mode)
+    searches = search_questions(questions, limit=max_k, mode=mode, query_mode=query_mode)
     correct_counts = {k: 0 for k in top_k_values}
 
     for question, search_result in zip(questions, searches):
@@ -88,8 +142,15 @@ def evaluate_questions(
     return {k: correct_counts[k] / total for k in top_k_values}
 
 
-def print_metrics(metrics: dict[int, float], total: int, elapsed: float, mode: str) -> None:
+def print_metrics(
+    metrics: dict[int, float],
+    total: int,
+    elapsed: float,
+    mode: str,
+    query_mode: str,
+) -> None:
     print(f"Mode: {mode}")
+    print(f"Query mode: {query_mode}")
     print(f"Questions: {total}")
     print(f"Time: {elapsed:.2f}s")
 
@@ -103,10 +164,16 @@ def main() -> None:
     questions = load_questions(questions_path)[:100]
 
     start_time = time.time()
-    metrics = evaluate_questions(questions, mode=args.mode)
+    metrics = evaluate_questions(questions, mode=args.mode, query_mode=args.query_mode)
     elapsed = time.time() - start_time
 
-    print_metrics(metrics, total=len(questions), elapsed=elapsed, mode=args.mode)
+    print_metrics(
+        metrics,
+        total=len(questions),
+        elapsed=elapsed,
+        mode=args.mode,
+        query_mode=args.query_mode,
+    )
 
 
 if __name__ == "__main__":
