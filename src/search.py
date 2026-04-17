@@ -2,6 +2,7 @@
 
 from functools import lru_cache
 from pathlib import Path
+import re
 import sqlite3
 
 from whoosh import query as whoosh_query
@@ -77,17 +78,18 @@ except ModuleNotFoundError:
     from processor4_index import DEFAULT_INDEX_DIR, open_index
     from processor3_tokenize import load_stop_words, tokenize_body
 
-# top5-40%
-# WEIGHTED_TITLE_WEIGHT = 2.0
+# top5-43%
+# WEIGHTED_TITLE_WEIGHT = 1.0
 # WEIGHTED_REDIRECT_WEIGHT = 2.0 or 0.0 or 8.0
 # WEIGHTED_BODY_WEIGHT = 4.0
 
 WEIGHTED_TITLE_WEIGHT = 1.0
-WEIGHTED_REDIRECT_WEIGHT = 1.0
-WEIGHTED_BODY_WEIGHT = 1.0
-WEIGHTED_FIRST_SENTENCE_WEIGHT = 1.0
-WEIGHTED_FIRST_TWO_SENTENCES_WEIGHT = 1.0
-WEIGHTED_FIRST_PARAGRAPH_WEIGHT = 1.0
+WEIGHTED_REDIRECT_WEIGHT = 4.0 # so far it has no impact
+WEIGHTED_BODY_WEIGHT = 4.0
+WEIGHTED_FIRST_SENTENCE_WEIGHT = 0.0
+WEIGHTED_FIRST_TWO_SENTENCES_WEIGHT = 0.0
+WEIGHTED_FIRST_PARAGRAPH_WEIGHT = 0.0
+WEIGHTED_YEAR_MATCH_WEIGHT = 2.0
 
 EQUAL_TITLE_WEIGHT = 1.0
 EQUAL_REDIRECT_WEIGHT = 1.0
@@ -95,7 +97,9 @@ EQUAL_BODY_WEIGHT = 1.0
 EQUAL_FIRST_SENTENCE_WEIGHT = 1.0
 EQUAL_FIRST_TWO_SENTENCES_WEIGHT = 1.0
 EQUAL_FIRST_PARAGRAPH_WEIGHT = 1.0
-WEIGHTED_COMPONENT_LIMIT = 1000
+EQUAL_YEAR_MATCH_WEIGHT = 1.0
+WEIGHTED_COMPONENT_LIMIT = 10000
+YEAR_RE = re.compile(r"\b(?:1\d{3}|20\d{2})\b")
 
 
 @lru_cache(maxsize=1)
@@ -112,6 +116,28 @@ def build_terms_query(terms: list[str]):
         return None
 
     return whoosh_query.Or([whoosh_query.Term("body", term) for term in terms])
+
+
+def extract_query_years(query_text: str) -> list[str]:
+    return list(dict.fromkeys(YEAR_RE.findall(query_text)))
+
+
+def build_year_match_query(query_text: str):
+    years = extract_query_years(query_text)
+    if not years:
+        return None
+
+    return whoosh_query.And(
+        [
+            whoosh_query.Or(
+                [
+                    whoosh_query.Term("title", year),
+                    whoosh_query.Term("body", year),
+                ]
+            )
+            for year in years
+        ]
+    )
 
 
 def serialize_results(results) -> list[dict]:
@@ -278,6 +304,7 @@ def search_whoosh_weighted_with_searcher(
     redirect_weight: float = WEIGHTED_REDIRECT_WEIGHT,
     body_weight: float = WEIGHTED_BODY_WEIGHT,
     extra_body_components: list[tuple[str, float, object, object]] | None = None,
+    extra_components: list[tuple[str, float, object, object]] | None = None,
     redirect_searcher=None,
     redirect_title_parser=None,
     filter_main_redirects: bool = True,
@@ -288,6 +315,7 @@ def search_whoosh_weighted_with_searcher(
         return []
 
     extra_body_components = extra_body_components or []
+    extra_components = extra_components or []
     redirect_searcher = redirect_searcher or searcher
     redirect_title_parser = redirect_title_parser or title_parser
     title_query = title_parser.parse(query_text)
@@ -312,6 +340,18 @@ def search_whoosh_weighted_with_searcher(
                 limit=component_limit,
             )
         )
+    for score_name, _, component_searcher, component_query_builder in extra_components:
+        component_query = component_query_builder(query_text)
+        if component_query is None:
+            extra_component_results[score_name] = []
+            continue
+
+        extra_component_results[score_name] = serialize_results(
+            component_searcher.search(
+                component_query,
+                limit=component_limit,
+            )
+        )
     redirect_results = []
     if not skip_redirects:
         redirect_results = serialize_results(
@@ -329,6 +369,7 @@ def search_whoosh_weighted_with_searcher(
         "redirect_score",
         "body_score",
         *[score_name for score_name, _, _, _ in extra_body_components],
+        *[score_name for score_name, _, _, _ in extra_components],
     ]
 
     def resolve_base_result(result: dict) -> dict:
@@ -362,6 +403,9 @@ def search_whoosh_weighted_with_searcher(
         ensure_entry(result)["body_score"] = max(ensure_entry(result)["body_score"], result["score"])
 
     for score_name, _, _, _ in extra_body_components:
+        for result in extra_component_results[score_name]:
+            ensure_entry(result)[score_name] = max(ensure_entry(result)[score_name], result["score"])
+    for score_name, _, _, _ in extra_components:
         for result in extra_component_results[score_name]:
             ensure_entry(result)[score_name] = max(ensure_entry(result)[score_name], result["score"])
 
@@ -401,6 +445,8 @@ def search_whoosh_weighted_with_searcher(
         result["score"] += body_weight * result["body_score"]
         for score_name, component_weight, _, _ in extra_body_components:
             result["score"] += component_weight * result[score_name]
+        for score_name, component_weight, _, _ in extra_components:
+            result["score"] += component_weight * result[score_name]
 
     ranked_results = sorted(
         aggregated_results.values(),
@@ -410,6 +456,7 @@ def search_whoosh_weighted_with_searcher(
             -result["redirect_score"],
             -result["body_score"],
             *[-result[score_name] for score_name, _, _, _ in extra_body_components],
+            *[-result[score_name] for score_name, _, _, _ in extra_components],
             result["article_index"],
         ),
     )
@@ -528,6 +575,7 @@ def search_whoosh_weighted_cole(
     first_sentence_weight: float = WEIGHTED_FIRST_SENTENCE_WEIGHT,
     first_two_sentences_weight: float = WEIGHTED_FIRST_TWO_SENTENCES_WEIGHT,
     first_paragraph_weight: float = WEIGHTED_FIRST_PARAGRAPH_WEIGHT,
+    year_match_weight: float = WEIGHTED_YEAR_MATCH_WEIGHT,
 ) -> list[dict]:
     index = open_whoosh_cole_index(index_dir)
     first_sentence_index = open_whoosh_cole_first_sentence_index(first_sentence_index_dir)
@@ -596,6 +644,14 @@ def search_whoosh_weighted_cole(
                                     first_paragraph_weight,
                                     first_paragraph_searcher,
                                     first_paragraph_parser,
+                                ),
+                            ],
+                            extra_components=[
+                                (
+                                    "year_match_score",
+                                    year_match_weight,
+                                    searcher,
+                                    build_year_match_query,
                                 ),
                             ],
                             redirect_searcher=redirect_searcher,
@@ -737,6 +793,7 @@ def multi_search_whoosh_weighted_cole(
     first_sentence_weight: float = WEIGHTED_FIRST_SENTENCE_WEIGHT,
     first_two_sentences_weight: float = WEIGHTED_FIRST_TWO_SENTENCES_WEIGHT,
     first_paragraph_weight: float = WEIGHTED_FIRST_PARAGRAPH_WEIGHT,
+    year_match_weight: float = WEIGHTED_YEAR_MATCH_WEIGHT,
 ) -> list[dict]:
     index = open_whoosh_cole_index(index_dir)
     first_sentence_index = open_whoosh_cole_first_sentence_index(first_sentence_index_dir)
@@ -812,6 +869,14 @@ def multi_search_whoosh_weighted_cole(
                                                 first_paragraph_weight,
                                                 first_paragraph_searcher,
                                                 first_paragraph_parser,
+                                            ),
+                                        ],
+                                        extra_components=[
+                                            (
+                                                "year_match_score",
+                                                year_match_weight,
+                                                searcher,
+                                                build_year_match_query,
                                             ),
                                         ],
                                         redirect_searcher=redirect_searcher,

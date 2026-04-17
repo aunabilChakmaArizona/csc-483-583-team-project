@@ -37,7 +37,7 @@ def initialize_clean_articles_database(db_path):
             [
                 (
                     "Core Article",
-                    "leadword first sentence. secondword second sentence.\n\notherword later paragraph.",
+                    "leadword first sentence in 2011. secondword second sentence.\n\notherword later paragraph.",
                     "a.txt",
                     0,
                     0,
@@ -152,6 +152,15 @@ def test_weighted_cole_search_maps_redirect_hits_to_canonical_article(tmp_path):
         redirect_index_dir=redirect_index_dir,
         redirect_db_path=redirect_db_path,
     )
+    year_results = search_whoosh_weighted_cole(
+        "2011",
+        index_dir=cole_index_dir,
+        first_sentence_index_dir=first_sentence_index_dir,
+        first_two_sentences_index_dir=first_two_sentences_index_dir,
+        first_paragraph_index_dir=first_paragraph_index_dir,
+        redirect_index_dir=redirect_index_dir,
+        redirect_db_path=redirect_db_path,
+    )
 
     assert [result["title"] for result in redirect_results] == ["Core Article"]
     assert redirect_results[0]["redirect_score"] > 0
@@ -166,3 +175,5 @@ def test_weighted_cole_search_maps_redirect_hits_to_canonical_article(tmp_path):
     assert full_body_results[0]["first_sentence_score"] == 0
     assert full_body_results[0]["first_two_sentences_score"] == 0
     assert full_body_results[0]["first_paragraph_score"] == 0
+    assert [result["title"] for result in year_results] == ["Core Article"]
+    assert year_results[0]["year_match_score"] > 0
