@@ -9,3 +9,4 @@ torch==2.2.2
 transformers==4.53.2
 tiktoken
 protobuf
+pandas
