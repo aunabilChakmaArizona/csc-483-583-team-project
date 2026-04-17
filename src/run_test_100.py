@@ -16,6 +16,7 @@ try:
         multi_search,
         multi_search_whoosh_cole,
         multi_search_whoosh_default,
+        multi_search_whoosh_weighted,
         multi_search_whoosh_title_body,
     )
 except ModuleNotFoundError:
@@ -24,6 +25,7 @@ except ModuleNotFoundError:
         multi_search,
         multi_search_whoosh_cole,
         multi_search_whoosh_default,
+        multi_search_whoosh_weighted,
         multi_search_whoosh_title_body,
     )
 
@@ -65,6 +67,14 @@ def parse_args() -> argparse.Namespace:
         "--include-category",
         action="store_true",
         help="Add the question category before the clue.",
+    )
+    parser.add_argument(
+        "--weighted",
+        action="store_true",
+        help=(
+            "Use weighted retrieval on the title/body index with score = "
+            "4*BM25(title) + 4*BM25(redirects) + 1*BM25(body)."
+        ),
     )
     parser.add_argument(
         "--paraphrase",
@@ -254,7 +264,11 @@ def run_search_batch(
     queries: list[str],
     limit: int,
     mode: str,
+    weighted: bool = False,
 ) -> list[dict]:
+    if weighted:
+        return multi_search_whoosh_weighted(queries, limit=limit)
+
     if mode == "whoosh_title_body":
         return multi_search_whoosh_title_body(queries, limit=limit)
 
@@ -310,13 +324,14 @@ def search_questions(
     mode: str,
     query_mode: str,
     include_category: bool,
+    weighted: bool = False,
     paraphrase: bool = False,
     paraphrase_count: int = DEFAULT_PARAPHRASE_COUNT,
     paraphrase_fetch_limit: int = DEFAULT_PARAPHRASE_FETCH_LIMIT,
 ) -> list[dict]:
     if not paraphrase:
         queries = [question_query(question, query_mode, include_category) for question in questions]
-        return run_search_batch(queries, limit=limit, mode=mode)
+        return run_search_batch(queries, limit=limit, mode=mode, weighted=weighted)
 
     print("Running paraphrasing...")
     total_questions = len(questions)
@@ -338,6 +353,7 @@ def search_questions(
         flat_queries,
         limit=max(limit, paraphrase_fetch_limit),
         mode=mode,
+        weighted=weighted,
     )
 
     merged_searches = []
@@ -363,6 +379,7 @@ def evaluate_questions(
     mode: str = "token",
     query_mode: str = "full",
     include_category: bool = False,
+    weighted: bool = False,
     paraphrase: bool = False,
     paraphrase_count: int = DEFAULT_PARAPHRASE_COUNT,
     paraphrase_fetch_limit: int = DEFAULT_PARAPHRASE_FETCH_LIMIT,
@@ -375,6 +392,7 @@ def evaluate_questions(
         mode=mode,
         query_mode=query_mode,
         include_category=include_category,
+        weighted=weighted,
         paraphrase=paraphrase,
         paraphrase_count=paraphrase_count,
         paraphrase_fetch_limit=paraphrase_fetch_limit,
@@ -400,6 +418,7 @@ def print_metrics(
     mode: str,
     query_mode: str,
     include_category: bool,
+    weighted: bool,
     paraphrase: bool,
     paraphrase_count: int,
     paraphrase_fetch_limit: int,
@@ -407,6 +426,7 @@ def print_metrics(
     print(f"Mode: {mode}")
     print(f"Query mode: {query_mode}")
     print(f"Include category: {include_category}")
+    print(f"Weighted: {weighted}")
     print(f"Paraphrase: {paraphrase}")
     if paraphrase:
         print(f"Paraphrase count: {paraphrase_count}")
@@ -429,6 +449,7 @@ def main() -> None:
         mode=args.mode,
         query_mode=args.query_mode,
         include_category=args.include_category,
+        weighted=args.weighted,
         paraphrase=args.paraphrase,
         paraphrase_count=args.paraphrase_count,
         paraphrase_fetch_limit=args.paraphrase_fetch_limit,
@@ -442,6 +463,7 @@ def main() -> None:
         mode=args.mode,
         query_mode=args.query_mode,
         include_category=args.include_category,
+        weighted=args.weighted,
         paraphrase=args.paraphrase,
         paraphrase_count=args.paraphrase_count,
         paraphrase_fetch_limit=args.paraphrase_fetch_limit,

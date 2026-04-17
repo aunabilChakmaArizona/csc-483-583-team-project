@@ -73,10 +73,11 @@ def test_search_questions_expands_queries_and_merges_results(monkeypatch):
         lambda sentence, count=4: ["Alt one", "Alt two", "Alt three", "Alt four"],
     )
 
-    def fake_run_search_batch(queries, limit, mode):
+    def fake_run_search_batch(queries, limit, mode, weighted=False):
         captured["queries"] = queries
         captured["limit"] = limit
         captured["mode"] = mode
+        captured["weighted"] = weighted
         query_to_results = {
             "Raw clue": [make_hit("Alpha", article_index=1), make_hit("Beta", article_index=2)],
             "Alt one": [make_hit("Beta", article_index=2), make_hit("Gamma", article_index=3)],
@@ -103,6 +104,7 @@ def test_search_questions_expands_queries_and_merges_results(monkeypatch):
         "queries": ["Raw clue", "Alt one", "Alt two", "Alt three", "Alt four"],
         "limit": 1000,
         "mode": "whoosh",
+        "weighted": False,
     }
     assert searches[0]["queries"] == ["Raw clue", "Alt one", "Alt two", "Alt three", "Alt four"]
     assert [result["title"] for result in searches[0]["results"]] == ["Beta", "Gamma", "Alpha"]
