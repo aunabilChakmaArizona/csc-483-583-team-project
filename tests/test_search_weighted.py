@@ -1,5 +1,15 @@
 import sqlite3
 
+from src.processor4_cole_first_paragraph_index import (
+    materialize_whoosh_cole_first_paragraph_index,
+)
+from src.processor4_cole_first_sentence_index import (
+    materialize_whoosh_cole_first_sentence_index,
+)
+from src.processor4_cole_first_two_sentences_index import (
+    materialize_whoosh_cole_first_two_sentences_index,
+)
+from src.processor4_cole_redirect_index import materialize_whoosh_cole_redirect_index
 from src.processor4_whoosh_title_body_index import materialize_whoosh_title_body_index
 from src.search import search_whoosh_weighted
 
@@ -25,8 +35,14 @@ def initialize_clean_articles_database(db_path):
             VALUES (?, ?, ?, ?, ?)
             """,
             [
-                ("Core Article", "A canonical article body.", "a.txt", 0, 0),
-                ("Alias Name", "", "b.txt", 1, 1),
+                (
+                    "Core Article",
+                    "leadword first sentence. secondword second sentence.\n\notherword later paragraph.",
+                    "a.txt",
+                    0,
+                    0,
+                ),
+                ("Alias Name", "#REDIRECT [[Core Article]]", "b.txt", 1, 1),
                 ("Body Match", "Useful grain term in the body.", "c.txt", 2, 0),
             ],
         )
@@ -77,22 +93,63 @@ def initialize_redirect_database(db_path):
 def test_weighted_search_maps_redirect_hits_to_canonical_article(tmp_path):
     db_path = tmp_path / "wiki_articles_step1_clean.sqlite3"
     index_dir = tmp_path / "whoosh_title_body_index"
+    first_sentence_index_dir = tmp_path / "whoosh_cole_first_sentence_index"
+    first_two_sentences_index_dir = tmp_path / "whoosh_cole_first_two_sentences_index"
+    first_paragraph_index_dir = tmp_path / "whoosh_cole_first_paragraph_index"
+    redirect_index_dir = tmp_path / "whoosh_cole_redirect_index"
     redirect_db_path = tmp_path / "wiki_redirects.sqlite3"
     initialize_clean_articles_database(db_path)
     initialize_redirect_database(redirect_db_path)
 
     total = materialize_whoosh_title_body_index(input_db_path=db_path, index_dir=index_dir)
+    total_first_sentence = materialize_whoosh_cole_first_sentence_index(
+        input_db_path=db_path,
+        index_dir=first_sentence_index_dir,
+    )
+    total_first_two_sentences = materialize_whoosh_cole_first_two_sentences_index(
+        input_db_path=db_path,
+        index_dir=first_two_sentences_index_dir,
+    )
+    total_first_paragraph = materialize_whoosh_cole_first_paragraph_index(
+        input_db_path=db_path,
+        index_dir=first_paragraph_index_dir,
+    )
+    total_redirects = materialize_whoosh_cole_redirect_index(
+        input_db_path=db_path,
+        index_dir=redirect_index_dir,
+    )
 
     assert total == 3
+    assert total_first_sentence == 2
+    assert total_first_two_sentences == 2
+    assert total_first_paragraph == 2
+    assert total_redirects == 1
 
     redirect_results = search_whoosh_weighted(
         "Alias Name",
         index_dir=index_dir,
+        first_sentence_index_dir=first_sentence_index_dir,
+        first_two_sentences_index_dir=first_two_sentences_index_dir,
+        first_paragraph_index_dir=first_paragraph_index_dir,
+        redirect_index_dir=redirect_index_dir,
         redirect_db_path=redirect_db_path,
     )
     body_results = search_whoosh_weighted(
-        "grain",
+        "secondword",
         index_dir=index_dir,
+        first_sentence_index_dir=first_sentence_index_dir,
+        first_two_sentences_index_dir=first_two_sentences_index_dir,
+        first_paragraph_index_dir=first_paragraph_index_dir,
+        redirect_index_dir=redirect_index_dir,
+        redirect_db_path=redirect_db_path,
+    )
+    full_body_results = search_whoosh_weighted(
+        "otherword",
+        index_dir=index_dir,
+        first_sentence_index_dir=first_sentence_index_dir,
+        first_two_sentences_index_dir=first_two_sentences_index_dir,
+        first_paragraph_index_dir=first_paragraph_index_dir,
+        redirect_index_dir=redirect_index_dir,
         redirect_db_path=redirect_db_path,
     )
 
@@ -100,5 +157,13 @@ def test_weighted_search_maps_redirect_hits_to_canonical_article(tmp_path):
     assert redirect_results[0]["is_redirect"] == 0
     assert redirect_results[0]["redirect_score"] > 0
     assert redirect_results[0]["title_score"] == 0
-    assert [result["title"] for result in body_results] == ["Body Match"]
+    assert [result["title"] for result in body_results] == ["Core Article"]
     assert body_results[0]["body_score"] > 0
+    assert body_results[0]["first_sentence_score"] == 0
+    assert body_results[0]["first_two_sentences_score"] > 0
+    assert body_results[0]["first_paragraph_score"] > 0
+    assert [result["title"] for result in full_body_results] == ["Core Article"]
+    assert full_body_results[0]["body_score"] > 0
+    assert full_body_results[0]["first_sentence_score"] == 0
+    assert full_body_results[0]["first_two_sentences_score"] == 0
+    assert full_body_results[0]["first_paragraph_score"] == 0

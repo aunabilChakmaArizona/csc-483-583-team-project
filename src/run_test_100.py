@@ -75,24 +75,24 @@ def parse_args() -> argparse.Namespace:
         "--weighted",
         action="store_true",
         help=(
-            "Use weighted retrieval on the title/body index with score = "
-            "4*BM25(title) + 4*BM25(redirects) + 1*BM25(body)."
+            "Use weighted retrieval with title/body plus Cole lead indexes and redirect-only "
+            "evidence. By default all weighted components currently start with the same weight."
         ),
     )
     weight_group.add_argument(
         "--weight-equal",
         action="store_true",
         help=(
-            "Use equal weights on the title/body index with score = "
-            "1*BM25(title) + 1*BM25(redirects) + 1*BM25(body)."
+            "Force equal weights across title, redirects, full body, first sentence, "
+            "first two sentences, and first paragraph."
         ),
     )
     weight_group.add_argument(
         "--weighted-cole",
         action="store_true",
         help=(
-            "Use the weighted formula on Cole for title/body scoring while using "
-            "redirect-title matches from the title/body index."
+            "Use the weighted formula on Cole for canonical title/body scoring while also "
+            "using the Cole lead indexes and the redirect-only index."
         ),
     )
     parser.add_argument(
@@ -308,6 +308,9 @@ def run_search_batch(
                     "title_weight": 1.0,
                     "redirect_weight": 1.0,
                     "body_weight": 1.0,
+                    "first_sentence_weight": 1.0,
+                    "first_two_sentences_weight": 1.0,
+                    "first_paragraph_weight": 1.0,
                 }
             )
         return multi_search_whoosh_weighted(queries, **weighted_kwargs)
