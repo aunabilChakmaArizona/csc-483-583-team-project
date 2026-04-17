@@ -73,11 +73,21 @@ def test_search_questions_expands_queries_and_merges_results(monkeypatch):
         lambda sentence, count=4: ["Alt one", "Alt two", "Alt three", "Alt four"],
     )
 
-    def fake_run_search_batch(queries, limit, mode, weighted=False, skip_redirects=False):
+    def fake_run_search_batch(
+        queries,
+        limit,
+        mode,
+        weighted=False,
+        weight_equal=False,
+        weighted_cole=False,
+        skip_redirects=False,
+    ):
         captured["queries"] = queries
         captured["limit"] = limit
         captured["mode"] = mode
         captured["weighted"] = weighted
+        captured["weight_equal"] = weight_equal
+        captured["weighted_cole"] = weighted_cole
         captured["skip_redirects"] = skip_redirects
         query_to_results = {
             "Raw clue": [make_hit("Alpha", article_index=1), make_hit("Beta", article_index=2)],
@@ -106,7 +116,57 @@ def test_search_questions_expands_queries_and_merges_results(monkeypatch):
         "limit": 1000,
         "mode": "whoosh",
         "weighted": False,
+        "weight_equal": False,
+        "weighted_cole": False,
         "skip_redirects": False,
     }
     assert searches[0]["queries"] == ["Raw clue", "Alt one", "Alt two", "Alt three", "Alt four"]
     assert [result["title"] for result in searches[0]["results"]] == ["Beta", "Gamma", "Alpha"]
+
+
+def test_search_questions_passes_weight_equal_to_search_batch(monkeypatch):
+    question = JeopardyQuestion(category="Science", clue="Raw clue", answer="Beta")
+    captured = {}
+
+    def fake_run_search_batch(
+        queries,
+        limit,
+        mode,
+        weighted=False,
+        weight_equal=False,
+        weighted_cole=False,
+        skip_redirects=False,
+    ):
+        captured["queries"] = queries
+        captured["limit"] = limit
+        captured["mode"] = mode
+        captured["weighted"] = weighted
+        captured["weight_equal"] = weight_equal
+        captured["weighted_cole"] = weighted_cole
+        captured["skip_redirects"] = skip_redirects
+        return [{"query": queries[0], "results": [make_hit("Beta", article_index=2)]}]
+
+    monkeypatch.setattr("src.run_test_100.run_search_batch", fake_run_search_batch)
+
+    searches = search_questions(
+        [question],
+        limit=5,
+        mode="whoosh_title_body",
+        query_mode="full",
+        include_category=False,
+        weighted=False,
+        weight_equal=True,
+        skip_redirects=True,
+        paraphrase=False,
+    )
+
+    assert captured == {
+        "queries": ["Raw clue"],
+        "limit": 5,
+        "mode": "whoosh_title_body",
+        "weighted": False,
+        "weight_equal": True,
+        "weighted_cole": False,
+        "skip_redirects": True,
+    }
+    assert [result["title"] for result in searches[0]["results"]] == ["Beta"]

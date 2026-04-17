@@ -33,10 +33,18 @@ except ModuleNotFoundError:
     from processor4_index import DEFAULT_INDEX_DIR, open_index
     from processor3_tokenize import load_stop_words, tokenize_body
 
+# top5-40%
+# WEIGHTED_TITLE_WEIGHT = 2.0
+# WEIGHTED_REDIRECT_WEIGHT = 2.0 or 0.0 or 8.0
+# WEIGHTED_BODY_WEIGHT = 4.0
 
-WEIGHTED_TITLE_WEIGHT = 4.0
-WEIGHTED_REDIRECT_WEIGHT = 4.0
-WEIGHTED_BODY_WEIGHT = 1.0
+WEIGHTED_TITLE_WEIGHT = 1.0
+WEIGHTED_REDIRECT_WEIGHT = 8.0
+WEIGHTED_BODY_WEIGHT = 4.0
+
+EQUAL_TITLE_WEIGHT = 1.0
+EQUAL_REDIRECT_WEIGHT = 1.0
+EQUAL_BODY_WEIGHT = 1.0
 WEIGHTED_COMPONENT_LIMIT = 1000
 
 
@@ -182,6 +190,27 @@ def fetch_document_by_key(searcher, source_file: str, article_index: int) -> dic
     return serialize_results(results)[0]
 
 
+def build_stored_document_lookup(searcher) -> dict[tuple[str, int], dict]:
+    lookup = {}
+
+    for docnum in range(searcher.doc_count_all()):
+        stored_fields = searcher.stored_fields(docnum)
+        if not stored_fields:
+            continue
+
+        key = (stored_fields["source_file"], stored_fields["article_index"])
+        lookup[key] = {
+            "title": stored_fields["title"],
+            "body": stored_fields.get("body", ""),
+            "source_file": stored_fields["source_file"],
+            "article_index": stored_fields["article_index"],
+            "is_redirect": stored_fields["is_redirect"],
+            "score": 0.0,
+        }
+
+    return lookup
+
+
 def weighted_result_key(result: dict) -> tuple[str, int]:
     return (result["source_file"], result["article_index"])
 
@@ -195,13 +224,25 @@ def search_whoosh_weighted_with_searcher(
     limit: int = 10,
     component_limit: int = WEIGHTED_COMPONENT_LIMIT,
     skip_redirects: bool = False,
+    title_weight: float = WEIGHTED_TITLE_WEIGHT,
+    redirect_weight: float = WEIGHTED_REDIRECT_WEIGHT,
+    body_weight: float = WEIGHTED_BODY_WEIGHT,
+    redirect_searcher=None,
+    redirect_title_parser=None,
+    filter_main_redirects: bool = True,
+    document_lookup: dict[tuple[str, int], dict] | None = None,
 ) -> list[dict]:
     if not query_text.strip():
         return []
 
+    redirect_searcher = redirect_searcher or searcher
+    redirect_title_parser = redirect_title_parser or title_parser
     title_query = title_parser.parse(query_text)
     body_query = body_parser.parse(query_text)
-    non_redirect_filter = whoosh_query.NumericRange("is_redirect", 0, 0)
+    redirect_title_query = redirect_title_parser.parse(query_text)
+    non_redirect_filter = (
+        whoosh_query.NumericRange("is_redirect", 0, 0) if filter_main_redirects else None
+    )
     redirect_filter = whoosh_query.NumericRange("is_redirect", 1, 1)
 
     title_results = serialize_results(
@@ -213,7 +254,11 @@ def search_whoosh_weighted_with_searcher(
     redirect_results = []
     if not skip_redirects:
         redirect_results = serialize_results(
-            searcher.search(title_query, limit=component_limit, filter=redirect_filter)
+            redirect_searcher.search(
+                redirect_title_query,
+                limit=component_limit,
+                filter=redirect_filter,
+            )
         )
 
     aggregated_results: dict[tuple[str, int], dict] = {}
@@ -251,13 +296,16 @@ def search_whoosh_weighted_with_searcher(
 
         canonical_result = aggregated_results.get(resolved_key)
         if canonical_result is None:
-            if resolved_key not in document_cache:
-                document_cache[resolved_key] = fetch_document_by_key(
-                    searcher,
-                    source_file=redirect_mapping["resolved_source_file"],
-                    article_index=redirect_mapping["resolved_article_index"],
-                )
-            canonical_result = document_cache[resolved_key]
+            if document_lookup is not None:
+                canonical_result = document_lookup.get(resolved_key)
+            else:
+                if resolved_key not in document_cache:
+                    document_cache[resolved_key] = fetch_document_by_key(
+                        searcher,
+                        source_file=redirect_mapping["resolved_source_file"],
+                        article_index=redirect_mapping["resolved_article_index"],
+                    )
+                canonical_result = document_cache[resolved_key]
             if canonical_result is None or canonical_result["is_redirect"]:
                 continue
 
@@ -268,9 +316,9 @@ def search_whoosh_weighted_with_searcher(
 
     for result in aggregated_results.values():
         result["score"] = (
-            WEIGHTED_TITLE_WEIGHT * result["title_score"]
-            + WEIGHTED_REDIRECT_WEIGHT * result["redirect_score"]
-            + WEIGHTED_BODY_WEIGHT * result["body_score"]
+            title_weight * result["title_score"]
+            + redirect_weight * result["redirect_score"]
+            + body_weight * result["body_score"]
         )
 
     ranked_results = sorted(
@@ -293,6 +341,9 @@ def search_whoosh_weighted(
     index_dir: Path = DEFAULT_WHOOSH_TITLE_BODY_INDEX_DIR,
     redirect_db_path: Path = DEFAULT_REDIRECT_DB_PATH,
     skip_redirects: bool = False,
+    title_weight: float = WEIGHTED_TITLE_WEIGHT,
+    redirect_weight: float = WEIGHTED_REDIRECT_WEIGHT,
+    body_weight: float = WEIGHTED_BODY_WEIGHT,
 ) -> list[dict]:
     index = open_whoosh_title_body_index(index_dir)
     redirect_lookup = load_redirect_lookup(redirect_db_path)
@@ -309,7 +360,52 @@ def search_whoosh_weighted(
             limit=limit,
             component_limit=component_limit,
             skip_redirects=skip_redirects,
+            title_weight=title_weight,
+            redirect_weight=redirect_weight,
+            body_weight=body_weight,
+            filter_main_redirects=True,
         )
+
+
+def search_whoosh_weighted_cole(
+    query: str,
+    limit: int = 10,
+    component_limit: int = WEIGHTED_COMPONENT_LIMIT,
+    index_dir: Path = DEFAULT_WHOOSH_COLE_INDEX_DIR,
+    redirect_index_dir: Path = DEFAULT_WHOOSH_TITLE_BODY_INDEX_DIR,
+    redirect_db_path: Path = DEFAULT_REDIRECT_DB_PATH,
+    skip_redirects: bool = False,
+    title_weight: float = WEIGHTED_TITLE_WEIGHT,
+    redirect_weight: float = WEIGHTED_REDIRECT_WEIGHT,
+    body_weight: float = WEIGHTED_BODY_WEIGHT,
+) -> list[dict]:
+    index = open_whoosh_cole_index(index_dir)
+    redirect_index = open_whoosh_title_body_index(redirect_index_dir)
+    redirect_lookup = load_redirect_lookup(redirect_db_path)
+
+    with index.searcher(weighting=BM25F()) as searcher:
+        with redirect_index.searcher(weighting=BM25F()) as redirect_searcher:
+            document_lookup = build_stored_document_lookup(searcher)
+            title_parser = QueryParser("title", schema=index.schema, group=OrGroup)
+            body_parser = QueryParser("body", schema=index.schema, group=OrGroup)
+            redirect_title_parser = QueryParser("title", schema=redirect_index.schema, group=OrGroup)
+            return search_whoosh_weighted_with_searcher(
+                searcher,
+                query_text=query,
+                title_parser=title_parser,
+                body_parser=body_parser,
+                redirect_lookup=redirect_lookup,
+                limit=limit,
+                component_limit=component_limit,
+                skip_redirects=skip_redirects,
+                title_weight=title_weight,
+                redirect_weight=redirect_weight,
+                body_weight=body_weight,
+                redirect_searcher=redirect_searcher,
+                redirect_title_parser=redirect_title_parser,
+                filter_main_redirects=False,
+                document_lookup=document_lookup,
+            )
 
 
 def multi_search_whoosh_weighted(
@@ -320,6 +416,9 @@ def multi_search_whoosh_weighted(
     redirect_db_path: Path = DEFAULT_REDIRECT_DB_PATH,
     progress_every: int = 10,
     skip_redirects: bool = False,
+    title_weight: float = WEIGHTED_TITLE_WEIGHT,
+    redirect_weight: float = WEIGHTED_REDIRECT_WEIGHT,
+    body_weight: float = WEIGHTED_BODY_WEIGHT,
 ) -> list[dict]:
     index = open_whoosh_title_body_index(index_dir)
     redirect_lookup = load_redirect_lookup(redirect_db_path)
@@ -343,6 +442,10 @@ def multi_search_whoosh_weighted(
                         limit=limit,
                         component_limit=component_limit,
                         skip_redirects=skip_redirects,
+                        title_weight=title_weight,
+                        redirect_weight=redirect_weight,
+                        body_weight=body_weight,
+                        filter_main_redirects=True,
                     ),
                 }
             )
@@ -351,6 +454,67 @@ def multi_search_whoosh_weighted(
                 print(f"[multi_search_whoosh_weighted] Queries: {index_number}/{total}")
 
     print(f"[multi_search_whoosh_weighted] Finished queries: {total}/{total}")
+    return all_results
+
+
+def multi_search_whoosh_weighted_cole(
+    queries: list[str],
+    limit: int = 10,
+    component_limit: int = WEIGHTED_COMPONENT_LIMIT,
+    index_dir: Path = DEFAULT_WHOOSH_COLE_INDEX_DIR,
+    redirect_index_dir: Path = DEFAULT_WHOOSH_TITLE_BODY_INDEX_DIR,
+    redirect_db_path: Path = DEFAULT_REDIRECT_DB_PATH,
+    progress_every: int = 10,
+    skip_redirects: bool = False,
+    title_weight: float = WEIGHTED_TITLE_WEIGHT,
+    redirect_weight: float = WEIGHTED_REDIRECT_WEIGHT,
+    body_weight: float = WEIGHTED_BODY_WEIGHT,
+) -> list[dict]:
+    index = open_whoosh_cole_index(index_dir)
+    redirect_index = open_whoosh_title_body_index(redirect_index_dir)
+    redirect_lookup = load_redirect_lookup(redirect_db_path)
+    total = len(queries)
+    all_results = []
+
+    with index.searcher(weighting=BM25F()) as searcher:
+        with redirect_index.searcher(weighting=BM25F()) as redirect_searcher:
+            document_lookup = build_stored_document_lookup(searcher)
+            title_parser = QueryParser("title", schema=index.schema, group=OrGroup)
+            body_parser = QueryParser("body", schema=index.schema, group=OrGroup)
+            redirect_title_parser = QueryParser(
+                "title",
+                schema=redirect_index.schema,
+                group=OrGroup,
+            )
+
+            for index_number, query_text in enumerate(queries, start=1):
+                all_results.append(
+                    {
+                        "query": query_text,
+                        "results": search_whoosh_weighted_with_searcher(
+                            searcher,
+                            query_text=query_text,
+                            title_parser=title_parser,
+                            body_parser=body_parser,
+                            redirect_lookup=redirect_lookup,
+                            limit=limit,
+                            component_limit=component_limit,
+                            skip_redirects=skip_redirects,
+                            title_weight=title_weight,
+                            redirect_weight=redirect_weight,
+                            body_weight=body_weight,
+                            redirect_searcher=redirect_searcher,
+                            redirect_title_parser=redirect_title_parser,
+                            filter_main_redirects=False,
+                            document_lookup=document_lookup,
+                        ),
+                    }
+                )
+
+                if progress_every and index_number % progress_every == 0:
+                    print(f"[multi_search_whoosh_weighted_cole] Queries: {index_number}/{total}")
+
+    print(f"[multi_search_whoosh_weighted_cole] Finished queries: {total}/{total}")
     return all_results
 
 

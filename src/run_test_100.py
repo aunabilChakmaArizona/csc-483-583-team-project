@@ -17,6 +17,7 @@ try:
         multi_search_whoosh_cole,
         multi_search_whoosh_default,
         multi_search_whoosh_weighted,
+        multi_search_whoosh_weighted_cole,
         multi_search_whoosh_title_body,
     )
 except ModuleNotFoundError:
@@ -26,11 +27,12 @@ except ModuleNotFoundError:
         multi_search_whoosh_cole,
         multi_search_whoosh_default,
         multi_search_whoosh_weighted,
+        multi_search_whoosh_weighted_cole,
         multi_search_whoosh_title_body,
     )
 
 
-TOP_K_VALUES = [1, 5, 10, 20, 50, 100]
+TOP_K_VALUES = [1, 5, 10, 20, 50, 100, 200, 500, 1000]
 DEFAULT_PARAPHRASE_COUNT = 4
 DEFAULT_PARAPHRASE_FETCH_LIMIT = 1000
 PARAPHRASE_MODEL_NAME = "Vamsi/T5_Paraphrase_Paws"
@@ -68,12 +70,29 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Add the question category before the clue.",
     )
-    parser.add_argument(
+    weight_group = parser.add_mutually_exclusive_group()
+    weight_group.add_argument(
         "--weighted",
         action="store_true",
         help=(
             "Use weighted retrieval on the title/body index with score = "
             "4*BM25(title) + 4*BM25(redirects) + 1*BM25(body)."
+        ),
+    )
+    weight_group.add_argument(
+        "--weight-equal",
+        action="store_true",
+        help=(
+            "Use equal weights on the title/body index with score = "
+            "1*BM25(title) + 1*BM25(redirects) + 1*BM25(body)."
+        ),
+    )
+    weight_group.add_argument(
+        "--weighted-cole",
+        action="store_true",
+        help=(
+            "Use the weighted formula on Cole for title/body scoring while using "
+            "redirect-title matches from the title/body index."
         ),
     )
     parser.add_argument(
@@ -270,10 +289,28 @@ def run_search_batch(
     limit: int,
     mode: str,
     weighted: bool = False,
+    weight_equal: bool = False,
+    weighted_cole: bool = False,
     skip_redirects: bool = False,
 ) -> list[dict]:
-    if weighted:
-        return multi_search_whoosh_weighted(queries, limit=limit, skip_redirects=skip_redirects)
+    if weighted_cole:
+        return multi_search_whoosh_weighted_cole(
+            queries,
+            limit=limit,
+            skip_redirects=skip_redirects,
+        )
+
+    if weighted or weight_equal:
+        weighted_kwargs = {"limit": limit, "skip_redirects": skip_redirects}
+        if weight_equal:
+            weighted_kwargs.update(
+                {
+                    "title_weight": 1.0,
+                    "redirect_weight": 1.0,
+                    "body_weight": 1.0,
+                }
+            )
+        return multi_search_whoosh_weighted(queries, **weighted_kwargs)
 
     if mode == "whoosh_title_body":
         return multi_search_whoosh_title_body(queries, limit=limit, skip_redirects=skip_redirects)
@@ -331,6 +368,8 @@ def search_questions(
     query_mode: str,
     include_category: bool,
     weighted: bool = False,
+    weight_equal: bool = False,
+    weighted_cole: bool = False,
     skip_redirects: bool = False,
     paraphrase: bool = False,
     paraphrase_count: int = DEFAULT_PARAPHRASE_COUNT,
@@ -343,6 +382,8 @@ def search_questions(
             limit=limit,
             mode=mode,
             weighted=weighted,
+            weight_equal=weight_equal,
+            weighted_cole=weighted_cole,
             skip_redirects=skip_redirects,
         )
 
@@ -367,6 +408,8 @@ def search_questions(
         limit=max(limit, paraphrase_fetch_limit),
         mode=mode,
         weighted=weighted,
+        weight_equal=weight_equal,
+        weighted_cole=weighted_cole,
         skip_redirects=skip_redirects,
     )
 
@@ -394,6 +437,8 @@ def evaluate_questions(
     query_mode: str = "full",
     include_category: bool = False,
     weighted: bool = False,
+    weight_equal: bool = False,
+    weighted_cole: bool = False,
     skip_redirects: bool = False,
     paraphrase: bool = False,
     paraphrase_count: int = DEFAULT_PARAPHRASE_COUNT,
@@ -408,6 +453,8 @@ def evaluate_questions(
         query_mode=query_mode,
         include_category=include_category,
         weighted=weighted,
+        weight_equal=weight_equal,
+        weighted_cole=weighted_cole,
         skip_redirects=skip_redirects,
         paraphrase=paraphrase,
         paraphrase_count=paraphrase_count,
@@ -435,6 +482,8 @@ def print_metrics(
     query_mode: str,
     include_category: bool,
     weighted: bool,
+    weight_equal: bool,
+    weighted_cole: bool,
     skip_redirects: bool,
     paraphrase: bool,
     paraphrase_count: int,
@@ -444,6 +493,8 @@ def print_metrics(
     print(f"Query mode: {query_mode}")
     print(f"Include category: {include_category}")
     print(f"Weighted: {weighted}")
+    print(f"Weight equal: {weight_equal}")
+    print(f"Weighted cole: {weighted_cole}")
     print(f"Skip redirects: {skip_redirects}")
     print(f"Paraphrase: {paraphrase}")
     if paraphrase:
@@ -468,6 +519,8 @@ def main() -> None:
         query_mode=args.query_mode,
         include_category=args.include_category,
         weighted=args.weighted,
+        weight_equal=args.weight_equal,
+        weighted_cole=args.weighted_cole,
         skip_redirects=args.skip_redirects,
         paraphrase=args.paraphrase,
         paraphrase_count=args.paraphrase_count,
@@ -483,6 +536,8 @@ def main() -> None:
         query_mode=args.query_mode,
         include_category=args.include_category,
         weighted=args.weighted,
+        weight_equal=args.weight_equal,
+        weighted_cole=args.weighted_cole,
         skip_redirects=args.skip_redirects,
         paraphrase=args.paraphrase,
         paraphrase_count=args.paraphrase_count,
