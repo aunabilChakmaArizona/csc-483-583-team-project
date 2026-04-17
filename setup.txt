@@ -17,3 +17,10 @@ To edit/run any experiments:
 3. If done, deactivate the conda environment (see step 5 above) at the end.
 
 
+*** new update ***
+conda remove -n csc-483-583-project --all -y
+conda create -n csc-483-583-project python=3.10 -y
+conda activate csc-483-583-project
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+python -m spacy download en_core_web_sm
