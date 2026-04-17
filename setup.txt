@@ -24,3 +24,4 @@ conda activate csc-483-583-project
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 python -m spacy download en_core_web_sm
+python -m pip install git+https://github.com/PrithivirajDamodaran/Parrot_Paraphraser.git
