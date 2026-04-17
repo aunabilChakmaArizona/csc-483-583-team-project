@@ -77,6 +77,11 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--skip-redirects",
+        action="store_true",
+        help="Filter redirect documents out of the retrieved results.",
+    )
+    parser.add_argument(
         "--paraphrase",
         action="store_true",
         help=(
@@ -265,20 +270,21 @@ def run_search_batch(
     limit: int,
     mode: str,
     weighted: bool = False,
+    skip_redirects: bool = False,
 ) -> list[dict]:
     if weighted:
-        return multi_search_whoosh_weighted(queries, limit=limit)
+        return multi_search_whoosh_weighted(queries, limit=limit, skip_redirects=skip_redirects)
 
     if mode == "whoosh_title_body":
-        return multi_search_whoosh_title_body(queries, limit=limit)
+        return multi_search_whoosh_title_body(queries, limit=limit, skip_redirects=skip_redirects)
 
     if mode == "cole":
-        return multi_search_whoosh_cole(queries, limit=limit)
+        return multi_search_whoosh_cole(queries, limit=limit, skip_redirects=skip_redirects)
 
     if mode == "whoosh":
-        return multi_search_whoosh_default(queries, limit=limit)
+        return multi_search_whoosh_default(queries, limit=limit, skip_redirects=skip_redirects)
 
-    return multi_search(queries, limit=limit)
+    return multi_search(queries, limit=limit, skip_redirects=skip_redirects)
 
 
 def merge_ranked_results(searches: list[dict], limit: int) -> list[dict]:
@@ -325,13 +331,20 @@ def search_questions(
     query_mode: str,
     include_category: bool,
     weighted: bool = False,
+    skip_redirects: bool = False,
     paraphrase: bool = False,
     paraphrase_count: int = DEFAULT_PARAPHRASE_COUNT,
     paraphrase_fetch_limit: int = DEFAULT_PARAPHRASE_FETCH_LIMIT,
 ) -> list[dict]:
     if not paraphrase:
         queries = [question_query(question, query_mode, include_category) for question in questions]
-        return run_search_batch(queries, limit=limit, mode=mode, weighted=weighted)
+        return run_search_batch(
+            queries,
+            limit=limit,
+            mode=mode,
+            weighted=weighted,
+            skip_redirects=skip_redirects,
+        )
 
     print("Running paraphrasing...")
     total_questions = len(questions)
@@ -354,6 +367,7 @@ def search_questions(
         limit=max(limit, paraphrase_fetch_limit),
         mode=mode,
         weighted=weighted,
+        skip_redirects=skip_redirects,
     )
 
     merged_searches = []
@@ -380,6 +394,7 @@ def evaluate_questions(
     query_mode: str = "full",
     include_category: bool = False,
     weighted: bool = False,
+    skip_redirects: bool = False,
     paraphrase: bool = False,
     paraphrase_count: int = DEFAULT_PARAPHRASE_COUNT,
     paraphrase_fetch_limit: int = DEFAULT_PARAPHRASE_FETCH_LIMIT,
@@ -393,6 +408,7 @@ def evaluate_questions(
         query_mode=query_mode,
         include_category=include_category,
         weighted=weighted,
+        skip_redirects=skip_redirects,
         paraphrase=paraphrase,
         paraphrase_count=paraphrase_count,
         paraphrase_fetch_limit=paraphrase_fetch_limit,
@@ -419,6 +435,7 @@ def print_metrics(
     query_mode: str,
     include_category: bool,
     weighted: bool,
+    skip_redirects: bool,
     paraphrase: bool,
     paraphrase_count: int,
     paraphrase_fetch_limit: int,
@@ -427,6 +444,7 @@ def print_metrics(
     print(f"Query mode: {query_mode}")
     print(f"Include category: {include_category}")
     print(f"Weighted: {weighted}")
+    print(f"Skip redirects: {skip_redirects}")
     print(f"Paraphrase: {paraphrase}")
     if paraphrase:
         print(f"Paraphrase count: {paraphrase_count}")
@@ -450,6 +468,7 @@ def main() -> None:
         query_mode=args.query_mode,
         include_category=args.include_category,
         weighted=args.weighted,
+        skip_redirects=args.skip_redirects,
         paraphrase=args.paraphrase,
         paraphrase_count=args.paraphrase_count,
         paraphrase_fetch_limit=args.paraphrase_fetch_limit,
@@ -464,6 +483,7 @@ def main() -> None:
         query_mode=args.query_mode,
         include_category=args.include_category,
         weighted=args.weighted,
+        skip_redirects=args.skip_redirects,
         paraphrase=args.paraphrase,
         paraphrase_count=args.paraphrase_count,
         paraphrase_fetch_limit=args.paraphrase_fetch_limit,

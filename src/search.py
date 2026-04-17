@@ -106,22 +106,33 @@ def load_redirect_lookup(
     }
 
 
-def search_with_searcher(searcher, query_text: str, limit: int = 10) -> list[dict]:
+def search_with_searcher(
+    searcher,
+    query_text: str,
+    limit: int = 10,
+    skip_redirects: bool = False,
+) -> list[dict]:
     terms = normalize_query_terms(query_text)
     compiled_query = build_terms_query(terms)
 
     if compiled_query is None:
         return []
 
-    results = searcher.search(compiled_query, limit=limit)
+    result_filter = whoosh_query.NumericRange("is_redirect", 0, 0) if skip_redirects else None
+    results = searcher.search(compiled_query, limit=limit, filter=result_filter)
     return serialize_results(results)
 
 
-def search(query: str, limit: int = 10, index_dir: Path = DEFAULT_INDEX_DIR) -> list[dict]:
+def search(
+    query: str,
+    limit: int = 10,
+    index_dir: Path = DEFAULT_INDEX_DIR,
+    skip_redirects: bool = False,
+) -> list[dict]:
     """Return the top matching documents for a space-separated query."""
     index = open_index(index_dir)
     with index.searcher(weighting=BM25F()) as searcher:
-        return search_with_searcher(searcher, query, limit=limit)
+        return search_with_searcher(searcher, query, limit=limit, skip_redirects=skip_redirects)
 
 
 def multi_search(
@@ -129,6 +140,7 @@ def multi_search(
     limit: int = 10,
     index_dir: Path = DEFAULT_INDEX_DIR,
     progress_every: int = 10,
+    skip_redirects: bool = False,
 ) -> list[dict]:
     """Return search results for multiple queries while loading the index once."""
     index = open_index(index_dir)
@@ -140,7 +152,12 @@ def multi_search(
             all_results.append(
                 {
                     "query": query,
-                    "results": search_with_searcher(searcher, query, limit=limit),
+                    "results": search_with_searcher(
+                        searcher,
+                        query,
+                        limit=limit,
+                        skip_redirects=skip_redirects,
+                    ),
                 }
             )
 
@@ -177,6 +194,7 @@ def search_whoosh_weighted_with_searcher(
     redirect_lookup: dict[tuple[str, int], dict],
     limit: int = 10,
     component_limit: int = WEIGHTED_COMPONENT_LIMIT,
+    skip_redirects: bool = False,
 ) -> list[dict]:
     if not query_text.strip():
         return []
@@ -192,9 +210,11 @@ def search_whoosh_weighted_with_searcher(
     body_results = serialize_results(
         searcher.search(body_query, limit=component_limit, filter=non_redirect_filter)
     )
-    redirect_results = serialize_results(
-        searcher.search(title_query, limit=component_limit, filter=redirect_filter)
-    )
+    redirect_results = []
+    if not skip_redirects:
+        redirect_results = serialize_results(
+            searcher.search(title_query, limit=component_limit, filter=redirect_filter)
+        )
 
     aggregated_results: dict[tuple[str, int], dict] = {}
     document_cache: dict[tuple[str, int], dict | None] = {}
@@ -272,6 +292,7 @@ def search_whoosh_weighted(
     component_limit: int = WEIGHTED_COMPONENT_LIMIT,
     index_dir: Path = DEFAULT_WHOOSH_TITLE_BODY_INDEX_DIR,
     redirect_db_path: Path = DEFAULT_REDIRECT_DB_PATH,
+    skip_redirects: bool = False,
 ) -> list[dict]:
     index = open_whoosh_title_body_index(index_dir)
     redirect_lookup = load_redirect_lookup(redirect_db_path)
@@ -287,6 +308,7 @@ def search_whoosh_weighted(
             redirect_lookup=redirect_lookup,
             limit=limit,
             component_limit=component_limit,
+            skip_redirects=skip_redirects,
         )
 
 
@@ -297,6 +319,7 @@ def multi_search_whoosh_weighted(
     index_dir: Path = DEFAULT_WHOOSH_TITLE_BODY_INDEX_DIR,
     redirect_db_path: Path = DEFAULT_REDIRECT_DB_PATH,
     progress_every: int = 10,
+    skip_redirects: bool = False,
 ) -> list[dict]:
     index = open_whoosh_title_body_index(index_dir)
     redirect_lookup = load_redirect_lookup(redirect_db_path)
@@ -319,6 +342,7 @@ def multi_search_whoosh_weighted(
                         redirect_lookup=redirect_lookup,
                         limit=limit,
                         component_limit=component_limit,
+                        skip_redirects=skip_redirects,
                     ),
                 }
             )
@@ -334,12 +358,14 @@ def search_whoosh_default(
     query: str,
     limit: int = 10,
     index_dir: Path = DEFAULT_WHOOSH_INDEX_DIR,
+    skip_redirects: bool = False,
 ) -> list[dict]:
     """Search the index built from cleaned text using Whoosh's default analyzer."""
     index = open_whoosh_index(index_dir)
     with index.searcher(weighting=BM25F()) as searcher:
         parsed_query = QueryParser("body", schema=index.schema).parse(query)
-        results = searcher.search(parsed_query, limit=limit)
+        result_filter = whoosh_query.NumericRange("is_redirect", 0, 0) if skip_redirects else None
+        results = searcher.search(parsed_query, limit=limit, filter=result_filter)
         return serialize_results(results)
 
 
@@ -348,6 +374,7 @@ def multi_search_whoosh_default(
     limit: int = 10,
     index_dir: Path = DEFAULT_WHOOSH_INDEX_DIR,
     progress_every: int = 10,
+    skip_redirects: bool = False,
 ) -> list[dict]:
     """Search multiple queries against the Whoosh-default index with one index open."""
     index = open_whoosh_index(index_dir)
@@ -359,7 +386,8 @@ def multi_search_whoosh_default(
 
         for index_number, query_text in enumerate(queries, start=1):
             parsed_query = parser.parse(query_text)
-            results = searcher.search(parsed_query, limit=limit)
+            result_filter = whoosh_query.NumericRange("is_redirect", 0, 0) if skip_redirects else None
+            results = searcher.search(parsed_query, limit=limit, filter=result_filter)
             all_results.append(
                 {
                     "query": query_text,
@@ -378,13 +406,15 @@ def search_whoosh_title_body(
     query: str,
     limit: int = 10,
     index_dir: Path = DEFAULT_WHOOSH_TITLE_BODY_INDEX_DIR,
+    skip_redirects: bool = False,
 ) -> list[dict]:
     """Search title and body fields with equal field weight."""
     index = open_whoosh_title_body_index(index_dir)
     with index.searcher(weighting=BM25F()) as searcher:
         parser = MultifieldParser(["title", "body"], schema=index.schema, group=OrGroup)
         parsed_query = parser.parse(query)
-        results = searcher.search(parsed_query, limit=limit)
+        result_filter = whoosh_query.NumericRange("is_redirect", 0, 0) if skip_redirects else None
+        results = searcher.search(parsed_query, limit=limit, filter=result_filter)
         return serialize_results(results)
 
 
@@ -393,6 +423,7 @@ def multi_search_whoosh_title_body(
     limit: int = 10,
     index_dir: Path = DEFAULT_WHOOSH_TITLE_BODY_INDEX_DIR,
     progress_every: int = 10,
+    skip_redirects: bool = False,
 ) -> list[dict]:
     """Search multiple queries against title and body fields with one index open."""
     index = open_whoosh_title_body_index(index_dir)
@@ -404,7 +435,8 @@ def multi_search_whoosh_title_body(
 
         for index_number, query_text in enumerate(queries, start=1):
             parsed_query = parser.parse(query_text)
-            results = searcher.search(parsed_query, limit=limit)
+            result_filter = whoosh_query.NumericRange("is_redirect", 0, 0) if skip_redirects else None
+            results = searcher.search(parsed_query, limit=limit, filter=result_filter)
             all_results.append(
                 {
                     "query": query_text,
@@ -423,8 +455,10 @@ def search_whoosh_cole(
     query: str,
     limit: int = 10,
     index_dir: Path = DEFAULT_WHOOSH_COLE_INDEX_DIR,
+    skip_redirects: bool = False,
 ) -> list[dict]:
     """Search Cole's Whoosh index across title and body fields."""
+    del skip_redirects
     index = open_whoosh_cole_index(index_dir)
     with index.searcher(weighting=BM25F()) as searcher:
         parser = MultifieldParser(["title", "body"], schema=index.schema, group=OrGroup)
@@ -438,8 +472,10 @@ def multi_search_whoosh_cole(
     limit: int = 10,
     index_dir: Path = DEFAULT_WHOOSH_COLE_INDEX_DIR,
     progress_every: int = 10,
+    skip_redirects: bool = False,
 ) -> list[dict]:
     """Search multiple queries against Cole's Whoosh index with one index open."""
+    del skip_redirects
     index = open_whoosh_cole_index(index_dir)
     total = len(queries)
     all_results = []
