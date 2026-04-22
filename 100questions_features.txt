@@ -1,0 +1,36 @@
+Most Useful Features
+
+61/100 have clear multi-word title-cased spans like person/place/work names. These are often the best retrieval anchors.
+57/100 use a generic placeholder like this, so the clue often describes the answer indirectly rather than naming it.
+53/100 contain quoted text. These are often song lyrics, film/book titles, historical quotes, or subtitle-like snippets.
+52/100 contain at least one number.
+41/100 contain a 4-digit year.
+7/100 contain month names, and 4/100 have full date-style expressions like Nov. 28, 1929.
+What That Means For Retrieval
+
+Named entities matter most. Many clues contain strong proper-noun phrases like Naples Museum of Art, James B. Stewart, Bernt Balchen, Pierre Cauchon, UCLA.
+Temporal clues are common enough to exploit. Years show up in 41% of the set, so keeping years in the query is useful.
+Quoted spans are valuable. They often point to exact lyrics, titles, or famous quotations, which can strongly match article lead text or body.
+Category can help on ambiguous clues. For example NEWSPAPERS, BROADWAY LYRICS, AFRICAN CITIES, GOLDEN GLOBE WINNERS can disambiguate otherwise vague text.
+Lead text is likely useful. A lot of clues describe an entity via one defining fact, which often appears in the first sentence or first paragraph.
+Less Useful / Less Common
+
+No actual question marks in the first 100.
+No slash usage.
+No parentheses in the clue text itself in this slice.
+Currency/percent symbols were basically absent.
+Century/decade expressions were rare compared with exact years.
+Practical Feature Ideas
+
+Keep 4-digit years and full dates as high-priority query tokens.
+Preserve quoted spans as exact phrases when possible.
+Boost capitalized multi-word spans.
+Use category text selectively, especially for media/domain clues.
+For this ... clues, rely more on descriptive nouns plus dates plus quoted spans, because the answer name is missing from the clue.
+Your lead-based indexes are a good fit for this dataset, because many clues sound like first-sentence biography/definition facts.
+If you want, I can turn this into a concrete new scoring design for --weighted, for example:
+
+extra boost for year matches
+extra boost for quoted phrase matches
+extra boost for category overlap
+extra boost for lead-index matches when the clue starts with this

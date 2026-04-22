@@ -4,9 +4,9 @@ pytest
 protobuf
 spacy==3.8.14
 sentencepiece
+sentence-transformers
 thinc==8.3.13
 torch==2.2.2
 transformers==4.53.2
 tiktoken
-protobuf
 pandas

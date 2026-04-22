@@ -1,0 +1,27 @@
+python -m src.run_test_specific \
+  --clue "The Taft Museum of Art" \
+  --variant "What is the geographical location of the Taft Museum of Art?" \
+  --variant "What state is the Taft Museum of Art located in?" \
+  --variant "What is the historical context of the Taft Museum of Art's establishment?" \
+  --variant "What is the state associated with the Taft Museum of Art's founding?" \
+  --variant "What is the state where the Taft Museum of Art is housed?" \
+  --weighted-cole
+
+
+python -m src.run_test_specific \
+  --clue "The Kalamazoo Institute of Arts" \
+  --variant "What technological advancements does the Kalamazoo Institute of Arts offer?" \
+  --variant "What innovative exhibitions has the Kalamazoo Institute of Arts hosted?" \
+  --variant "What modern facilities does the Kalamazoo Institute of Arts have?" \
+  --variant "What is the Kalamazoo Institute of Arts known for in terms of contemporary art?" \
+  --variant "What recent developments has the Kalamazoo Institute of Arts undergone to enhance its state-of-the-art status?" \
+  --weighted-cole
+
+
+
+
+Generated 1/5: What technological advancements does the Kalamazoo Institute of Arts offer?
+Generated 2/5: What innovative exhibitions has the Kalamazoo Institute of Arts hosted?
+Generated 3/5: What modern facilities does the Kalamazoo Institute of Arts have?
+Generated 4/5: What is the Kalamazoo Institute of Arts known for in terms of contemporary art?
+Generated 5/5: What recent developments has the Kalamazoo Institute of Arts undergone to enhance its state-of-the-art status?

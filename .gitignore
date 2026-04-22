@@ -17,6 +17,9 @@ data/processed/wiki_articles_step1_remove_stop_words.sqlite3
 # main data
 *data/raw/wiki-subset-20140602*
 *.sqlite3*
+data/processed/dpr_articles.jsonl
+data/processed/dpr_articles.jsonl.gz
+data/processed/dpr_articles_summary.json
 
 # Python cache and virtualenvs
 __pycache__/

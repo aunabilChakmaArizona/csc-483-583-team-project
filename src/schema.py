@@ -1,7 +1,7 @@
 """Schema definitions for the Whoosh index."""
 
 from whoosh.analysis import RegexTokenizer
-from whoosh.fields import ID, NUMERIC, STORED, TEXT, Schema
+from whoosh.fields import ID, KEYWORD, NUMERIC, STORED, TEXT, Schema
 
 
 BODY_ANALYZER = RegexTokenizer(r"[^ ]+")
@@ -34,6 +34,19 @@ def get_whoosh_title_body_schema() -> Schema:
     return Schema(
         title=TEXT(stored=True),
         body=TEXT(stored=True),
+        source_file=ID(stored=True),
+        article_index=NUMERIC(stored=True, sortable=True),
+        is_redirect=NUMERIC(stored=True),
+    )
+
+
+def get_whoosh_title_body_category_schema() -> Schema:
+    """Return a schema that indexes article text plus top semantic category matches."""
+    return Schema(
+        title=TEXT(stored=True),
+        body=TEXT(stored=True),
+        title_first_sentence_categories=KEYWORD(stored=True, lowercase=True, commas=True),
+        title_first_two_sentences_categories=KEYWORD(stored=True, lowercase=True, commas=True),
         source_file=ID(stored=True),
         article_index=NUMERIC(stored=True, sortable=True),
         is_redirect=NUMERIC(stored=True),

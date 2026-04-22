@@ -32,7 +32,7 @@ except ModuleNotFoundError:
     )
 
 
-TOP_K_VALUES = [1, 5, 10, 20, 50, 100, 200, 500, 1000]
+TOP_K_VALUES = [1, 5, 10, 20, 50, 100, 200, 500, 1000, 10000]
 DEFAULT_PARAPHRASE_COUNT = 4
 DEFAULT_PARAPHRASE_FETCH_LIMIT = 1000
 PARAPHRASE_MODEL_NAME = "Vamsi/T5_Paraphrase_Paws"
@@ -146,6 +146,14 @@ def valid_answers(answer: str) -> set[str]:
 def is_correct_at_k(results: list[dict], answers: set[str], k: int) -> bool:
     top_titles = {normalize_label(result["title"]) for result in results[:k]}
     return bool(top_titles & answers)
+
+
+def first_correct_k(results: list[dict], answers: set[str], top_k_values: list[int]) -> int | None:
+    for k in top_k_values:
+        if is_correct_at_k(results, answers, k):
+            return k
+
+    return None
 
 
 @lru_cache(maxsize=1)
@@ -286,6 +294,7 @@ def question_queries(
 
 def run_search_batch(
     queries: list[str],
+    categories: list[str] | None,
     limit: int,
     mode: str,
     weighted: bool = False,
@@ -296,12 +305,17 @@ def run_search_batch(
     if weighted_cole:
         return multi_search_whoosh_weighted_cole(
             queries,
+            query_categories=categories,
             limit=limit,
             skip_redirects=skip_redirects,
         )
 
     if weighted or weight_equal:
-        weighted_kwargs = {"limit": limit, "skip_redirects": skip_redirects}
+        weighted_kwargs = {
+            "query_categories": categories,
+            "limit": limit,
+            "skip_redirects": skip_redirects,
+        }
         if weight_equal:
             weighted_kwargs.update(
                 {
@@ -311,6 +325,8 @@ def run_search_batch(
                     "first_sentence_weight": 1.0,
                     "first_two_sentences_weight": 1.0,
                     "first_paragraph_weight": 1.0,
+                    "category_first_sentence_weight": 1.0,
+                    "category_first_two_sentences_weight": 1.0,
                 }
             )
         return multi_search_whoosh_weighted(queries, **weighted_kwargs)
@@ -380,8 +396,10 @@ def search_questions(
 ) -> list[dict]:
     if not paraphrase:
         queries = [question_query(question, query_mode, include_category) for question in questions]
+        categories = [question.category for question in questions]
         return run_search_batch(
             queries,
+            categories=categories,
             limit=limit,
             mode=mode,
             weighted=weighted,
@@ -393,21 +411,24 @@ def search_questions(
     print("Running paraphrasing...")
     total_questions = len(questions)
     grouped_queries = []
+    grouped_categories = []
 
     for question_number, question in enumerate(questions, start=1):
         print(f"[paraphrase] Question {question_number}/{total_questions}")
-        grouped_queries.append(
-            question_queries(
+        query_group = question_queries(
             question,
             query_mode=query_mode,
             include_category=include_category,
             paraphrase=True,
             paraphrase_count=paraphrase_count,
         )
-        )
+        grouped_queries.append(query_group)
+        grouped_categories.append([question.category] * len(query_group))
     flat_queries = [query for query_group in grouped_queries for query in query_group]
+    flat_categories = [category for group in grouped_categories for category in group]
     flat_searches = run_search_batch(
         flat_queries,
+        categories=flat_categories,
         limit=max(limit, paraphrase_fetch_limit),
         mode=mode,
         weighted=weighted,
@@ -464,14 +485,30 @@ def evaluate_questions(
         paraphrase_fetch_limit=paraphrase_fetch_limit,
     )
     correct_counts = {k: 0 for k in top_k_values}
+    matched_clues_by_k = {k: [] for k in top_k_values}
 
     for question, search_result in zip(questions, searches):
         answers = valid_answers(question.answer)
         results = search_result["results"]
+        matched_k = first_correct_k(results, answers, top_k_values)
+
+        if matched_k is not None:
+            matched_clues_by_k[matched_k].append(question.clue)
 
         for k in top_k_values:
             if is_correct_at_k(results, answers, k):
                 correct_counts[k] += 1
+
+    if any(matched_clues_by_k.values()):
+        print("Matched clues grouped by first Top-k:")
+        for k in top_k_values:
+            clues = matched_clues_by_k[k]
+            if not clues:
+                continue
+
+            print(f"Top-{k}:")
+            for clue in clues:
+                print(f"  {clue}")
 
     total = len(questions)
     return {k: correct_counts[k] / total for k in top_k_values}

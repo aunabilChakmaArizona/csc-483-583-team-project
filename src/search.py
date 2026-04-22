@@ -39,6 +39,12 @@ try:
         DEFAULT_INDEX_DIR as DEFAULT_WHOOSH_TITLE_BODY_INDEX_DIR,
     )
     from src.processor4_whoosh_title_body_index import open_index as open_whoosh_title_body_index
+    from src.processor4_whoosh_title_body_category_index import (
+        DEFAULT_INDEX_DIR as DEFAULT_WHOOSH_TITLE_BODY_CATEGORY_INDEX_DIR,
+    )
+    from src.processor4_whoosh_title_body_category_index import (
+        open_index as open_whoosh_title_body_category_index,
+    )
     from src.processor4_whoosh_index import DEFAULT_INDEX_DIR as DEFAULT_WHOOSH_INDEX_DIR
     from src.processor4_whoosh_index import open_index as open_whoosh_index
     from src.processor4_index import DEFAULT_INDEX_DIR, open_index
@@ -73,6 +79,12 @@ except ModuleNotFoundError:
         DEFAULT_INDEX_DIR as DEFAULT_WHOOSH_TITLE_BODY_INDEX_DIR,
     )
     from processor4_whoosh_title_body_index import open_index as open_whoosh_title_body_index
+    from processor4_whoosh_title_body_category_index import (
+        DEFAULT_INDEX_DIR as DEFAULT_WHOOSH_TITLE_BODY_CATEGORY_INDEX_DIR,
+    )
+    from processor4_whoosh_title_body_category_index import (
+        open_index as open_whoosh_title_body_category_index,
+    )
     from processor4_whoosh_index import DEFAULT_INDEX_DIR as DEFAULT_WHOOSH_INDEX_DIR
     from processor4_whoosh_index import open_index as open_whoosh_index
     from processor4_index import DEFAULT_INDEX_DIR, open_index
@@ -83,13 +95,16 @@ except ModuleNotFoundError:
 # WEIGHTED_REDIRECT_WEIGHT = 2.0 or 0.0 or 8.0
 # WEIGHTED_BODY_WEIGHT = 4.0
 
-WEIGHTED_TITLE_WEIGHT = 1.0
-WEIGHTED_REDIRECT_WEIGHT = 4.0 # so far it has no impact
-WEIGHTED_BODY_WEIGHT = 4.0
+WEIGHTED_TITLE_WEIGHT = 0.0
+WEIGHTED_REDIRECT_WEIGHT = 0.0 # so far it has no impact
+WEIGHTED_BODY_WEIGHT = 7.0
 WEIGHTED_FIRST_SENTENCE_WEIGHT = 0.0
 WEIGHTED_FIRST_TWO_SENTENCES_WEIGHT = 0.0
 WEIGHTED_FIRST_PARAGRAPH_WEIGHT = 0.0
-WEIGHTED_YEAR_MATCH_WEIGHT = 2.0
+WEIGHTED_YEAR_MATCH_WEIGHT = 0.0
+WEIGHTED_QUOTE_MATCH_WEIGHT = 0.0
+WEIGHTED_CATEGORY_FIRST_SENTENCE_WEIGHT = 0.0
+WEIGHTED_CATEGORY_FIRST_TWO_SENTENCES_WEIGHT = 0.0
 
 EQUAL_TITLE_WEIGHT = 1.0
 EQUAL_REDIRECT_WEIGHT = 1.0
@@ -98,8 +113,13 @@ EQUAL_FIRST_SENTENCE_WEIGHT = 1.0
 EQUAL_FIRST_TWO_SENTENCES_WEIGHT = 1.0
 EQUAL_FIRST_PARAGRAPH_WEIGHT = 1.0
 EQUAL_YEAR_MATCH_WEIGHT = 1.0
+EQUAL_QUOTE_MATCH_WEIGHT = 1.0
+EQUAL_CATEGORY_FIRST_SENTENCE_WEIGHT = 1.0
+EQUAL_CATEGORY_FIRST_TWO_SENTENCES_WEIGHT = 1.0
 WEIGHTED_COMPONENT_LIMIT = 10000
 YEAR_RE = re.compile(r"\b(?:1\d{3}|20\d{2})\b")
+QUOTE_RE = re.compile(r'["“”]([^"“”]+)["“”]')
+INLINE_WHITESPACE_RE = re.compile(r"\s+")
 
 
 @lru_cache(maxsize=1)
@@ -140,6 +160,53 @@ def build_year_match_query(query_text: str):
     )
 
 
+def extract_query_quotes(query_text: str) -> list[str]:
+    quotes = []
+    seen = set()
+
+    for match in QUOTE_RE.findall(query_text):
+        quote = " ".join(match.split()).strip()
+        if not quote or quote in seen:
+            continue
+        seen.add(quote)
+        quotes.append(quote)
+
+    return quotes
+
+
+def build_quote_match_query(query_text: str):
+    quotes = extract_query_quotes(query_text)
+    if not quotes:
+        return None
+
+    quote_queries = []
+    for quote in quotes:
+        quote_terms = normalize_query_terms(quote)
+        if not quote_terms:
+            continue
+        quote_queries.append(whoosh_query.And([whoosh_query.Term("body", term) for term in quote_terms]))
+
+    if not quote_queries:
+        return None
+
+    if len(quote_queries) == 1:
+        return quote_queries[0]
+
+    return whoosh_query.And(quote_queries)
+
+
+def normalize_category_keyword(category_text: str) -> str:
+    return INLINE_WHITESPACE_RE.sub(" ", category_text.casefold()).strip()
+
+
+def build_category_match_query(field_name: str, category_text: str):
+    normalized_category = normalize_category_keyword(category_text)
+    if not normalized_category:
+        return None
+
+    return whoosh_query.Term(field_name, normalized_category)
+
+
 def serialize_results(results) -> list[dict]:
     return [
         {
@@ -151,6 +218,24 @@ def serialize_results(results) -> list[dict]:
             "score": hit.score,
         }
         for hit in results
+    ]
+
+
+def normalize_results_to_unit_interval(results: list[dict]) -> list[dict]:
+    if not results:
+        return []
+
+    max_score = max(result["score"] for result in results)
+    if max_score <= 0:
+        return [{**result, "raw_score": result["score"], "score": 0.0} for result in results]
+
+    return [
+        {
+            **result,
+            "raw_score": result["score"],
+            "score": result["score"] / max_score,
+        }
+        for result in results
     ]
 
 
@@ -294,6 +379,7 @@ def weighted_result_key(result: dict) -> tuple[str, int]:
 def search_whoosh_weighted_with_searcher(
     searcher,
     query_text: str,
+    query_category: str | None,
     title_parser,
     body_parser,
     redirect_lookup: dict[tuple[str, int], dict],
@@ -305,6 +391,7 @@ def search_whoosh_weighted_with_searcher(
     body_weight: float = WEIGHTED_BODY_WEIGHT,
     extra_body_components: list[tuple[str, float, object, object]] | None = None,
     extra_components: list[tuple[str, float, object, object]] | None = None,
+    category_components: list[tuple[str, float, object, str]] | None = None,
     redirect_searcher=None,
     redirect_title_parser=None,
     filter_main_redirects: bool = True,
@@ -316,6 +403,7 @@ def search_whoosh_weighted_with_searcher(
 
     extra_body_components = extra_body_components or []
     extra_components = extra_components or []
+    category_components = category_components or []
     redirect_searcher = redirect_searcher or searcher
     redirect_title_parser = redirect_title_parser or title_parser
     title_query = title_parser.parse(query_text)
@@ -326,18 +414,24 @@ def search_whoosh_weighted_with_searcher(
     )
     redirect_filter = whoosh_query.NumericRange("is_redirect", 1, 1) if filter_redirect_results else None
 
-    title_results = serialize_results(
-        searcher.search(title_query, limit=component_limit, filter=non_redirect_filter)
+    title_results = normalize_results_to_unit_interval(
+        serialize_results(
+            searcher.search(title_query, limit=component_limit, filter=non_redirect_filter)
+        )
     )
-    body_results = serialize_results(
-        searcher.search(body_query, limit=component_limit, filter=non_redirect_filter)
+    body_results = normalize_results_to_unit_interval(
+        serialize_results(
+            searcher.search(body_query, limit=component_limit, filter=non_redirect_filter)
+        )
     )
     extra_component_results = {}
     for score_name, _, component_searcher, component_parser in extra_body_components:
-        extra_component_results[score_name] = serialize_results(
-            component_searcher.search(
-                component_parser.parse(query_text),
-                limit=component_limit,
+        extra_component_results[score_name] = normalize_results_to_unit_interval(
+            serialize_results(
+                component_searcher.search(
+                    component_parser.parse(query_text),
+                    limit=component_limit,
+                )
             )
         )
     for score_name, _, component_searcher, component_query_builder in extra_components:
@@ -346,19 +440,37 @@ def search_whoosh_weighted_with_searcher(
             extra_component_results[score_name] = []
             continue
 
-        extra_component_results[score_name] = serialize_results(
-            component_searcher.search(
-                component_query,
-                limit=component_limit,
+        extra_component_results[score_name] = normalize_results_to_unit_interval(
+            serialize_results(
+                component_searcher.search(
+                    component_query,
+                    limit=component_limit,
+                )
+            )
+        )
+    for score_name, _, component_searcher, field_name in category_components:
+        component_query = build_category_match_query(field_name, query_category or "")
+        if component_query is None:
+            extra_component_results[score_name] = []
+            continue
+
+        extra_component_results[score_name] = normalize_results_to_unit_interval(
+            serialize_results(
+                component_searcher.search(
+                    component_query,
+                    limit=component_limit,
+                )
             )
         )
     redirect_results = []
     if not skip_redirects:
-        redirect_results = serialize_results(
-            redirect_searcher.search(
-                redirect_title_query,
-                limit=component_limit,
-                filter=redirect_filter,
+        redirect_results = normalize_results_to_unit_interval(
+            serialize_results(
+                redirect_searcher.search(
+                    redirect_title_query,
+                    limit=component_limit,
+                    filter=redirect_filter,
+                )
             )
         )
 
@@ -370,6 +482,7 @@ def search_whoosh_weighted_with_searcher(
         "body_score",
         *[score_name for score_name, _, _, _ in extra_body_components],
         *[score_name for score_name, _, _, _ in extra_components],
+        *[score_name for score_name, _, _, _ in category_components],
     ]
 
     def resolve_base_result(result: dict) -> dict:
@@ -406,6 +519,9 @@ def search_whoosh_weighted_with_searcher(
         for result in extra_component_results[score_name]:
             ensure_entry(result)[score_name] = max(ensure_entry(result)[score_name], result["score"])
     for score_name, _, _, _ in extra_components:
+        for result in extra_component_results[score_name]:
+            ensure_entry(result)[score_name] = max(ensure_entry(result)[score_name], result["score"])
+    for score_name, _, _, _ in category_components:
         for result in extra_component_results[score_name]:
             ensure_entry(result)[score_name] = max(ensure_entry(result)[score_name], result["score"])
 
@@ -447,6 +563,8 @@ def search_whoosh_weighted_with_searcher(
             result["score"] += component_weight * result[score_name]
         for score_name, component_weight, _, _ in extra_components:
             result["score"] += component_weight * result[score_name]
+        for score_name, component_weight, _, _ in category_components:
+            result["score"] += component_weight * result[score_name]
 
     ranked_results = sorted(
         aggregated_results.values(),
@@ -457,6 +575,7 @@ def search_whoosh_weighted_with_searcher(
             -result["body_score"],
             *[-result[score_name] for score_name, _, _, _ in extra_body_components],
             *[-result[score_name] for score_name, _, _, _ in extra_components],
+            *[-result[score_name] for score_name, _, _, _ in category_components],
             result["article_index"],
         ),
     )
@@ -465,9 +584,11 @@ def search_whoosh_weighted_with_searcher(
 
 def search_whoosh_weighted(
     query: str,
+    query_category: str | None = None,
     limit: int = 10,
     component_limit: int = WEIGHTED_COMPONENT_LIMIT,
     index_dir: Path = DEFAULT_WHOOSH_TITLE_BODY_INDEX_DIR,
+    category_index_dir: Path = DEFAULT_WHOOSH_TITLE_BODY_CATEGORY_INDEX_DIR,
     first_sentence_index_dir: Path = DEFAULT_WHOOSH_COLE_FIRST_SENTENCE_INDEX_DIR,
     first_two_sentences_index_dir: Path = DEFAULT_WHOOSH_COLE_FIRST_TWO_SENTENCES_INDEX_DIR,
     first_paragraph_index_dir: Path = DEFAULT_WHOOSH_COLE_FIRST_PARAGRAPH_INDEX_DIR,
@@ -480,8 +601,11 @@ def search_whoosh_weighted(
     first_sentence_weight: float = WEIGHTED_FIRST_SENTENCE_WEIGHT,
     first_two_sentences_weight: float = WEIGHTED_FIRST_TWO_SENTENCES_WEIGHT,
     first_paragraph_weight: float = WEIGHTED_FIRST_PARAGRAPH_WEIGHT,
+    category_first_sentence_weight: float = WEIGHTED_CATEGORY_FIRST_SENTENCE_WEIGHT,
+    category_first_two_sentences_weight: float = WEIGHTED_CATEGORY_FIRST_TWO_SENTENCES_WEIGHT,
 ) -> list[dict]:
     index = open_whoosh_title_body_index(index_dir)
+    category_index = open_whoosh_title_body_category_index(category_index_dir)
     first_sentence_index = open_whoosh_cole_first_sentence_index(first_sentence_index_dir)
     first_two_sentences_index = open_whoosh_cole_first_two_sentences_index(
         first_two_sentences_index_dir
@@ -491,78 +615,100 @@ def search_whoosh_weighted(
     redirect_lookup = load_redirect_lookup(redirect_db_path)
 
     with index.searcher(weighting=BM25F()) as searcher:
-        with first_sentence_index.searcher(weighting=BM25F()) as first_sentence_searcher:
-            with first_two_sentences_index.searcher(weighting=BM25F()) as first_two_sentences_searcher:
-                with first_paragraph_index.searcher(weighting=BM25F()) as first_paragraph_searcher:
-                    with redirect_index.searcher(weighting=BM25F()) as redirect_searcher:
-                        document_lookup = build_stored_document_lookup(searcher)
-                        title_parser = QueryParser("title", schema=index.schema, group=OrGroup)
-                        body_parser = QueryParser("body", schema=index.schema, group=OrGroup)
-                        first_sentence_parser = QueryParser(
-                            "body",
-                            schema=first_sentence_index.schema,
-                            group=OrGroup,
-                        )
-                        first_two_sentences_parser = QueryParser(
-                            "body",
-                            schema=first_two_sentences_index.schema,
-                            group=OrGroup,
-                        )
-                        first_paragraph_parser = QueryParser(
-                            "body",
-                            schema=first_paragraph_index.schema,
-                            group=OrGroup,
-                        )
-                        redirect_title_parser = QueryParser(
-                            "title",
-                            schema=redirect_index.schema,
-                            group=OrGroup,
-                        )
-                        return search_whoosh_weighted_with_searcher(
-                            searcher,
-                            query_text=query,
-                            title_parser=title_parser,
-                            body_parser=body_parser,
-                            redirect_lookup=redirect_lookup,
-                            limit=limit,
-                            component_limit=component_limit,
-                            skip_redirects=skip_redirects,
-                            title_weight=title_weight,
-                            redirect_weight=redirect_weight,
-                            body_weight=body_weight,
-                            extra_body_components=[
-                                (
-                                    "first_sentence_score",
-                                    first_sentence_weight,
-                                    first_sentence_searcher,
-                                    first_sentence_parser,
-                                ),
-                                (
-                                    "first_two_sentences_score",
-                                    first_two_sentences_weight,
-                                    first_two_sentences_searcher,
-                                    first_two_sentences_parser,
-                                ),
-                                (
-                                    "first_paragraph_score",
-                                    first_paragraph_weight,
-                                    first_paragraph_searcher,
-                                    first_paragraph_parser,
-                                ),
-                            ],
-                            redirect_searcher=redirect_searcher,
-                            redirect_title_parser=redirect_title_parser,
-                            filter_main_redirects=True,
-                            filter_redirect_results=False,
-                            document_lookup=document_lookup,
-                        )
+        with category_index.searcher(weighting=BM25F()) as category_searcher:
+            with first_sentence_index.searcher(weighting=BM25F()) as first_sentence_searcher:
+                with first_two_sentences_index.searcher(
+                    weighting=BM25F()
+                ) as first_two_sentences_searcher:
+                    with first_paragraph_index.searcher(
+                        weighting=BM25F()
+                    ) as first_paragraph_searcher:
+                        with redirect_index.searcher(weighting=BM25F()) as redirect_searcher:
+                            document_lookup = build_stored_document_lookup(searcher)
+                            title_parser = QueryParser("title", schema=index.schema, group=OrGroup)
+                            body_parser = QueryParser("body", schema=index.schema, group=OrGroup)
+                            first_sentence_parser = QueryParser(
+                                "body",
+                                schema=first_sentence_index.schema,
+                                group=OrGroup,
+                            )
+                            first_two_sentences_parser = QueryParser(
+                                "body",
+                                schema=first_two_sentences_index.schema,
+                                group=OrGroup,
+                            )
+                            first_paragraph_parser = QueryParser(
+                                "body",
+                                schema=first_paragraph_index.schema,
+                                group=OrGroup,
+                            )
+                            redirect_title_parser = QueryParser(
+                                "title",
+                                schema=redirect_index.schema,
+                                group=OrGroup,
+                            )
+                            return search_whoosh_weighted_with_searcher(
+                                searcher,
+                                query_text=query,
+                                query_category=query_category,
+                                title_parser=title_parser,
+                                body_parser=body_parser,
+                                redirect_lookup=redirect_lookup,
+                                limit=limit,
+                                component_limit=component_limit,
+                                skip_redirects=skip_redirects,
+                                title_weight=title_weight,
+                                redirect_weight=redirect_weight,
+                                body_weight=body_weight,
+                                extra_body_components=[
+                                    (
+                                        "first_sentence_score",
+                                        first_sentence_weight,
+                                        first_sentence_searcher,
+                                        first_sentence_parser,
+                                    ),
+                                    (
+                                        "first_two_sentences_score",
+                                        first_two_sentences_weight,
+                                        first_two_sentences_searcher,
+                                        first_two_sentences_parser,
+                                    ),
+                                    (
+                                        "first_paragraph_score",
+                                        first_paragraph_weight,
+                                        first_paragraph_searcher,
+                                        first_paragraph_parser,
+                                    ),
+                                ],
+                                category_components=[
+                                    (
+                                        "category_first_sentence_score",
+                                        category_first_sentence_weight,
+                                        category_searcher,
+                                        "title_first_sentence_categories",
+                                    ),
+                                    (
+                                        "category_first_two_sentences_score",
+                                        category_first_two_sentences_weight,
+                                        category_searcher,
+                                        "title_first_two_sentences_categories",
+                                    ),
+                                ],
+                                redirect_searcher=redirect_searcher,
+                                redirect_title_parser=redirect_title_parser,
+                                filter_main_redirects=True,
+                                filter_redirect_results=False,
+                                document_lookup=document_lookup,
+                            )
 
 
 def search_whoosh_weighted_cole(
     query: str,
+    query_category: str | None = None,
     limit: int = 10,
     component_limit: int = WEIGHTED_COMPONENT_LIMIT,
     index_dir: Path = DEFAULT_WHOOSH_COLE_INDEX_DIR,
+    category_index_dir: Path = DEFAULT_WHOOSH_TITLE_BODY_CATEGORY_INDEX_DIR,
     first_sentence_index_dir: Path = DEFAULT_WHOOSH_COLE_FIRST_SENTENCE_INDEX_DIR,
     first_two_sentences_index_dir: Path = DEFAULT_WHOOSH_COLE_FIRST_TWO_SENTENCES_INDEX_DIR,
     first_paragraph_index_dir: Path = DEFAULT_WHOOSH_COLE_FIRST_PARAGRAPH_INDEX_DIR,
@@ -576,8 +722,12 @@ def search_whoosh_weighted_cole(
     first_two_sentences_weight: float = WEIGHTED_FIRST_TWO_SENTENCES_WEIGHT,
     first_paragraph_weight: float = WEIGHTED_FIRST_PARAGRAPH_WEIGHT,
     year_match_weight: float = WEIGHTED_YEAR_MATCH_WEIGHT,
+    quote_match_weight: float = WEIGHTED_QUOTE_MATCH_WEIGHT,
+    category_first_sentence_weight: float = WEIGHTED_CATEGORY_FIRST_SENTENCE_WEIGHT,
+    category_first_two_sentences_weight: float = WEIGHTED_CATEGORY_FIRST_TWO_SENTENCES_WEIGHT,
 ) -> list[dict]:
     index = open_whoosh_cole_index(index_dir)
+    category_index = open_whoosh_title_body_category_index(category_index_dir)
     first_sentence_index = open_whoosh_cole_first_sentence_index(first_sentence_index_dir)
     first_two_sentences_index = open_whoosh_cole_first_two_sentences_index(
         first_two_sentences_index_dir
@@ -587,86 +737,115 @@ def search_whoosh_weighted_cole(
     redirect_lookup = load_redirect_lookup(redirect_db_path)
 
     with index.searcher(weighting=BM25F()) as searcher:
-        with first_sentence_index.searcher(weighting=BM25F()) as first_sentence_searcher:
-            with first_two_sentences_index.searcher(weighting=BM25F()) as first_two_sentences_searcher:
-                with first_paragraph_index.searcher(weighting=BM25F()) as first_paragraph_searcher:
-                    with redirect_index.searcher(weighting=BM25F()) as redirect_searcher:
-                        document_lookup = build_stored_document_lookup(searcher)
-                        title_parser = QueryParser("title", schema=index.schema, group=OrGroup)
-                        body_parser = QueryParser("body", schema=index.schema, group=OrGroup)
-                        first_sentence_parser = QueryParser(
-                            "body",
-                            schema=first_sentence_index.schema,
-                            group=OrGroup,
-                        )
-                        first_two_sentences_parser = QueryParser(
-                            "body",
-                            schema=first_two_sentences_index.schema,
-                            group=OrGroup,
-                        )
-                        first_paragraph_parser = QueryParser(
-                            "body",
-                            schema=first_paragraph_index.schema,
-                            group=OrGroup,
-                        )
-                        redirect_title_parser = QueryParser(
-                            "title",
-                            schema=redirect_index.schema,
-                            group=OrGroup,
-                        )
-                        return search_whoosh_weighted_with_searcher(
-                            searcher,
-                            query_text=query,
-                            title_parser=title_parser,
-                            body_parser=body_parser,
-                            redirect_lookup=redirect_lookup,
-                            limit=limit,
-                            component_limit=component_limit,
-                            skip_redirects=skip_redirects,
-                            title_weight=title_weight,
-                            redirect_weight=redirect_weight,
-                            body_weight=body_weight,
-                            extra_body_components=[
-                                (
-                                    "first_sentence_score",
-                                    first_sentence_weight,
-                                    first_sentence_searcher,
-                                    first_sentence_parser,
-                                ),
-                                (
-                                    "first_two_sentences_score",
-                                    first_two_sentences_weight,
-                                    first_two_sentences_searcher,
-                                    first_two_sentences_parser,
-                                ),
-                                (
-                                    "first_paragraph_score",
-                                    first_paragraph_weight,
-                                    first_paragraph_searcher,
-                                    first_paragraph_parser,
-                                ),
-                            ],
-                            extra_components=[
-                                (
-                                    "year_match_score",
-                                    year_match_weight,
-                                    searcher,
-                                    build_year_match_query,
-                                ),
-                            ],
-                            redirect_searcher=redirect_searcher,
-                            redirect_title_parser=redirect_title_parser,
-                            filter_main_redirects=False,
-                            filter_redirect_results=False,
-                            document_lookup=document_lookup,
-                        )
+        with category_index.searcher(weighting=BM25F()) as category_searcher:
+            with first_sentence_index.searcher(weighting=BM25F()) as first_sentence_searcher:
+                with first_two_sentences_index.searcher(
+                    weighting=BM25F()
+                ) as first_two_sentences_searcher:
+                    with first_paragraph_index.searcher(
+                        weighting=BM25F()
+                    ) as first_paragraph_searcher:
+                        with redirect_index.searcher(weighting=BM25F()) as redirect_searcher:
+                            document_lookup = build_stored_document_lookup(searcher)
+                            title_parser = QueryParser("title", schema=index.schema, group=OrGroup)
+                            body_parser = QueryParser("body", schema=index.schema, group=OrGroup)
+                            first_sentence_parser = QueryParser(
+                                "body",
+                                schema=first_sentence_index.schema,
+                                group=OrGroup,
+                            )
+                            first_two_sentences_parser = QueryParser(
+                                "body",
+                                schema=first_two_sentences_index.schema,
+                                group=OrGroup,
+                            )
+                            first_paragraph_parser = QueryParser(
+                                "body",
+                                schema=first_paragraph_index.schema,
+                                group=OrGroup,
+                            )
+                            redirect_title_parser = QueryParser(
+                                "title",
+                                schema=redirect_index.schema,
+                                group=OrGroup,
+                            )
+                            quote_match_query_builder = build_quote_match_query
+                            return search_whoosh_weighted_with_searcher(
+                                searcher,
+                                query_text=query,
+                                query_category=query_category,
+                                title_parser=title_parser,
+                                body_parser=body_parser,
+                                redirect_lookup=redirect_lookup,
+                                limit=limit,
+                                component_limit=component_limit,
+                                skip_redirects=skip_redirects,
+                                title_weight=title_weight,
+                                redirect_weight=redirect_weight,
+                                body_weight=body_weight,
+                                extra_body_components=[
+                                    (
+                                        "first_sentence_score",
+                                        first_sentence_weight,
+                                        first_sentence_searcher,
+                                        first_sentence_parser,
+                                    ),
+                                    (
+                                        "first_two_sentences_score",
+                                        first_two_sentences_weight,
+                                        first_two_sentences_searcher,
+                                        first_two_sentences_parser,
+                                    ),
+                                    (
+                                        "first_paragraph_score",
+                                        first_paragraph_weight,
+                                        first_paragraph_searcher,
+                                        first_paragraph_parser,
+                                    ),
+                                ],
+                                extra_components=[
+                                    (
+                                        "year_match_score",
+                                        year_match_weight,
+                                        searcher,
+                                        build_year_match_query,
+                                    ),
+                                    (
+                                        "quote_match_score",
+                                        quote_match_weight,
+                                        searcher,
+                                        quote_match_query_builder,
+                                    ),
+                                ],
+                                category_components=[
+                                    (
+                                        "category_first_sentence_score",
+                                        category_first_sentence_weight,
+                                        category_searcher,
+                                        "title_first_sentence_categories",
+                                    ),
+                                    (
+                                        "category_first_two_sentences_score",
+                                        category_first_two_sentences_weight,
+                                        category_searcher,
+                                        "title_first_two_sentences_categories",
+                                    ),
+                                ],
+                                redirect_searcher=redirect_searcher,
+                                redirect_title_parser=redirect_title_parser,
+                                filter_main_redirects=False,
+                                filter_redirect_results=False,
+                                document_lookup=document_lookup,
+                            )
 
 
 def multi_search_whoosh_weighted(
     queries: list[str],
+    query_categories: list[str] | None = None,
     limit: int = 10,
     component_limit: int = WEIGHTED_COMPONENT_LIMIT,
     index_dir: Path = DEFAULT_WHOOSH_TITLE_BODY_INDEX_DIR,
+    category_index_dir: Path = DEFAULT_WHOOSH_TITLE_BODY_CATEGORY_INDEX_DIR,
     first_sentence_index_dir: Path = DEFAULT_WHOOSH_COLE_FIRST_SENTENCE_INDEX_DIR,
     first_two_sentences_index_dir: Path = DEFAULT_WHOOSH_COLE_FIRST_TWO_SENTENCES_INDEX_DIR,
     first_paragraph_index_dir: Path = DEFAULT_WHOOSH_COLE_FIRST_PARAGRAPH_INDEX_DIR,
@@ -680,8 +859,11 @@ def multi_search_whoosh_weighted(
     first_sentence_weight: float = WEIGHTED_FIRST_SENTENCE_WEIGHT,
     first_two_sentences_weight: float = WEIGHTED_FIRST_TWO_SENTENCES_WEIGHT,
     first_paragraph_weight: float = WEIGHTED_FIRST_PARAGRAPH_WEIGHT,
+    category_first_sentence_weight: float = WEIGHTED_CATEGORY_FIRST_SENTENCE_WEIGHT,
+    category_first_two_sentences_weight: float = WEIGHTED_CATEGORY_FIRST_TWO_SENTENCES_WEIGHT,
 ) -> list[dict]:
     index = open_whoosh_title_body_index(index_dir)
+    category_index = open_whoosh_title_body_category_index(category_index_dir)
     first_sentence_index = open_whoosh_cole_first_sentence_index(first_sentence_index_dir)
     first_two_sentences_index = open_whoosh_cole_first_two_sentences_index(
         first_two_sentences_index_dir
@@ -691,85 +873,106 @@ def multi_search_whoosh_weighted(
     redirect_lookup = load_redirect_lookup(redirect_db_path)
     total = len(queries)
     all_results = []
+    query_categories = query_categories or [""] * total
 
     with index.searcher(weighting=BM25F()) as searcher:
-        with first_sentence_index.searcher(weighting=BM25F()) as first_sentence_searcher:
-            with first_two_sentences_index.searcher(weighting=BM25F()) as first_two_sentences_searcher:
-                with first_paragraph_index.searcher(weighting=BM25F()) as first_paragraph_searcher:
-                    with redirect_index.searcher(weighting=BM25F()) as redirect_searcher:
-                        document_lookup = build_stored_document_lookup(searcher)
-                        title_parser = QueryParser("title", schema=index.schema, group=OrGroup)
-                        body_parser = QueryParser("body", schema=index.schema, group=OrGroup)
-                        first_sentence_parser = QueryParser(
-                            "body",
-                            schema=first_sentence_index.schema,
-                            group=OrGroup,
-                        )
-                        first_two_sentences_parser = QueryParser(
-                            "body",
-                            schema=first_two_sentences_index.schema,
-                            group=OrGroup,
-                        )
-                        first_paragraph_parser = QueryParser(
-                            "body",
-                            schema=first_paragraph_index.schema,
-                            group=OrGroup,
-                        )
-                        redirect_title_parser = QueryParser(
-                            "title",
-                            schema=redirect_index.schema,
-                            group=OrGroup,
-                        )
-
-                        for index_number, query_text in enumerate(queries, start=1):
-                            all_results.append(
-                                {
-                                    "query": query_text,
-                                    "results": search_whoosh_weighted_with_searcher(
-                                        searcher,
-                                        query_text=query_text,
-                                        title_parser=title_parser,
-                                        body_parser=body_parser,
-                                        redirect_lookup=redirect_lookup,
-                                        limit=limit,
-                                        component_limit=component_limit,
-                                        skip_redirects=skip_redirects,
-                                        title_weight=title_weight,
-                                        redirect_weight=redirect_weight,
-                                        body_weight=body_weight,
-                                        extra_body_components=[
-                                            (
-                                                "first_sentence_score",
-                                                first_sentence_weight,
-                                                first_sentence_searcher,
-                                                first_sentence_parser,
-                                            ),
-                                            (
-                                                "first_two_sentences_score",
-                                                first_two_sentences_weight,
-                                                first_two_sentences_searcher,
-                                                first_two_sentences_parser,
-                                            ),
-                                            (
-                                                "first_paragraph_score",
-                                                first_paragraph_weight,
-                                                first_paragraph_searcher,
-                                                first_paragraph_parser,
-                                            ),
-                                        ],
-                                        redirect_searcher=redirect_searcher,
-                                        redirect_title_parser=redirect_title_parser,
-                                        filter_main_redirects=True,
-                                        filter_redirect_results=False,
-                                        document_lookup=document_lookup,
-                                    ),
-                                }
+        with category_index.searcher(weighting=BM25F()) as category_searcher:
+            with first_sentence_index.searcher(weighting=BM25F()) as first_sentence_searcher:
+                with first_two_sentences_index.searcher(
+                    weighting=BM25F()
+                ) as first_two_sentences_searcher:
+                    with first_paragraph_index.searcher(
+                        weighting=BM25F()
+                    ) as first_paragraph_searcher:
+                        with redirect_index.searcher(weighting=BM25F()) as redirect_searcher:
+                            document_lookup = build_stored_document_lookup(searcher)
+                            title_parser = QueryParser("title", schema=index.schema, group=OrGroup)
+                            body_parser = QueryParser("body", schema=index.schema, group=OrGroup)
+                            first_sentence_parser = QueryParser(
+                                "body",
+                                schema=first_sentence_index.schema,
+                                group=OrGroup,
+                            )
+                            first_two_sentences_parser = QueryParser(
+                                "body",
+                                schema=first_two_sentences_index.schema,
+                                group=OrGroup,
+                            )
+                            first_paragraph_parser = QueryParser(
+                                "body",
+                                schema=first_paragraph_index.schema,
+                                group=OrGroup,
+                            )
+                            redirect_title_parser = QueryParser(
+                                "title",
+                                schema=redirect_index.schema,
+                                group=OrGroup,
                             )
 
-                            if progress_every and index_number % progress_every == 0:
-                                print(
-                                    f"[multi_search_whoosh_weighted] Queries: {index_number}/{total}"
+                            for index_number, query_text in enumerate(queries, start=1):
+                                all_results.append(
+                                    {
+                                        "query": query_text,
+                                        "results": search_whoosh_weighted_with_searcher(
+                                            searcher,
+                                            query_text=query_text,
+                                            query_category=query_categories[index_number - 1],
+                                            title_parser=title_parser,
+                                            body_parser=body_parser,
+                                            redirect_lookup=redirect_lookup,
+                                            limit=limit,
+                                            component_limit=component_limit,
+                                            skip_redirects=skip_redirects,
+                                            title_weight=title_weight,
+                                            redirect_weight=redirect_weight,
+                                            body_weight=body_weight,
+                                            extra_body_components=[
+                                                (
+                                                    "first_sentence_score",
+                                                    first_sentence_weight,
+                                                    first_sentence_searcher,
+                                                    first_sentence_parser,
+                                                ),
+                                                (
+                                                    "first_two_sentences_score",
+                                                    first_two_sentences_weight,
+                                                    first_two_sentences_searcher,
+                                                    first_two_sentences_parser,
+                                                ),
+                                                (
+                                                    "first_paragraph_score",
+                                                    first_paragraph_weight,
+                                                    first_paragraph_searcher,
+                                                    first_paragraph_parser,
+                                                ),
+                                            ],
+                                            category_components=[
+                                                (
+                                                    "category_first_sentence_score",
+                                                    category_first_sentence_weight,
+                                                    category_searcher,
+                                                    "title_first_sentence_categories",
+                                                ),
+                                                (
+                                                    "category_first_two_sentences_score",
+                                                    category_first_two_sentences_weight,
+                                                    category_searcher,
+                                                    "title_first_two_sentences_categories",
+                                                ),
+                                            ],
+                                            redirect_searcher=redirect_searcher,
+                                            redirect_title_parser=redirect_title_parser,
+                                            filter_main_redirects=True,
+                                            filter_redirect_results=False,
+                                            document_lookup=document_lookup,
+                                        ),
+                                    }
                                 )
+
+                                if progress_every and index_number % progress_every == 0:
+                                    print(
+                                        f"[multi_search_whoosh_weighted] Queries: {index_number}/{total}"
+                                    )
 
     print(f"[multi_search_whoosh_weighted] Finished queries: {total}/{total}")
     return all_results
@@ -777,9 +980,11 @@ def multi_search_whoosh_weighted(
 
 def multi_search_whoosh_weighted_cole(
     queries: list[str],
+    query_categories: list[str] | None = None,
     limit: int = 10,
     component_limit: int = WEIGHTED_COMPONENT_LIMIT,
     index_dir: Path = DEFAULT_WHOOSH_COLE_INDEX_DIR,
+    category_index_dir: Path = DEFAULT_WHOOSH_TITLE_BODY_CATEGORY_INDEX_DIR,
     first_sentence_index_dir: Path = DEFAULT_WHOOSH_COLE_FIRST_SENTENCE_INDEX_DIR,
     first_two_sentences_index_dir: Path = DEFAULT_WHOOSH_COLE_FIRST_TWO_SENTENCES_INDEX_DIR,
     first_paragraph_index_dir: Path = DEFAULT_WHOOSH_COLE_FIRST_PARAGRAPH_INDEX_DIR,
@@ -794,8 +999,12 @@ def multi_search_whoosh_weighted_cole(
     first_two_sentences_weight: float = WEIGHTED_FIRST_TWO_SENTENCES_WEIGHT,
     first_paragraph_weight: float = WEIGHTED_FIRST_PARAGRAPH_WEIGHT,
     year_match_weight: float = WEIGHTED_YEAR_MATCH_WEIGHT,
+    quote_match_weight: float = WEIGHTED_QUOTE_MATCH_WEIGHT,
+    category_first_sentence_weight: float = WEIGHTED_CATEGORY_FIRST_SENTENCE_WEIGHT,
+    category_first_two_sentences_weight: float = WEIGHTED_CATEGORY_FIRST_TWO_SENTENCES_WEIGHT,
 ) -> list[dict]:
     index = open_whoosh_cole_index(index_dir)
+    category_index = open_whoosh_title_body_category_index(category_index_dir)
     first_sentence_index = open_whoosh_cole_first_sentence_index(first_sentence_index_dir)
     first_two_sentences_index = open_whoosh_cole_first_two_sentences_index(
         first_two_sentences_index_dir
@@ -805,93 +1014,121 @@ def multi_search_whoosh_weighted_cole(
     redirect_lookup = load_redirect_lookup(redirect_db_path)
     total = len(queries)
     all_results = []
+    query_categories = query_categories or [""] * total
 
     with index.searcher(weighting=BM25F()) as searcher:
-        with first_sentence_index.searcher(weighting=BM25F()) as first_sentence_searcher:
-            with first_two_sentences_index.searcher(weighting=BM25F()) as first_two_sentences_searcher:
-                with first_paragraph_index.searcher(weighting=BM25F()) as first_paragraph_searcher:
-                    with redirect_index.searcher(weighting=BM25F()) as redirect_searcher:
-                        document_lookup = build_stored_document_lookup(searcher)
-                        title_parser = QueryParser("title", schema=index.schema, group=OrGroup)
-                        body_parser = QueryParser("body", schema=index.schema, group=OrGroup)
-                        first_sentence_parser = QueryParser(
-                            "body",
-                            schema=first_sentence_index.schema,
-                            group=OrGroup,
-                        )
-                        first_two_sentences_parser = QueryParser(
-                            "body",
-                            schema=first_two_sentences_index.schema,
-                            group=OrGroup,
-                        )
-                        first_paragraph_parser = QueryParser(
-                            "body",
-                            schema=first_paragraph_index.schema,
-                            group=OrGroup,
-                        )
-                        redirect_title_parser = QueryParser(
-                            "title",
-                            schema=redirect_index.schema,
-                            group=OrGroup,
-                        )
-
-                        for index_number, query_text in enumerate(queries, start=1):
-                            all_results.append(
-                                {
-                                    "query": query_text,
-                                    "results": search_whoosh_weighted_with_searcher(
-                                        searcher,
-                                        query_text=query_text,
-                                        title_parser=title_parser,
-                                        body_parser=body_parser,
-                                        redirect_lookup=redirect_lookup,
-                                        limit=limit,
-                                        component_limit=component_limit,
-                                        skip_redirects=skip_redirects,
-                                        title_weight=title_weight,
-                                        redirect_weight=redirect_weight,
-                                        body_weight=body_weight,
-                                        extra_body_components=[
-                                            (
-                                                "first_sentence_score",
-                                                first_sentence_weight,
-                                                first_sentence_searcher,
-                                                first_sentence_parser,
-                                            ),
-                                            (
-                                                "first_two_sentences_score",
-                                                first_two_sentences_weight,
-                                                first_two_sentences_searcher,
-                                                first_two_sentences_parser,
-                                            ),
-                                            (
-                                                "first_paragraph_score",
-                                                first_paragraph_weight,
-                                                first_paragraph_searcher,
-                                                first_paragraph_parser,
-                                            ),
-                                        ],
-                                        extra_components=[
-                                            (
-                                                "year_match_score",
-                                                year_match_weight,
-                                                searcher,
-                                                build_year_match_query,
-                                            ),
-                                        ],
-                                        redirect_searcher=redirect_searcher,
-                                        redirect_title_parser=redirect_title_parser,
-                                        filter_main_redirects=False,
-                                        filter_redirect_results=False,
-                                        document_lookup=document_lookup,
-                                    ),
-                                }
+        with category_index.searcher(weighting=BM25F()) as category_searcher:
+            with first_sentence_index.searcher(weighting=BM25F()) as first_sentence_searcher:
+                with first_two_sentences_index.searcher(
+                    weighting=BM25F()
+                ) as first_two_sentences_searcher:
+                    with first_paragraph_index.searcher(
+                        weighting=BM25F()
+                    ) as first_paragraph_searcher:
+                        with redirect_index.searcher(weighting=BM25F()) as redirect_searcher:
+                            document_lookup = build_stored_document_lookup(searcher)
+                            title_parser = QueryParser("title", schema=index.schema, group=OrGroup)
+                            body_parser = QueryParser("body", schema=index.schema, group=OrGroup)
+                            first_sentence_parser = QueryParser(
+                                "body",
+                                schema=first_sentence_index.schema,
+                                group=OrGroup,
                             )
+                            first_two_sentences_parser = QueryParser(
+                                "body",
+                                schema=first_two_sentences_index.schema,
+                                group=OrGroup,
+                            )
+                            first_paragraph_parser = QueryParser(
+                                "body",
+                                schema=first_paragraph_index.schema,
+                                group=OrGroup,
+                            )
+                            redirect_title_parser = QueryParser(
+                                "title",
+                                schema=redirect_index.schema,
+                                group=OrGroup,
+                            )
+                            quote_match_query_builder = build_quote_match_query
 
-                            if progress_every and index_number % progress_every == 0:
-                                print(
-                                    f"[multi_search_whoosh_weighted_cole] Queries: {index_number}/{total}"
+                            for index_number, query_text in enumerate(queries, start=1):
+                                all_results.append(
+                                    {
+                                        "query": query_text,
+                                        "results": search_whoosh_weighted_with_searcher(
+                                            searcher,
+                                            query_text=query_text,
+                                            query_category=query_categories[index_number - 1],
+                                            title_parser=title_parser,
+                                            body_parser=body_parser,
+                                            redirect_lookup=redirect_lookup,
+                                            limit=limit,
+                                            component_limit=component_limit,
+                                            skip_redirects=skip_redirects,
+                                            title_weight=title_weight,
+                                            redirect_weight=redirect_weight,
+                                            body_weight=body_weight,
+                                            extra_body_components=[
+                                                (
+                                                    "first_sentence_score",
+                                                    first_sentence_weight,
+                                                    first_sentence_searcher,
+                                                    first_sentence_parser,
+                                                ),
+                                                (
+                                                    "first_two_sentences_score",
+                                                    first_two_sentences_weight,
+                                                    first_two_sentences_searcher,
+                                                    first_two_sentences_parser,
+                                                ),
+                                                (
+                                                    "first_paragraph_score",
+                                                    first_paragraph_weight,
+                                                    first_paragraph_searcher,
+                                                    first_paragraph_parser,
+                                                ),
+                                            ],
+                                            extra_components=[
+                                                (
+                                                    "year_match_score",
+                                                    year_match_weight,
+                                                    searcher,
+                                                    build_year_match_query,
+                                                ),
+                                                (
+                                                    "quote_match_score",
+                                                    quote_match_weight,
+                                                    searcher,
+                                                    quote_match_query_builder,
+                                                ),
+                                            ],
+                                            category_components=[
+                                                (
+                                                    "category_first_sentence_score",
+                                                    category_first_sentence_weight,
+                                                    category_searcher,
+                                                    "title_first_sentence_categories",
+                                                ),
+                                                (
+                                                    "category_first_two_sentences_score",
+                                                    category_first_two_sentences_weight,
+                                                    category_searcher,
+                                                    "title_first_two_sentences_categories",
+                                                ),
+                                            ],
+                                            redirect_searcher=redirect_searcher,
+                                            redirect_title_parser=redirect_title_parser,
+                                            filter_main_redirects=False,
+                                            filter_redirect_results=False,
+                                            document_lookup=document_lookup,
+                                        ),
+                                    }
                                 )
+
+                                if progress_every and index_number % progress_every == 0:
+                                    print(
+                                        f"[multi_search_whoosh_weighted_cole] Queries: {index_number}/{total}"
+                                    )
 
     print(f"[multi_search_whoosh_weighted_cole] Finished queries: {total}/{total}")
     return all_results
