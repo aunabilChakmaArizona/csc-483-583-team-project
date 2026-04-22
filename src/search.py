@@ -99,22 +99,9 @@ except ModuleNotFoundError:
         get_or_compute_component_results,
     )
 
-# best so far 1
-# WEIGHTED_TITLE_WEIGHT = 0.0
-# WEIGHTED_REDIRECT_WEIGHT = 0.0 # so far it has no impact
-# WEIGHTED_BODY_WEIGHT = 5.0
-# WEIGHTED_FIRST_SENTENCE_WEIGHT = 0.0
-# WEIGHTED_FIRST_TWO_SENTENCES_WEIGHT = 0.0
-# WEIGHTED_FIRST_PARAGRAPH_WEIGHT = 0.0
-# WEIGHTED_FAISS_WEIGHT = 0.0
-# WEIGHTED_NATURAL_QUESTIONS_AVG_FAISS_WEIGHT = 1.0
-# WEIGHTED_NATURAL_QUESTIONS_CONCAT_FAISS_WEIGHT = 0.0
-# WEIGHTED_YEAR_MATCH_WEIGHT = 0.0
-# WEIGHTED_QUOTE_MATCH_WEIGHT = 0.0
-# WEIGHTED_CATEGORY_FIRST_SENTENCE_WEIGHT = 0.0
-# WEIGHTED_CATEGORY_FIRST_TWO_SENTENCES_WEIGHT = 0.0
+#################################### ** Most Important ** Weight tuning
 
-# best so far 2
+# Best 1 so far
 # WEIGHTED_TITLE_WEIGHT = 0.0
 # WEIGHTED_REDIRECT_WEIGHT = 0.0 # so far it has no impact
 # WEIGHTED_BODY_WEIGHT = 15.0
@@ -129,6 +116,23 @@ except ModuleNotFoundError:
 # WEIGHTED_CATEGORY_FIRST_SENTENCE_WEIGHT = 0.0
 # WEIGHTED_CATEGORY_FIRST_TWO_SENTENCES_WEIGHT = 0.0
 
+# Best 2 so far
+# WEIGHTED_TITLE_WEIGHT = 0.0
+# WEIGHTED_REDIRECT_WEIGHT = 0.0 # so far it has no impact
+# WEIGHTED_BODY_WEIGHT = 5.0
+# WEIGHTED_FIRST_SENTENCE_WEIGHT = 0.0
+# WEIGHTED_FIRST_TWO_SENTENCES_WEIGHT = 0.0
+# WEIGHTED_FIRST_PARAGRAPH_WEIGHT = 0.0
+# WEIGHTED_FAISS_WEIGHT = 0.0
+# WEIGHTED_NATURAL_QUESTIONS_AVG_FAISS_WEIGHT = 1.0
+# WEIGHTED_NATURAL_QUESTIONS_CONCAT_FAISS_WEIGHT = 0.0
+# WEIGHTED_YEAR_MATCH_WEIGHT = 0.0
+# WEIGHTED_QUOTE_MATCH_WEIGHT = 0.0
+# WEIGHTED_CATEGORY_FIRST_SENTENCE_WEIGHT = 0.0
+# WEIGHTED_CATEGORY_FIRST_TWO_SENTENCES_WEIGHT = 0.0
+
+## Tune weights below
+
 WEIGHTED_TITLE_WEIGHT = 0.0
 WEIGHTED_REDIRECT_WEIGHT = 0.0 # so far it has no impact
 WEIGHTED_BODY_WEIGHT = 20.0
@@ -139,9 +143,11 @@ WEIGHTED_FAISS_WEIGHT = 1.0
 WEIGHTED_NATURAL_QUESTIONS_AVG_FAISS_WEIGHT = 1.0
 WEIGHTED_NATURAL_QUESTIONS_CONCAT_FAISS_WEIGHT = 1.0
 WEIGHTED_YEAR_MATCH_WEIGHT = 1.0
-WEIGHTED_QUOTE_MATCH_WEIGHT = 0.0
+WEIGHTED_QUOTE_MATCH_WEIGHT = 0.0 #todo: it will be best to make it a ngram match
 WEIGHTED_CATEGORY_FIRST_SENTENCE_WEIGHT = 0.0
 WEIGHTED_CATEGORY_FIRST_TWO_SENTENCES_WEIGHT = 0.0
+
+#################################### 
 
 EQUAL_TITLE_WEIGHT = 1.0
 EQUAL_REDIRECT_WEIGHT = 1.0
@@ -755,16 +761,37 @@ def search_whoosh_weighted_with_searcher(
     if not query_text.strip():
         return []
 
-    extra_body_components = extra_body_components or []
-    extra_components = extra_components or []
-    category_components = category_components or []
-    precomputed_components = precomputed_components or []
+    active_title = title_weight > 0
+    active_body = body_weight > 0
+    active_redirect = redirect_weight > 0 and not skip_redirects
+    extra_body_components = [
+        component for component in (extra_body_components or []) if component[1] > 0
+    ]
+    extra_components = [component for component in (extra_components or []) if component[1] > 0]
+    category_components = [
+        component for component in (category_components or []) if component[1] > 0
+    ]
+    precomputed_components = [
+        component for component in (precomputed_components or []) if component[1] > 0
+    ]
+    if not any(
+        [
+            active_title,
+            active_body,
+            active_redirect,
+            extra_body_components,
+            extra_components,
+            category_components,
+            precomputed_components,
+        ]
+    ):
+        return []
     component_cache_context = component_cache_context or {}
     redirect_searcher = redirect_searcher or searcher
     redirect_title_parser = redirect_title_parser or title_parser
-    title_query = title_parser.parse(query_text)
-    body_query = body_parser.parse(query_text)
-    redirect_title_query = redirect_title_parser.parse(query_text)
+    title_query = title_parser.parse(query_text) if active_title else None
+    body_query = body_parser.parse(query_text) if active_body else None
+    redirect_title_query = redirect_title_parser.parse(query_text) if active_redirect else None
     non_redirect_filter = (
         whoosh_query.NumericRange("is_redirect", 0, 0) if filter_main_redirects else None
     )
@@ -791,24 +818,28 @@ def search_whoosh_weighted_with_searcher(
             compute_results=compute_results,
         )
 
-    title_results = cached_or_compute_results(
-        "title_score",
-        compute_results=lambda: normalize_results_to_unit_interval(
-            serialize_results(
-                searcher.search(title_query, limit=component_limit, filter=non_redirect_filter)
-            )
-        ),
-        cache_query_category=query_category,
-    )
-    body_results = cached_or_compute_results(
-        "body_score",
-        compute_results=lambda: normalize_results_to_unit_interval(
-            serialize_results(
-                searcher.search(body_query, limit=component_limit, filter=non_redirect_filter)
-            )
-        ),
-        cache_query_category=query_category,
-    )
+    title_results = []
+    if active_title:
+        title_results = cached_or_compute_results(
+            "title_score",
+            compute_results=lambda: normalize_results_to_unit_interval(
+                serialize_results(
+                    searcher.search(title_query, limit=component_limit, filter=non_redirect_filter)
+                )
+            ),
+            cache_query_category=query_category,
+        )
+    body_results = []
+    if active_body:
+        body_results = cached_or_compute_results(
+            "body_score",
+            compute_results=lambda: normalize_results_to_unit_interval(
+                serialize_results(
+                    searcher.search(body_query, limit=component_limit, filter=non_redirect_filter)
+                )
+            ),
+            cache_query_category=query_category,
+        )
     extra_component_results = {}
     for score_name, _, component_searcher, component_parser in extra_body_components:
         extra_component_results[score_name] = cached_or_compute_results(
@@ -870,7 +901,7 @@ def search_whoosh_weighted_with_searcher(
             cache_query_category=query_category,
         )
     redirect_results = []
-    if not skip_redirects:
+    if active_redirect:
         redirect_results = cached_or_compute_results(
             "redirect_score",
             compute_results=lambda: normalize_results_to_unit_interval(

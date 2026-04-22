@@ -156,20 +156,17 @@ def test_weighted_search_maps_redirect_hits_to_canonical_article(tmp_path):
         dpr_faiss_index_dir=tmp_path / "missing_dpr_faiss",
     )
 
-    assert [result["title"] for result in redirect_results] == ["Core Article"]
-    assert redirect_results[0]["is_redirect"] == 0
-    assert redirect_results[0]["redirect_score"] > 0
-    assert redirect_results[0]["title_score"] == 0
+    assert redirect_results == []
     assert [result["title"] for result in body_results] == ["Core Article"]
     assert body_results[0]["body_score"] > 0
-    assert body_results[0]["first_sentence_score"] == 0
-    assert body_results[0]["first_two_sentences_score"] > 0
-    assert body_results[0]["first_paragraph_score"] > 0
+    assert "first_sentence_score" not in body_results[0]
+    assert "first_two_sentences_score" not in body_results[0]
+    assert "first_paragraph_score" not in body_results[0]
     assert [result["title"] for result in full_body_results] == ["Core Article"]
     assert full_body_results[0]["body_score"] > 0
-    assert full_body_results[0]["first_sentence_score"] == 0
-    assert full_body_results[0]["first_two_sentences_score"] == 0
-    assert full_body_results[0]["first_paragraph_score"] == 0
+    assert "first_sentence_score" not in full_body_results[0]
+    assert "first_two_sentences_score" not in full_body_results[0]
+    assert "first_paragraph_score" not in full_body_results[0]
 
 
 def test_weighted_search_includes_faiss_score_component(tmp_path, monkeypatch):

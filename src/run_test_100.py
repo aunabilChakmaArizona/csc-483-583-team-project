@@ -475,6 +475,37 @@ def warmup_retrieval_resources(
     if not questions:
         return
 
+    if weight_equal:
+        active_title = True
+        active_body = True
+        active_first_sentence = True
+        active_first_two_sentences = True
+        active_first_paragraph = True
+        active_redirect = True
+        active_faiss = True
+        active_natural_questions_avg_faiss = True
+        active_natural_questions_concat_faiss = True
+        active_category_first_sentence = True
+        active_category_first_two_sentences = True
+        active_year_match = weighted_cole
+        active_quote_match = weighted_cole
+    else:
+        active_title = WEIGHTED_TITLE_WEIGHT > 0
+        active_body = WEIGHTED_BODY_WEIGHT > 0
+        active_first_sentence = WEIGHTED_FIRST_SENTENCE_WEIGHT > 0
+        active_first_two_sentences = WEIGHTED_FIRST_TWO_SENTENCES_WEIGHT > 0
+        active_first_paragraph = WEIGHTED_FIRST_PARAGRAPH_WEIGHT > 0
+        active_redirect = WEIGHTED_REDIRECT_WEIGHT > 0
+        active_faiss = WEIGHTED_FAISS_WEIGHT > 0
+        active_natural_questions_avg_faiss = WEIGHTED_NATURAL_QUESTIONS_AVG_FAISS_WEIGHT > 0
+        active_natural_questions_concat_faiss = (
+            WEIGHTED_NATURAL_QUESTIONS_CONCAT_FAISS_WEIGHT > 0
+        )
+        active_category_first_sentence = WEIGHTED_CATEGORY_FIRST_SENTENCE_WEIGHT > 0
+        active_category_first_two_sentences = WEIGHTED_CATEGORY_FIRST_TWO_SENTENCES_WEIGHT > 0
+        active_year_match = weighted_cole and WEIGHTED_YEAR_MATCH_WEIGHT > 0
+        active_quote_match = weighted_cole and WEIGHTED_QUOTE_MATCH_WEIGHT > 0
+
     if query_mode == "entity":
         load_entity_model()
 
@@ -491,33 +522,64 @@ def warmup_retrieval_resources(
         open_whoosh_cole_index()
 
     if weighted or weight_equal or weighted_cole:
-        if weighted_cole:
+        if weighted_cole and (
+            active_title
+            or active_body
+            or active_year_match
+            or active_quote_match
+            or active_redirect
+            or active_faiss
+            or active_natural_questions_avg_faiss
+            or active_natural_questions_concat_faiss
+        ):
             open_whoosh_cole_index()
-        else:
+        elif not weighted_cole and (
+            active_title
+            or active_body
+            or active_redirect
+            or active_faiss
+            or active_natural_questions_avg_faiss
+            or active_natural_questions_concat_faiss
+        ):
             open_whoosh_title_body_index()
-        open_whoosh_title_body_category_index()
-        open_whoosh_cole_first_sentence_index()
-        open_whoosh_cole_first_two_sentences_index()
-        open_whoosh_cole_first_paragraph_index()
-        open_whoosh_cole_redirect_index()
-        load_redirect_lookup()
+        if active_category_first_sentence or active_category_first_two_sentences:
+            open_whoosh_title_body_category_index()
+        if active_first_sentence:
+            open_whoosh_cole_first_sentence_index()
+        if active_first_two_sentences:
+            open_whoosh_cole_first_two_sentences_index()
+        if active_first_paragraph:
+            open_whoosh_cole_first_paragraph_index()
+        if active_redirect:
+            open_whoosh_cole_redirect_index()
+            load_redirect_lookup()
 
-        if query_mode == "full":
+        if query_mode == "full" and (
+            active_faiss
+            or active_natural_questions_avg_faiss
+            or active_natural_questions_concat_faiss
+        ):
             dense_query_embeddings = get_precomputed_dense_query_embeddings(
                 questions,
                 include_category=include_category,
             )
-            if dense_query_embeddings is None:
+            if active_faiss and dense_query_embeddings is None:
                 load_dpr_question_encoder()
-        else:
+        elif query_mode != "full" and (
+            active_faiss
+            or active_natural_questions_avg_faiss
+            or active_natural_questions_concat_faiss
+        ):
             load_dpr_question_encoder()
 
-        get_precomputed_natural_question_dense_embeddings(questions)
+        if active_natural_questions_avg_faiss or active_natural_questions_concat_faiss:
+            get_precomputed_natural_question_dense_embeddings(questions)
 
-        for variant_name in DPR_FAISS_VARIANT_NAMES:
-            variant_dir = DEFAULT_DPR_FAISS_INDEX_DIR / variant_name
-            if variant_dir.exists():
-                load_dpr_faiss_variant(str(variant_dir))
+        if active_faiss or active_natural_questions_avg_faiss or active_natural_questions_concat_faiss:
+            for variant_name in DPR_FAISS_VARIANT_NAMES:
+                variant_dir = DEFAULT_DPR_FAISS_INDEX_DIR / variant_name
+                if variant_dir.exists():
+                    load_dpr_faiss_variant(str(variant_dir))
 
 
 def print_question_progress(
