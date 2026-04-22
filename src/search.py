@@ -50,6 +50,10 @@ try:
     from src.processor4_whoosh_index import open_index as open_whoosh_index
     from src.processor4_index import DEFAULT_INDEX_DIR, open_index
     from src.processor3_tokenize import load_stop_words, tokenize_body
+    from src.retrieval_cache import (
+        digest_query_embedding,
+        get_or_compute_component_results,
+    )
 except ModuleNotFoundError:
     from processor_redirect import DEFAULT_OUTPUT_DB_PATH as DEFAULT_REDIRECT_DB_PATH
     from processor4_cole_first_paragraph_index import (
@@ -90,19 +94,31 @@ except ModuleNotFoundError:
     from processor4_whoosh_index import open_index as open_whoosh_index
     from processor4_index import DEFAULT_INDEX_DIR, open_index
     from processor3_tokenize import load_stop_words, tokenize_body
+    from retrieval_cache import (
+        digest_query_embedding,
+        get_or_compute_component_results,
+    )
 
-# top5-43%
-# WEIGHTED_TITLE_WEIGHT = 1.0
-# WEIGHTED_REDIRECT_WEIGHT = 2.0 or 0.0 or 8.0
-# WEIGHTED_BODY_WEIGHT = 4.0
+# best so far 
+# WEIGHTED_TITLE_WEIGHT = 0.0
+# WEIGHTED_REDIRECT_WEIGHT = 0.0 # so far it has no impact
+# WEIGHTED_BODY_WEIGHT = 5.0
+# WEIGHTED_FIRST_SENTENCE_WEIGHT = 0.0
+# WEIGHTED_FIRST_TWO_SENTENCES_WEIGHT = 0.0
+# WEIGHTED_FIRST_PARAGRAPH_WEIGHT = 0.0
+# WEIGHTED_FAISS_WEIGHT = 1.0
+# WEIGHTED_YEAR_MATCH_WEIGHT = 0.0
+# WEIGHTED_QUOTE_MATCH_WEIGHT = 0.0
+# WEIGHTED_CATEGORY_FIRST_SENTENCE_WEIGHT = 0.0
+# WEIGHTED_CATEGORY_FIRST_TWO_SENTENCES_WEIGHT = 0.0
 
 WEIGHTED_TITLE_WEIGHT = 0.0
 WEIGHTED_REDIRECT_WEIGHT = 0.0 # so far it has no impact
-WEIGHTED_BODY_WEIGHT = 7.0
+WEIGHTED_BODY_WEIGHT = 10.0
 WEIGHTED_FIRST_SENTENCE_WEIGHT = 0.0
 WEIGHTED_FIRST_TWO_SENTENCES_WEIGHT = 0.0
 WEIGHTED_FIRST_PARAGRAPH_WEIGHT = 0.0
-WEIGHTED_FAISS_WEIGHT = 0.0
+WEIGHTED_FAISS_WEIGHT = 2.0
 WEIGHTED_YEAR_MATCH_WEIGHT = 0.0
 WEIGHTED_QUOTE_MATCH_WEIGHT = 0.0
 WEIGHTED_CATEGORY_FIRST_SENTENCE_WEIGHT = 0.0
@@ -283,6 +299,29 @@ def normalize_dense_results_to_unit_interval(results: list[dict]) -> list[dict]:
     ]
 
 
+def get_cached_component_results(
+    *,
+    component_name: str,
+    query_text: str,
+    query_category: str | None,
+    component_limit: int,
+    index_paths: list[Path] | tuple[Path, ...],
+    extra_config: dict | None,
+    compute_results,
+    query_embedding=None,
+) -> list[dict]:
+    return get_or_compute_component_results(
+        component_name=component_name,
+        query_text=query_text,
+        query_category=query_category,
+        component_limit=component_limit,
+        index_paths=index_paths,
+        extra_config=extra_config,
+        compute_results=compute_results,
+        query_embedding_digest=digest_query_embedding(query_embedding),
+    )
+
+
 @lru_cache(maxsize=1)
 def load_dpr_question_encoder():
     try:
@@ -345,6 +384,8 @@ def search_dpr_faiss(
     dpr_faiss_index_dir: Path = DEFAULT_DPR_FAISS_INDEX_DIR,
     query_embedding=None,
 ) -> list[dict]:
+    import numpy as np
+
     if not query_text.strip() or not dpr_faiss_index_dir.exists():
         return []
 
@@ -354,6 +395,14 @@ def search_dpr_faiss(
         except Exception as error:
             warn_once(f"[search_dpr_faiss] Skipping dense scoring: {error}")
             return []
+    else:
+        query_embedding = np.asarray(query_embedding, dtype=np.float32)
+        if query_embedding.ndim == 1:
+            query_embedding = query_embedding.reshape(1, -1)
+        elif query_embedding.ndim != 2:
+            raise ValueError(
+                f"Expected query_embedding to have 1 or 2 dimensions, got shape {query_embedding.shape}."
+            )
 
     aggregated_results: dict[tuple[str, int], dict] = {}
 
@@ -371,25 +420,42 @@ def search_dpr_faiss(
         if search_limit <= 0:
             continue
 
-        scores, row_indexes = index.search(query_embedding, search_limit)
-        dense_results = []
-        for score, row_index in zip(scores[0], row_indexes[0]):
-            if row_index < 0:
-                continue
-
-            metadata = metadata_rows[row_index]
-            dense_results.append(
-                {
-                    "title": metadata["title"],
-                    "body": "",
-                    "source_file": metadata["source_file"],
-                    "article_index": metadata["article_index"],
-                    "is_redirect": 0,
-                    "score": float(score),
-                }
+        def compute_dense_results(
+            current_index=index,
+            current_metadata_rows=metadata_rows,
+            current_search_limit=search_limit,
+        ):
+            scores, row_indexes = current_index.search(query_embedding, current_search_limit)
+            return normalize_dense_results_to_unit_interval(
+                [
+                    {
+                        "title": current_metadata_rows[row_index]["title"],
+                        "body": "",
+                        "source_file": current_metadata_rows[row_index]["source_file"],
+                        "article_index": current_metadata_rows[row_index]["article_index"],
+                        "is_redirect": 0,
+                        "score": float(score),
+                    }
+                    for score, row_index in zip(scores[0], row_indexes[0])
+                    if row_index >= 0
+                ]
             )
 
-        for result in normalize_dense_results_to_unit_interval(dense_results):
+        dense_results = get_cached_component_results(
+            component_name=f"faiss_{variant_name}",
+            query_text=query_text,
+            query_category=None,
+            component_limit=limit,
+            index_paths=[variant_dir / "index.faiss", variant_dir / "metadata.jsonl"],
+            extra_config={
+                "metric": "inner_product",
+                "doc_variant": variant_name,
+            },
+            query_embedding=query_embedding,
+            compute_results=compute_dense_results,
+        )
+
+        for result in dense_results:
             key = weighted_result_key(result)
             existing = aggregated_results.get(key)
             if existing is None or result["score"] > existing["score"]:
@@ -556,6 +622,7 @@ def search_whoosh_weighted_with_searcher(
     extra_components: list[tuple[str, float, object, object]] | None = None,
     category_components: list[tuple[str, float, object, str]] | None = None,
     precomputed_components: list[tuple[str, float, list[dict]]] | None = None,
+    component_cache_context: dict[str, dict] | None = None,
     redirect_searcher=None,
     redirect_title_parser=None,
     filter_main_redirects: bool = True,
@@ -569,6 +636,7 @@ def search_whoosh_weighted_with_searcher(
     extra_components = extra_components or []
     category_components = category_components or []
     precomputed_components = precomputed_components or []
+    component_cache_context = component_cache_context or {}
     redirect_searcher = redirect_searcher or searcher
     redirect_title_parser = redirect_title_parser or title_parser
     title_query = title_parser.parse(query_text)
@@ -579,64 +647,119 @@ def search_whoosh_weighted_with_searcher(
     )
     redirect_filter = whoosh_query.NumericRange("is_redirect", 1, 1) if filter_redirect_results else None
 
-    title_results = normalize_results_to_unit_interval(
-        serialize_results(
-            searcher.search(title_query, limit=component_limit, filter=non_redirect_filter)
+    def cached_or_compute_results(
+        score_name: str,
+        *,
+        compute_results,
+        cache_query_text: str | None = None,
+        cache_query_category: str | None = None,
+    ) -> list[dict]:
+        cache_context = component_cache_context.get(score_name)
+        if cache_context is None:
+            return compute_results()
+
+        return get_cached_component_results(
+            component_name=cache_context["component_name"],
+            query_text=cache_query_text if cache_query_text is not None else query_text,
+            query_category=cache_query_category,
+            component_limit=component_limit,
+            index_paths=cache_context["index_paths"],
+            extra_config=cache_context.get("extra_config"),
+            compute_results=compute_results,
         )
+
+    title_results = cached_or_compute_results(
+        "title_score",
+        compute_results=lambda: normalize_results_to_unit_interval(
+            serialize_results(
+                searcher.search(title_query, limit=component_limit, filter=non_redirect_filter)
+            )
+        ),
+        cache_query_category=query_category,
     )
-    body_results = normalize_results_to_unit_interval(
-        serialize_results(
-            searcher.search(body_query, limit=component_limit, filter=non_redirect_filter)
-        )
+    body_results = cached_or_compute_results(
+        "body_score",
+        compute_results=lambda: normalize_results_to_unit_interval(
+            serialize_results(
+                searcher.search(body_query, limit=component_limit, filter=non_redirect_filter)
+            )
+        ),
+        cache_query_category=query_category,
     )
     extra_component_results = {}
     for score_name, _, component_searcher, component_parser in extra_body_components:
-        extra_component_results[score_name] = normalize_results_to_unit_interval(
-            serialize_results(
-                component_searcher.search(
-                    component_parser.parse(query_text),
-                    limit=component_limit,
+        extra_component_results[score_name] = cached_or_compute_results(
+            score_name,
+            compute_results=lambda current_searcher=component_searcher, current_parser=component_parser: normalize_results_to_unit_interval(
+                serialize_results(
+                    current_searcher.search(
+                        current_parser.parse(query_text),
+                        limit=component_limit,
+                    )
                 )
-            )
+            ),
+            cache_query_category=query_category,
         )
     for score_name, _, component_searcher, component_query_builder in extra_components:
         component_query = component_query_builder(query_text)
         if component_query is None:
-            extra_component_results[score_name] = []
+            extra_component_results[score_name] = cached_or_compute_results(
+                score_name,
+                compute_results=lambda: [],
+                cache_query_category=query_category,
+            )
             continue
 
-        extra_component_results[score_name] = normalize_results_to_unit_interval(
-            serialize_results(
-                component_searcher.search(
-                    component_query,
-                    limit=component_limit,
+        extra_component_results[score_name] = cached_or_compute_results(
+            score_name,
+            compute_results=lambda current_searcher=component_searcher, current_query=component_query: normalize_results_to_unit_interval(
+                serialize_results(
+                    current_searcher.search(
+                        current_query,
+                        limit=component_limit,
+                    )
                 )
-            )
+            ),
+            cache_query_category=query_category,
         )
     for score_name, _, component_searcher, field_name in category_components:
         component_query = build_category_match_query(field_name, query_category or "")
         if component_query is None:
-            extra_component_results[score_name] = []
+            extra_component_results[score_name] = cached_or_compute_results(
+                score_name,
+                compute_results=lambda: [],
+                cache_query_text=query_category or "",
+                cache_query_category=query_category,
+            )
             continue
 
-        extra_component_results[score_name] = normalize_results_to_unit_interval(
-            serialize_results(
-                component_searcher.search(
-                    component_query,
-                    limit=component_limit,
+        extra_component_results[score_name] = cached_or_compute_results(
+            score_name,
+            compute_results=lambda current_searcher=component_searcher, current_query=component_query: normalize_results_to_unit_interval(
+                serialize_results(
+                    current_searcher.search(
+                        current_query,
+                        limit=component_limit,
+                    )
                 )
-            )
+            ),
+            cache_query_text=query_category or "",
+            cache_query_category=query_category,
         )
     redirect_results = []
     if not skip_redirects:
-        redirect_results = normalize_results_to_unit_interval(
-            serialize_results(
-                redirect_searcher.search(
-                    redirect_title_query,
-                    limit=component_limit,
-                    filter=redirect_filter,
+        redirect_results = cached_or_compute_results(
+            "redirect_score",
+            compute_results=lambda: normalize_results_to_unit_interval(
+                serialize_results(
+                    redirect_searcher.search(
+                        redirect_title_query,
+                        limit=component_limit,
+                        filter=redirect_filter,
+                    )
                 )
-            )
+            ),
+            cache_query_category=query_category,
         )
 
     aggregated_results: dict[tuple[str, int], dict] = {}
@@ -822,6 +945,54 @@ def search_whoosh_weighted(
                                 schema=redirect_index.schema,
                                 group=OrGroup,
                             )
+                            component_cache_context = {
+                                "title_score": {
+                                    "component_name": "whoosh_title",
+                                    "index_paths": [index_dir],
+                                    "extra_config": {
+                                        "field": "title",
+                                        "filter_main_redirects": True,
+                                    },
+                                },
+                                "body_score": {
+                                    "component_name": "whoosh_body",
+                                    "index_paths": [index_dir],
+                                    "extra_config": {
+                                        "field": "body",
+                                        "filter_main_redirects": True,
+                                    },
+                                },
+                                "first_sentence_score": {
+                                    "component_name": "whoosh_first_sentence",
+                                    "index_paths": [first_sentence_index_dir],
+                                    "extra_config": {"field": "body"},
+                                },
+                                "first_two_sentences_score": {
+                                    "component_name": "whoosh_first_two_sentences",
+                                    "index_paths": [first_two_sentences_index_dir],
+                                    "extra_config": {"field": "body"},
+                                },
+                                "first_paragraph_score": {
+                                    "component_name": "whoosh_first_paragraph",
+                                    "index_paths": [first_paragraph_index_dir],
+                                    "extra_config": {"field": "body"},
+                                },
+                                "category_first_sentence_score": {
+                                    "component_name": "whoosh_category_first_sentence",
+                                    "index_paths": [category_index_dir],
+                                    "extra_config": {"field": "title_first_sentence_categories"},
+                                },
+                                "category_first_two_sentences_score": {
+                                    "component_name": "whoosh_category_first_two_sentences",
+                                    "index_paths": [category_index_dir],
+                                    "extra_config": {"field": "title_first_two_sentences_categories"},
+                                },
+                                "redirect_score": {
+                                    "component_name": "whoosh_redirect_title",
+                                    "index_paths": [redirect_index_dir],
+                                    "extra_config": {"field": "title", "filter_redirect_results": False},
+                                },
+                            }
                             return search_whoosh_weighted_with_searcher(
                                 searcher,
                                 query_text=query,
@@ -881,6 +1052,7 @@ def search_whoosh_weighted(
                                         ),
                                     )
                                 ],
+                                component_cache_context=component_cache_context,
                                 redirect_searcher=redirect_searcher,
                                 redirect_title_parser=redirect_title_parser,
                                 filter_main_redirects=True,
@@ -960,6 +1132,64 @@ def search_whoosh_weighted_cole(
                                 group=OrGroup,
                             )
                             quote_match_query_builder = build_quote_match_query
+                            component_cache_context = {
+                                "title_score": {
+                                    "component_name": "cole_title",
+                                    "index_paths": [index_dir],
+                                    "extra_config": {
+                                        "field": "title",
+                                        "filter_main_redirects": False,
+                                    },
+                                },
+                                "body_score": {
+                                    "component_name": "cole_body",
+                                    "index_paths": [index_dir],
+                                    "extra_config": {
+                                        "field": "body",
+                                        "filter_main_redirects": False,
+                                    },
+                                },
+                                "first_sentence_score": {
+                                    "component_name": "whoosh_first_sentence",
+                                    "index_paths": [first_sentence_index_dir],
+                                    "extra_config": {"field": "body"},
+                                },
+                                "first_two_sentences_score": {
+                                    "component_name": "whoosh_first_two_sentences",
+                                    "index_paths": [first_two_sentences_index_dir],
+                                    "extra_config": {"field": "body"},
+                                },
+                                "first_paragraph_score": {
+                                    "component_name": "whoosh_first_paragraph",
+                                    "index_paths": [first_paragraph_index_dir],
+                                    "extra_config": {"field": "body"},
+                                },
+                                "year_match_score": {
+                                    "component_name": "cole_year_match",
+                                    "index_paths": [index_dir],
+                                    "extra_config": {"query_builder": "year_match"},
+                                },
+                                "quote_match_score": {
+                                    "component_name": "cole_quote_match",
+                                    "index_paths": [index_dir],
+                                    "extra_config": {"query_builder": "quote_match"},
+                                },
+                                "category_first_sentence_score": {
+                                    "component_name": "whoosh_category_first_sentence",
+                                    "index_paths": [category_index_dir],
+                                    "extra_config": {"field": "title_first_sentence_categories"},
+                                },
+                                "category_first_two_sentences_score": {
+                                    "component_name": "whoosh_category_first_two_sentences",
+                                    "index_paths": [category_index_dir],
+                                    "extra_config": {"field": "title_first_two_sentences_categories"},
+                                },
+                                "redirect_score": {
+                                    "component_name": "whoosh_redirect_title",
+                                    "index_paths": [redirect_index_dir],
+                                    "extra_config": {"field": "title", "filter_redirect_results": False},
+                                },
+                            }
                             return search_whoosh_weighted_with_searcher(
                                 searcher,
                                 query_text=query,
@@ -1033,6 +1263,7 @@ def search_whoosh_weighted_cole(
                                         ),
                                     )
                                 ],
+                                component_cache_context=component_cache_context,
                                 redirect_searcher=redirect_searcher,
                                 redirect_title_parser=redirect_title_parser,
                                 filter_main_redirects=False,
@@ -1113,6 +1344,54 @@ def multi_search_whoosh_weighted(
                                 schema=redirect_index.schema,
                                 group=OrGroup,
                             )
+                            component_cache_context = {
+                                "title_score": {
+                                    "component_name": "whoosh_title",
+                                    "index_paths": [index_dir],
+                                    "extra_config": {
+                                        "field": "title",
+                                        "filter_main_redirects": True,
+                                    },
+                                },
+                                "body_score": {
+                                    "component_name": "whoosh_body",
+                                    "index_paths": [index_dir],
+                                    "extra_config": {
+                                        "field": "body",
+                                        "filter_main_redirects": True,
+                                    },
+                                },
+                                "first_sentence_score": {
+                                    "component_name": "whoosh_first_sentence",
+                                    "index_paths": [first_sentence_index_dir],
+                                    "extra_config": {"field": "body"},
+                                },
+                                "first_two_sentences_score": {
+                                    "component_name": "whoosh_first_two_sentences",
+                                    "index_paths": [first_two_sentences_index_dir],
+                                    "extra_config": {"field": "body"},
+                                },
+                                "first_paragraph_score": {
+                                    "component_name": "whoosh_first_paragraph",
+                                    "index_paths": [first_paragraph_index_dir],
+                                    "extra_config": {"field": "body"},
+                                },
+                                "category_first_sentence_score": {
+                                    "component_name": "whoosh_category_first_sentence",
+                                    "index_paths": [category_index_dir],
+                                    "extra_config": {"field": "title_first_sentence_categories"},
+                                },
+                                "category_first_two_sentences_score": {
+                                    "component_name": "whoosh_category_first_two_sentences",
+                                    "index_paths": [category_index_dir],
+                                    "extra_config": {"field": "title_first_two_sentences_categories"},
+                                },
+                                "redirect_score": {
+                                    "component_name": "whoosh_redirect_title",
+                                    "index_paths": [redirect_index_dir],
+                                    "extra_config": {"field": "title", "filter_redirect_results": False},
+                                },
+                            }
 
                             for index_number, query_text in enumerate(queries, start=1):
                                 dense_query_embedding = None
@@ -1180,6 +1459,7 @@ def multi_search_whoosh_weighted(
                                                     ),
                                                 )
                                             ],
+                                            component_cache_context=component_cache_context,
                                             redirect_searcher=redirect_searcher,
                                             redirect_title_parser=redirect_title_parser,
                                             filter_main_redirects=True,
@@ -1273,6 +1553,64 @@ def multi_search_whoosh_weighted_cole(
                                 group=OrGroup,
                             )
                             quote_match_query_builder = build_quote_match_query
+                            component_cache_context = {
+                                "title_score": {
+                                    "component_name": "cole_title",
+                                    "index_paths": [index_dir],
+                                    "extra_config": {
+                                        "field": "title",
+                                        "filter_main_redirects": False,
+                                    },
+                                },
+                                "body_score": {
+                                    "component_name": "cole_body",
+                                    "index_paths": [index_dir],
+                                    "extra_config": {
+                                        "field": "body",
+                                        "filter_main_redirects": False,
+                                    },
+                                },
+                                "first_sentence_score": {
+                                    "component_name": "whoosh_first_sentence",
+                                    "index_paths": [first_sentence_index_dir],
+                                    "extra_config": {"field": "body"},
+                                },
+                                "first_two_sentences_score": {
+                                    "component_name": "whoosh_first_two_sentences",
+                                    "index_paths": [first_two_sentences_index_dir],
+                                    "extra_config": {"field": "body"},
+                                },
+                                "first_paragraph_score": {
+                                    "component_name": "whoosh_first_paragraph",
+                                    "index_paths": [first_paragraph_index_dir],
+                                    "extra_config": {"field": "body"},
+                                },
+                                "year_match_score": {
+                                    "component_name": "cole_year_match",
+                                    "index_paths": [index_dir],
+                                    "extra_config": {"query_builder": "year_match"},
+                                },
+                                "quote_match_score": {
+                                    "component_name": "cole_quote_match",
+                                    "index_paths": [index_dir],
+                                    "extra_config": {"query_builder": "quote_match"},
+                                },
+                                "category_first_sentence_score": {
+                                    "component_name": "whoosh_category_first_sentence",
+                                    "index_paths": [category_index_dir],
+                                    "extra_config": {"field": "title_first_sentence_categories"},
+                                },
+                                "category_first_two_sentences_score": {
+                                    "component_name": "whoosh_category_first_two_sentences",
+                                    "index_paths": [category_index_dir],
+                                    "extra_config": {"field": "title_first_two_sentences_categories"},
+                                },
+                                "redirect_score": {
+                                    "component_name": "whoosh_redirect_title",
+                                    "index_paths": [redirect_index_dir],
+                                    "extra_config": {"field": "title", "filter_redirect_results": False},
+                                },
+                            }
 
                             for index_number, query_text in enumerate(queries, start=1):
                                 dense_query_embedding = None
@@ -1354,6 +1692,7 @@ def multi_search_whoosh_weighted_cole(
                                                     ),
                                                 )
                                             ],
+                                            component_cache_context=component_cache_context,
                                             redirect_searcher=redirect_searcher,
                                             redirect_title_parser=redirect_title_parser,
                                             filter_main_redirects=False,

@@ -11,7 +11,7 @@ from src.processor4_cole_first_two_sentences_index import (
 )
 from src.processor4_cole_index import materialize_whoosh_cole_index
 from src.processor4_cole_redirect_index import materialize_whoosh_cole_redirect_index
-from src.search import search_whoosh_weighted_cole
+from src.search import WEIGHTED_FAISS_WEIGHT, search_whoosh_weighted_cole
 
 
 def initialize_clean_articles_database(db_path):
@@ -263,5 +263,5 @@ def test_weighted_cole_search_includes_faiss_score_component(tmp_path, monkeypat
 
     assert [result["title"] for result in results] == ["Core Article"]
     assert results[0]["faiss_score"] == 1.0
-    assert results[0]["score"] == 1.0
+    assert results[0]["score"] == WEIGHTED_FAISS_WEIGHT
     assert results[0]["body_score"] == 0

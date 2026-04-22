@@ -86,6 +86,7 @@ def test_search_questions_expands_queries_and_merges_results(monkeypatch):
         weighted_cole=False,
         skip_redirects=False,
         dense_query_embeddings=None,
+        search_progress_every=0,
     ):
         captured["queries"] = queries
         captured["categories"] = categories
@@ -96,6 +97,7 @@ def test_search_questions_expands_queries_and_merges_results(monkeypatch):
         captured["weighted_cole"] = weighted_cole
         captured["skip_redirects"] = skip_redirects
         captured["dense_query_embeddings"] = dense_query_embeddings
+        captured["search_progress_every"] = search_progress_every
         query_to_results = {
             "Raw clue": [make_hit("Alpha", article_index=1), make_hit("Beta", article_index=2)],
             "Alt one": [make_hit("Beta", article_index=2), make_hit("Gamma", article_index=3)],
@@ -128,6 +130,7 @@ def test_search_questions_expands_queries_and_merges_results(monkeypatch):
         "weighted_cole": False,
         "skip_redirects": False,
         "dense_query_embeddings": None,
+        "search_progress_every": 0,
     }
     assert searches[0]["queries"] == ["Raw clue", "Alt one", "Alt two", "Alt three", "Alt four"]
     assert [result["title"] for result in searches[0]["results"]] == ["Beta", "Gamma", "Alpha"]
@@ -147,6 +150,7 @@ def test_search_questions_passes_weight_equal_to_search_batch(monkeypatch):
         weighted_cole=False,
         skip_redirects=False,
         dense_query_embeddings=None,
+        search_progress_every=0,
     ):
         captured["queries"] = queries
         captured["categories"] = categories
@@ -157,6 +161,7 @@ def test_search_questions_passes_weight_equal_to_search_batch(monkeypatch):
         captured["weighted_cole"] = weighted_cole
         captured["skip_redirects"] = skip_redirects
         captured["dense_query_embeddings"] = dense_query_embeddings
+        captured["search_progress_every"] = search_progress_every
         return [{"query": queries[0], "results": [make_hit("Beta", article_index=2)]}]
 
     monkeypatch.setattr("src.run_test_100.run_search_batch", fake_run_search_batch)
@@ -186,6 +191,7 @@ def test_search_questions_passes_weight_equal_to_search_batch(monkeypatch):
         "weight_equal": True,
         "weighted_cole": False,
         "skip_redirects": True,
+        "search_progress_every": 0,
     }
     assert len(captured["dense_query_embeddings"]) == 1
     assert captured["dense_query_embeddings"][0].tolist() == [1.0, 2.0]
@@ -236,8 +242,10 @@ def test_search_questions_passes_precomputed_dense_embeddings_to_weighted_batch(
         weighted_cole=False,
         skip_redirects=False,
         dense_query_embeddings=None,
+        search_progress_every=0,
     ):
         captured["dense_query_embeddings"] = dense_query_embeddings
+        captured["search_progress_every"] = search_progress_every
         return [{"query": queries[0], "results": [make_hit("Beta", article_index=2)]}]
 
     monkeypatch.setattr("src.run_test_100.run_search_batch", fake_run_search_batch)
@@ -254,6 +262,7 @@ def test_search_questions_passes_precomputed_dense_embeddings_to_weighted_batch(
 
     assert len(captured["dense_query_embeddings"]) == 1
     assert captured["dense_query_embeddings"][0].tolist() == [9.0, 8.0]
+    assert captured["search_progress_every"] == 0
     assert [result["title"] for result in searches[0]["results"]] == ["Beta"]
 
 

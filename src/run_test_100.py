@@ -4,6 +4,7 @@
 
 import argparse
 from dataclasses import dataclass
+from datetime import datetime
 from functools import lru_cache
 import json
 import numpy as np
@@ -18,7 +19,9 @@ try:
         category_plus_clue_text,
         clue_only_text,
     )
+    from src.retrieval_cache import get_cache_stats, reset_cache_stats
     from src.search import (
+        DEFAULT_DPR_FAISS_INDEX_DIR,
         EQUAL_BODY_WEIGHT,
         EQUAL_CATEGORY_FIRST_SENTENCE_WEIGHT,
         EQUAL_CATEGORY_FIRST_TWO_SENTENCES_WEIGHT,
@@ -30,6 +33,7 @@ try:
         EQUAL_REDIRECT_WEIGHT,
         EQUAL_TITLE_WEIGHT,
         EQUAL_YEAR_MATCH_WEIGHT,
+        DPR_FAISS_VARIANT_NAMES,
         WEIGHTED_BODY_WEIGHT,
         WEIGHTED_CATEGORY_FIRST_SENTENCE_WEIGHT,
         WEIGHTED_CATEGORY_FIRST_TWO_SENTENCES_WEIGHT,
@@ -47,6 +51,18 @@ try:
         multi_search_whoosh_weighted,
         multi_search_whoosh_weighted_cole,
         multi_search_whoosh_title_body,
+        load_dpr_faiss_variant,
+        load_dpr_question_encoder,
+        load_redirect_lookup,
+        open_index,
+        open_whoosh_cole_first_paragraph_index,
+        open_whoosh_cole_first_sentence_index,
+        open_whoosh_cole_first_two_sentences_index,
+        open_whoosh_cole_index,
+        open_whoosh_cole_redirect_index,
+        open_whoosh_index,
+        open_whoosh_title_body_category_index,
+        open_whoosh_title_body_index,
     )
 except ModuleNotFoundError:
     from processor1_parse import DEFAULT_QUESTIONS_JSON_PATH
@@ -55,7 +71,9 @@ except ModuleNotFoundError:
         category_plus_clue_text,
         clue_only_text,
     )
+    from retrieval_cache import get_cache_stats, reset_cache_stats
     from search import (
+        DEFAULT_DPR_FAISS_INDEX_DIR,
         EQUAL_BODY_WEIGHT,
         EQUAL_CATEGORY_FIRST_SENTENCE_WEIGHT,
         EQUAL_CATEGORY_FIRST_TWO_SENTENCES_WEIGHT,
@@ -67,6 +85,7 @@ except ModuleNotFoundError:
         EQUAL_REDIRECT_WEIGHT,
         EQUAL_TITLE_WEIGHT,
         EQUAL_YEAR_MATCH_WEIGHT,
+        DPR_FAISS_VARIANT_NAMES,
         WEIGHTED_BODY_WEIGHT,
         WEIGHTED_CATEGORY_FIRST_SENTENCE_WEIGHT,
         WEIGHTED_CATEGORY_FIRST_TWO_SENTENCES_WEIGHT,
@@ -84,6 +103,18 @@ except ModuleNotFoundError:
         multi_search_whoosh_weighted,
         multi_search_whoosh_weighted_cole,
         multi_search_whoosh_title_body,
+        load_dpr_faiss_variant,
+        load_dpr_question_encoder,
+        load_redirect_lookup,
+        open_index,
+        open_whoosh_cole_first_paragraph_index,
+        open_whoosh_cole_first_sentence_index,
+        open_whoosh_cole_first_two_sentences_index,
+        open_whoosh_cole_index,
+        open_whoosh_cole_redirect_index,
+        open_whoosh_index,
+        open_whoosh_title_body_category_index,
+        open_whoosh_title_body_index,
     )
 
 
@@ -94,6 +125,7 @@ PARAPHRASE_MODEL_NAME = "Vamsi/T5_Paraphrase_Paws"
 RANK_FUSION_K = 60
 WHITESPACE_RE = re.compile(r"\s+")
 QUESTION_RESULTS_PREVIEW_LIMIT = 10
+QUESTION_PROGRESS_EVERY = 10
 
 
 @dataclass(frozen=True)
@@ -101,6 +133,14 @@ class JeopardyQuestion:
     category: str
     clue: str
     answer: str
+
+
+def format_timestamp(timestamp: float) -> str:
+    return datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
+
+
+def format_elapsed_minutes(seconds: float) -> str:
+    return f"{seconds / 60.0:.2f}"
 
 
 def parse_args() -> argparse.Namespace:
@@ -376,6 +416,77 @@ def get_precomputed_dense_query_embeddings(
     return [row for row in saved["clue_only_embeddings"][: len(questions)]]
 
 
+def warmup_retrieval_resources(
+    questions: list[JeopardyQuestion],
+    *,
+    mode: str,
+    query_mode: str,
+    include_category: bool,
+    weighted: bool,
+    weight_equal: bool,
+    weighted_cole: bool,
+    paraphrase: bool,
+) -> None:
+    if not questions:
+        return
+
+    if query_mode == "entity":
+        load_entity_model()
+
+    if paraphrase:
+        load_paraphrase_model()
+
+    if mode == "token":
+        open_index()
+    elif mode == "whoosh":
+        open_whoosh_index()
+    elif mode == "whoosh_title_body":
+        open_whoosh_title_body_index()
+    elif mode == "cole":
+        open_whoosh_cole_index()
+
+    if weighted or weight_equal or weighted_cole:
+        if weighted_cole:
+            open_whoosh_cole_index()
+        else:
+            open_whoosh_title_body_index()
+        open_whoosh_title_body_category_index()
+        open_whoosh_cole_first_sentence_index()
+        open_whoosh_cole_first_two_sentences_index()
+        open_whoosh_cole_first_paragraph_index()
+        open_whoosh_cole_redirect_index()
+        load_redirect_lookup()
+
+        if query_mode == "full":
+            dense_query_embeddings = get_precomputed_dense_query_embeddings(
+                questions,
+                include_category=include_category,
+            )
+            if dense_query_embeddings is None:
+                load_dpr_question_encoder()
+        else:
+            load_dpr_question_encoder()
+
+        for variant_name in DPR_FAISS_VARIANT_NAMES:
+            variant_dir = DEFAULT_DPR_FAISS_INDEX_DIR / variant_name
+            if variant_dir.exists():
+                load_dpr_faiss_variant(str(variant_dir))
+
+
+def print_question_progress(
+    processed_questions: int,
+    total_questions: int,
+    retrieval_start_time: float,
+) -> None:
+    elapsed_seconds = time.time() - retrieval_start_time
+    cache_stats = get_cache_stats()
+    print(
+        f"[question-progress] Questions: {processed_questions}/{total_questions} | "
+        f"elapsed: {format_elapsed_minutes(elapsed_seconds)} min | "
+        f"cache hits: {cache_stats['hits']}"
+    )
+
+
 def question_queries(
     question: JeopardyQuestion,
     query_mode: str,
@@ -414,6 +525,7 @@ def run_search_batch(
     weighted_cole: bool = False,
     skip_redirects: bool = False,
     dense_query_embeddings: list[np.ndarray] | None = None,
+    search_progress_every: int = 0,
 ) -> list[dict]:
     if weighted_cole:
         return multi_search_whoosh_weighted_cole(
@@ -422,6 +534,7 @@ def run_search_batch(
             limit=limit,
             skip_redirects=skip_redirects,
             dense_query_embeddings=dense_query_embeddings,
+            progress_every=search_progress_every,
         )
 
     if weighted or weight_equal:
@@ -430,6 +543,7 @@ def run_search_batch(
             "limit": limit,
             "skip_redirects": skip_redirects,
             "dense_query_embeddings": dense_query_embeddings,
+            "progress_every": search_progress_every,
         }
         if weight_equal:
             weighted_kwargs.update(
@@ -448,15 +562,35 @@ def run_search_batch(
         return multi_search_whoosh_weighted(queries, **weighted_kwargs)
 
     if mode == "whoosh_title_body":
-        return multi_search_whoosh_title_body(queries, limit=limit, skip_redirects=skip_redirects)
+        return multi_search_whoosh_title_body(
+            queries,
+            limit=limit,
+            skip_redirects=skip_redirects,
+            progress_every=search_progress_every,
+        )
 
     if mode == "cole":
-        return multi_search_whoosh_cole(queries, limit=limit, skip_redirects=skip_redirects)
+        return multi_search_whoosh_cole(
+            queries,
+            limit=limit,
+            skip_redirects=skip_redirects,
+            progress_every=search_progress_every,
+        )
 
     if mode == "whoosh":
-        return multi_search_whoosh_default(queries, limit=limit, skip_redirects=skip_redirects)
+        return multi_search_whoosh_default(
+            queries,
+            limit=limit,
+            skip_redirects=skip_redirects,
+            progress_every=search_progress_every,
+        )
 
-    return multi_search(queries, limit=limit, skip_redirects=skip_redirects)
+    return multi_search(
+        queries,
+        limit=limit,
+        skip_redirects=skip_redirects,
+        progress_every=search_progress_every,
+    )
 
 
 def merge_ranked_results(searches: list[dict], limit: int) -> list[dict]:
@@ -509,7 +643,12 @@ def search_questions(
     paraphrase: bool = False,
     paraphrase_count: int = DEFAULT_PARAPHRASE_COUNT,
     paraphrase_fetch_limit: int = DEFAULT_PARAPHRASE_FETCH_LIMIT,
+    progress_every: int = QUESTION_PROGRESS_EVERY,
+    progress_callback=None,
 ) -> list[dict]:
+    total_questions = len(questions)
+    progress_every = max(1, progress_every)
+
     if not paraphrase:
         queries = [question_query(question, query_mode, include_category) for question in questions]
         categories = [question.category for question in questions]
@@ -519,20 +658,31 @@ def search_questions(
                 questions,
                 include_category=include_category,
             )
-        return run_search_batch(
-            queries,
-            categories=categories,
-            limit=limit,
-            mode=mode,
-            weighted=weighted,
-            weight_equal=weight_equal,
-            weighted_cole=weighted_cole,
-            skip_redirects=skip_redirects,
-            dense_query_embeddings=dense_query_embeddings,
-        )
+        searches = []
+        for batch_start in range(0, total_questions, progress_every):
+            batch_end = min(batch_start + progress_every, total_questions)
+            batch_dense_embeddings = None
+            if dense_query_embeddings is not None:
+                batch_dense_embeddings = dense_query_embeddings[batch_start:batch_end]
+            searches.extend(
+                run_search_batch(
+                    queries[batch_start:batch_end],
+                    categories=categories[batch_start:batch_end],
+                    limit=limit,
+                    mode=mode,
+                    weighted=weighted,
+                    weight_equal=weight_equal,
+                    weighted_cole=weighted_cole,
+                    skip_redirects=skip_redirects,
+                    dense_query_embeddings=batch_dense_embeddings,
+                    search_progress_every=0,
+                )
+            )
+            if progress_callback is not None:
+                progress_callback(batch_end, total_questions)
+        return searches
 
     print("Running paraphrasing...")
-    total_questions = len(questions)
     grouped_queries = []
     grouped_categories = []
 
@@ -547,33 +697,40 @@ def search_questions(
         )
         grouped_queries.append(query_group)
         grouped_categories.append([question.category] * len(query_group))
-    flat_queries = [query for query_group in grouped_queries for query in query_group]
-    flat_categories = [category for group in grouped_categories for category in group]
-    flat_searches = run_search_batch(
-        flat_queries,
-        categories=flat_categories,
-        limit=max(limit, paraphrase_fetch_limit),
-        mode=mode,
-        weighted=weighted,
-        weight_equal=weight_equal,
-        weighted_cole=weighted_cole,
-        skip_redirects=skip_redirects,
-    )
-
     merged_searches = []
-    search_offset = 0
-
-    for query_group in grouped_queries:
-        group_size = len(query_group)
-        search_group = flat_searches[search_offset : search_offset + group_size]
-        search_offset += group_size
-        merged_searches.append(
-            {
-                "query": query_group[0],
-                "queries": query_group,
-                "results": merge_ranked_results(search_group, limit=limit),
-            }
+    for batch_start in range(0, total_questions, progress_every):
+        batch_end = min(batch_start + progress_every, total_questions)
+        batch_grouped_queries = grouped_queries[batch_start:batch_end]
+        batch_grouped_categories = grouped_categories[batch_start:batch_end]
+        flat_queries = [query for query_group in batch_grouped_queries for query in query_group]
+        flat_categories = [
+            category for category_group in batch_grouped_categories for category in category_group
+        ]
+        flat_searches = run_search_batch(
+            flat_queries,
+            categories=flat_categories,
+            limit=max(limit, paraphrase_fetch_limit),
+            mode=mode,
+            weighted=weighted,
+            weight_equal=weight_equal,
+            weighted_cole=weighted_cole,
+            skip_redirects=skip_redirects,
+            search_progress_every=0,
         )
+        search_offset = 0
+        for query_group in batch_grouped_queries:
+            group_size = len(query_group)
+            search_group = flat_searches[search_offset : search_offset + group_size]
+            search_offset += group_size
+            merged_searches.append(
+                {
+                    "query": query_group[0],
+                    "queries": query_group,
+                    "results": merge_ranked_results(search_group, limit=limit),
+                }
+            )
+        if progress_callback is not None:
+            progress_callback(batch_end, total_questions)
 
     return merged_searches
 
@@ -592,8 +749,12 @@ def evaluate_questions(
     paraphrase_fetch_limit: int = DEFAULT_PARAPHRASE_FETCH_LIMIT,
     print_question_results: bool = False,
     top_k_values: list[int] = TOP_K_VALUES,
+    progress_every: int = QUESTION_PROGRESS_EVERY,
 ) -> dict[int, float]:
     max_k = max(top_k_values)
+    reset_cache_stats()
+    retrieval_start_time = time.time()
+    print(f"Question retrieval start time: {format_timestamp(retrieval_start_time)}")
     searches = search_questions(
         questions,
         limit=max_k,
@@ -607,7 +768,20 @@ def evaluate_questions(
         paraphrase=paraphrase,
         paraphrase_count=paraphrase_count,
         paraphrase_fetch_limit=paraphrase_fetch_limit,
+        progress_every=progress_every,
+        progress_callback=lambda processed, total: print_question_progress(
+            processed,
+            total,
+            retrieval_start_time,
+        ),
     )
+    retrieval_end_time = time.time()
+    cache_stats = get_cache_stats()
+    print(f"Question retrieval end time: {format_timestamp(retrieval_end_time)}")
+    print(
+        f"Total retrieval time: {format_elapsed_minutes(retrieval_end_time - retrieval_start_time)} min"
+    )
+    print(f"Total cache hits: {cache_stats['hits']}")
     correct_counts = {k: 0 for k in top_k_values}
     grouped_questions_by_k = {k: [] for k in top_k_values}
     unmatched_questions = []
@@ -729,6 +903,17 @@ def main() -> None:
     questions_path = Path(DEFAULT_QUESTIONS_JSON_PATH)
     questions = load_questions(questions_path)[:100]
 
+    warmup_retrieval_resources(
+        questions,
+        mode=args.mode,
+        query_mode=args.query_mode,
+        include_category=args.include_category,
+        weighted=args.weighted,
+        weight_equal=args.weight_equal,
+        weighted_cole=args.weighted_cole,
+        paraphrase=args.paraphrase,
+    )
+
     start_time = time.time()
     metrics = evaluate_questions(
         questions,
@@ -743,6 +928,7 @@ def main() -> None:
         paraphrase_count=args.paraphrase_count,
         paraphrase_fetch_limit=args.paraphrase_fetch_limit,
         print_question_results=args.print_question_results,
+        progress_every=QUESTION_PROGRESS_EVERY,
     )
     elapsed = time.time() - start_time
 

@@ -1,0 +1,1502 @@
+[
+  {
+    "question_index": 0,
+    "category": "NEWSPAPERS",
+    "clue": "The dominant paper in our nation's capital, it's among the top 10 U.S. papers in circulation",
+    "answer": "The Washington Post",
+    "natural_questions": [
+      "Which major newspaper is based in the nation's capital and ranks among the top 10 in U.S. circulation?",
+      "What is the name of the leading newspaper in Washington, D.C., that is also one of the most widely read in the country?",
+      "Which newspaper is considered the dominant publication in the nation's capital and is among the top 10 in terms of circulation?",
+      "What is the title of the newspaper that is the most prominent in the nation's capital and holds a top 10 position in U.S. circulation?",
+      "Which top U.S. newspaper is headquartered in the nation's capital and is ranked in the top 10 for circulation?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which major newspaper is based in the nation's capital and ranks among the top 10 in U.S. circulation?\",\"What is the name of the leading newspaper in Washington, D.C., that is also one of the most widely read in the country?\",\"Which newspaper is considered the dominant publication in the nation's capital and is among the top 10 in terms of circulation?\",\"What is the title of the newspaper that is the most prominent in the nation's capital and holds a top 10 position in U.S. circulation?\",\"Which top U.S. newspaper is headquartered in the nation's capital and is ranked in the top 10 for circulation?\"]}"
+  },
+  {
+    "question_index": 1,
+    "category": "OLD YEAR'S RESOLUTIONS",
+    "clue": "The practice of pre-authorizing presidential use of force dates to a 1955 resolution re: this island near mainland China",
+    "answer": "Taiwan",
+    "natural_questions": [
+      "What island near mainland China was the subject of a 1955 resolution that established the practice of pre-authorizing presidential use of force?",
+      "Which island, located near mainland China, was involved in a 1955 resolution that led to the creation of a presidential authority for using force?",
+      "In what year was a resolution passed regarding an island near mainland China that initiated the practice of pre-authorizing presidential use of force?",
+      "What is the name of the island near mainland China that was the focus of a 1955 resolution related to the authorization of presidential military action?",
+      "Which island, situated near mainland China, was the topic of a 1955 resolution that started the tradition of pre-authorizing presidential use of force?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"What island near mainland China was the subject of a 1955 resolution that established the practice of pre-authorizing presidential use of force?\",\"Which island, located near mainland China, was involved in a 1955 resolution that led to the creation of a presidential authority for using force?\",\"In what year was a resolution passed regarding an island near mainland China that initiated the practice of pre-authorizing presidential use of force?\",\"What is the name of the island near mainland China that was the focus of a 1955 resolution related to the authorization of presidential military action?\",\"Which island, situated near mainland China, was the topic of a 1955 resolution that started the tradition of pre-authorizing presidential use of force?\"]}"
+  },
+  {
+    "question_index": 2,
+    "category": "NEWSPAPERS",
+    "clue": "Daniel Hertzberg & James B. Stewart of this paper shared a 1988 Pulitzer for their stories about insider trading",
+    "answer": "The Wall Street Journal",
+    "natural_questions": [
+      "Which newspaper did Daniel Hertzberg and James B. Stewart work for when they won a Pulitzer Prize in 1988 for their reporting on insider trading?",
+      "Which publication was awarded a Pulitzer Prize in 1988 for its investigative reporting on insider trading by Daniel Hertzberg and James B. Stewart?",
+      "Which newspaper was recognized with a Pulitzer Prize in 1988 for its stories on insider trading, written by Daniel Hertzberg and James B. Stewart?",
+      "Which newspaper's journalists Daniel Hertzberg and James B. Stewart were honored with a Pulitzer Prize in 1988 for their work on insider trading?",
+      "Which publication was associated with the 1988 Pulitzer Prize-winning stories on insider trading by Daniel Hertzberg and James B. Stewart?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which newspaper did Daniel Hertzberg and James B. Stewart work for when they won a Pulitzer Prize in 1988 for their reporting on insider trading?\",\"Which publication was awarded a Pulitzer Prize in 1988 for its investigative reporting on insider trading by Daniel Hertzberg and James B. Stewart?\",\"Which newspaper was recognized with a Pulitzer Prize in 1988 for its stories on insider trading, written by Daniel Hertzberg and James B. Stewart?\",\"Which newspaper's journalists Daniel Hertzberg and James B. Stewart were honored with a Pulitzer Prize in 1988 for their work on insider trading?\",\"Which publication was associated with the 1988 Pulitzer Prize-winning stories on insider trading by Daniel Hertzberg and James B. Stewart?\"]}"
+  },
+  {
+    "question_index": 3,
+    "category": "BROADWAY LYRICS",
+    "clue": "Song that says, \"you make me smile with my heart; your looks are laughable, unphotographable\"",
+    "answer": "My Funny Valentine",
+    "natural_questions": [
+      "What Broadway song includes the line, \"you make me smile with my heart; your looks are laughable, unphotographable\"?",
+      "Which musical features the lyric, \"you make me smile with my heart; your looks are laughable, unphotographable\"?",
+      "What is the name of the song that has the line, \"you make me smile with my heart; your looks are laughable, unphotographable\"?",
+      "Which Broadway show is associated with the lyric, \"you make me smile with my heart; your looks are laughable, unphotographable\"?",
+      "What song from a Broadway musical contains the line, \"you make me smile with my heart; your looks are laughable, unphotographable\"?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"What Broadway song includes the line, \\\"you make me smile with my heart; your looks are laughable, unphotographable\\\"?\",\"Which musical features the lyric, \\\"you make me smile with my heart; your looks are laughable, unphotographable\\\"?\",\"What is the name of the song that has the line, \\\"you make me smile with my heart; your looks are laughable, unphotographable\\\"?\",\"Which Broadway show is associated with the lyric, \\\"you make me smile with my heart; your looks are laughable, unphotographable\\\"?\",\"What song from a Broadway musical contains the line, \\\"you make me smile with my heart; your looks are laughable, unphotographable\\\"?\"]}"
+  },
+  {
+    "question_index": 4,
+    "category": "POTPOURRI",
+    "clue": "In 2011 bell ringers for this charity started accepting digital donations to its red kettle",
+    "answer": "The Salvation Army|Salvation Army",
+    "natural_questions": [
+      "What charity began accepting digital donations in 2011 through its red kettle initiative?",
+      "Which organization started using digital donations for its red kettle campaign in 2011?",
+      "In what year did the charity's bell ringers begin accepting digital donations via its red kettle?",
+      "What is the name of the charity that introduced digital donations to its red kettle in 2011?",
+      "Which charity's red kettle campaign started accepting digital donations in 2011?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"What charity began accepting digital donations in 2011 through its red kettle initiative?\",\"Which organization started using digital donations for its red kettle campaign in 2011?\",\"In what year did the charity's bell ringers begin accepting digital donations via its red kettle?\",\"What is the name of the charity that introduced digital donations to its red kettle in 2011?\",\"Which charity's red kettle campaign started accepting digital donations in 2011?\"]}"
+  },
+  {
+    "question_index": 5,
+    "category": "STATE OF THE ART MUSEUM (Alex: We'll give you the museum. You give us the state.)",
+    "clue": "The Naples Museum of Art",
+    "answer": "Florida",
+    "natural_questions": [
+      "Which state is home to the Naples Museum of Art?",
+      "What state can you find the Naples Museum of Art in?",
+      "Which state's museum is the Naples Museum of Art located in?",
+      "What is the name of the state where the Naples Museum of Art is situated?",
+      "Which state is the Naples Museum of Art located in?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which state is home to the Naples Museum of Art?\",\"What state can you find the Naples Museum of Art in?\",\"Which state's museum is the Naples Museum of Art located in?\",\"What is the name of the state where the Naples Museum of Art is situated?\",\"Which state is the Naples Museum of Art located in?\"]}"
+  },
+  {
+    "question_index": 6,
+    "category": "\"TIN\" MEN",
+    "clue": "This Italian painter depicted the \"Adoration of the Golden Calf\"",
+    "answer": "Tintoretto",
+    "natural_questions": [
+      "Which Italian painter is known for depicting the 'Adoration of the Golden Calf'?",
+      "Who painted the 'Adoration of the Golden Calf'?",
+      "Which artist created the painting 'Adoration of the Golden Calf'?",
+      "What is the name of the Italian painter who painted 'Adoration of the Golden Calf'?",
+      "Which famous Italian painter is associated with the artwork 'Adoration of the Golden Calf'?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which Italian painter is known for depicting the 'Adoration of the Golden Calf'?\", \"Who painted the 'Adoration of the Golden Calf'?\", \"Which artist created the painting 'Adoration of the Golden Calf'?\", \"What is the name of the Italian painter who painted 'Adoration of the Golden Calf'?\", \"Which famous Italian painter is associated with the artwork 'Adoration of the Golden Calf'?\"]}"
+  },
+  {
+    "question_index": 7,
+    "category": "UCLA CELEBRITY ALUMNI",
+    "clue": "This woman who won consecutive heptathlons at the Olympics went to UCLA on a basketball scholarship",
+    "answer": "Jackie Joyner-Kersee",
+    "natural_questions": [
+      "Which Olympic heptathlon champion attended UCLA on a basketball scholarship?",
+      "What athlete who won back-to-back heptathlons at the Olympics was a UCLA basketball scholarship recipient?",
+      "Which woman, known for winning consecutive Olympic heptathlons, studied at UCLA on a basketball scholarship?",
+      "Who is the Olympic heptathlon winner who received a basketball scholarship to attend UCLA?",
+      "Which UCLA alumna is recognized for winning two Olympic heptathlons and was awarded a basketball scholarship to attend the university?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which Olympic heptathlon champion attended UCLA on a basketball scholarship?\",\"What athlete who won back-to-back heptathlons at the Olympics was a UCLA basketball scholarship recipient?\",\"Which woman, known for winning consecutive Olympic heptathlons, studied at UCLA on a basketball scholarship?\",\"Who is the Olympic heptathlon winner who received a basketball scholarship to attend UCLA?\",\"Which UCLA alumna is recognized for winning two Olympic heptathlons and was awarded a basketball scholarship to attend the university?\"]}"
+  },
+  {
+    "question_index": 8,
+    "category": "SERVICE ORGANIZATIONS",
+    "clue": "Originally this club's emblem was a wagon wheel; now it's a gearwheel with 24 cogs & 6 spokes",
+    "answer": "Rotary International",
+    "natural_questions": [
+      "What is the name of the service organization that changed its emblem from a wagon wheel to a gearwheel with 24 cogs and 6 spokes?",
+      "Which service organization updated its emblem from a wagon wheel to a gearwheel featuring 24 cogs and 6 spokes?",
+      "What organization is known for changing its symbol from a wagon wheel to a gearwheel with 24 cogs and 6 spokes?",
+      "Which service organization's emblem was originally a wagon wheel but now features a gearwheel with 24 cogs and 6 spokes?",
+      "What service organization has a gearwheel emblem with 24 cogs and 6 spokes, replacing its original wagon wheel design?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"What is the name of the service organization that changed its emblem from a wagon wheel to a gearwheel with 24 cogs and 6 spokes?\",\"Which service organization updated its emblem from a wagon wheel to a gearwheel featuring 24 cogs and 6 spokes?\",\"What organization is known for changing its symbol from a wagon wheel to a gearwheel with 24 cogs and 6 spokes?\",\"Which service organization's emblem was originally a wagon wheel but now features a gearwheel with 24 cogs and 6 spokes?\",\"What service organization has a gearwheel emblem with 24 cogs and 6 spokes, replacing its original wagon wheel design?\"]}"
+  },
+  {
+    "question_index": 9,
+    "category": "AFRICAN CITIES",
+    "clue": "Several bridges, including El Tahrir, cross the Nile in this capital",
+    "answer": "Cairo",
+    "natural_questions": [
+      "Which African capital city is home to several bridges, including El Tahrir, that cross the Nile?",
+      "What is the name of the capital city where the Nile River is crossed by multiple bridges, such as El Tahrir?",
+      "Which capital city in Africa has the El Tahrir Bridge and other bridges spanning the Nile River?",
+      "What African capital is known for having several bridges, including the El Tahrir Bridge, over the Nile?",
+      "Which city serves as the capital of an African country and features the El Tahrir Bridge and other Nile crossings?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which African capital city is home to several bridges, including El Tahrir, that cross the Nile?\",\"What is the name of the capital city where the Nile River is crossed by multiple bridges, such as El Tahrir?\",\"Which capital city in Africa has the El Tahrir Bridge and other bridges spanning the Nile River?\",\"What African capital is known for having several bridges, including the El Tahrir Bridge, over the Nile?\",\"Which city serves as the capital of an African country and features the El Tahrir Bridge and other Nile crossings?\"]}"
+  },
+  {
+    "question_index": 10,
+    "category": "HISTORICAL QUOTES",
+    "clue": "After the fall of France in 1940, this general told his country, \"France has lost a battle. But France has not lost the war\"",
+    "answer": "Charles de Gaulle|de Gaulle",
+    "natural_questions": [
+      "Who said, 'France has lost a battle. But France has not lost the war' after the fall of France in 1940?",
+      "Which general declared, 'France has lost a battle. But France has not lost the war' following the fall of France in 1940?",
+      "Who was the general who told his country, 'France has lost a battle. But France has not lost the war' after the fall of France in 1940?",
+      "Which historical figure made the statement, 'France has lost a battle. But France has not lost the war' following the fall of France in 1940?",
+      "Who is the general associated with the quote, 'France has lost a battle. But France has not lost the war' after the fall of France in 1940?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Who said, 'France has lost a battle. But France has not lost the war' after the fall of France in 1940?\",\"Which general declared, 'France has lost a battle. But France has not lost the war' following the fall of France in 1940?\",\"Who was the general who told his country, 'France has lost a battle. But France has not lost the war' after the fall of France in 1940?\",\"Which historical figure made the statement, 'France has lost a battle. But France has not lost the war' following the fall of France in 1940?\",\"Who is the general associated with the quote, 'France has lost a battle. But France has not lost the war' after the fall of France in 1940?\"]}"
+  },
+  {
+    "question_index": 11,
+    "category": "STATE OF THE ART MUSEUM (Alex: We'll give you the museum. You give us the state.)",
+    "clue": "The Taft Museum of Art",
+    "answer": "Ohio",
+    "natural_questions": [
+      "Which state is home to the Taft Museum of Art?",
+      "What state does the Taft Museum of Art belong to?",
+      "Which U.S. state has the Taft Museum of Art?",
+      "What state is the Taft Museum of Art located in?",
+      "Which state's museum is the Taft Museum of Art?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which state is home to the Taft Museum of Art?\",\"What state does the Taft Museum of Art belong to?\",\"Which U.S. state has the Taft Museum of Art?\",\"What state is the Taft Museum of Art located in?\",\"Which state's museum is the Taft Museum of Art?\"]}"
+  },
+  {
+    "question_index": 12,
+    "category": "CEMETERIES",
+    "clue": "The mast from the USS Maine is part of the memorial to the ship & crew at this national cemetery",
+    "answer": "Arlington National Cemetery|Arlington Cemetery",
+    "natural_questions": [
+      "Which national cemetery features a memorial that includes the mast from the USS Maine?",
+      "At which cemetery is there a memorial that incorporates the mast from the USS Maine?",
+      "What is the name of the national cemetery that has a memorial with the mast from the USS Maine?",
+      "Which cemetery houses a memorial that includes the mast from the USS Maine?",
+      "What national cemetery has a memorial that features the mast from the USS Maine?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which national cemetery features a memorial that includes the mast from the USS Maine?\",\"At which cemetery is there a memorial that incorporates the mast from the USS Maine?\",\"What is the name of the national cemetery that has a memorial with the mast from the USS Maine?\",\"Which cemetery houses a memorial that includes the mast from the USS Maine?\",\"What national cemetery has a memorial that features the mast from the USS Maine?\"]}"
+  },
+  {
+    "question_index": 13,
+    "category": "GOLDEN GLOBE WINNERS",
+    "clue": "In 2009: Joker on film",
+    "answer": "Heath Ledger",
+    "natural_questions": [
+      "Which actor won a Golden Globe for their role as the Joker in 2009?",
+      "Who received a Golden Globe award for portraying the Joker in a 2009 film?",
+      "Which film's Joker character earned a Golden Globe in 2009?",
+      "Who played the Joker in a film that won a Golden Globe in 2009?",
+      "Which actor was recognized with a Golden Globe for their performance as the Joker in 2009?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which actor won a Golden Globe for their role as the Joker in 2009?\",\"Who received a Golden Globe award for portraying the Joker in a 2009 film?\",\"Which film's Joker character earned a Golden Globe in 2009?\",\"Who played the Joker in a film that won a Golden Globe in 2009?\",\"Which actor was recognized with a Golden Globe for their performance as the Joker in 2009?\"]}"
+  },
+  {
+    "question_index": 14,
+    "category": "HISTORICAL HODGEPODGE",
+    "clue": "It was the peninsula fought over in the peninsular war of 1808 to 1814",
+    "answer": "Iberia|Iberian Peninsula",
+    "natural_questions": [
+      "Which peninsula was the site of the Peninsular War from 1808 to 1814?",
+      "What region was involved in the Peninsular War that lasted from 1808 to 1814?",
+      "Which geographical area was contested during the Peninsular War between 1808 and 1814?",
+      "What peninsula was the focus of the Peninsular War that took place from 1808 to 1814?",
+      "Which location was the center of the Peninsular War that occurred from 1808 to 1814?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which peninsula was the site of the Peninsular War from 1808 to 1814?\",\"What region was involved in the Peninsular War that lasted from 1808 to 1814?\",\"Which geographical area was contested during the Peninsular War between 1808 and 1814?\",\"What peninsula was the focus of the Peninsular War that took place from 1808 to 1814?\",\"Which location was the center of the Peninsular War that occurred from 1808 to 1814?\"]}"
+  },
+  {
+    "question_index": 15,
+    "category": "CONSERVATION",
+    "clue": "In 1980 China founded a center for these cute creatures in its bamboo-rich Wolong Nature Preserve",
+    "answer": "Panda|Giant panda",
+    "natural_questions": [
+      "What is the name of the protected area in China where these animals are cared for?",
+      "Which wildlife sanctuary in China is known for housing these animals?",
+      "What type of facility was established in 1980 in Wolong Nature Preserve?",
+      "Which animals are the focus of a conservation center in China's Wolong Nature Preserve?",
+      "What is the name of the center established in 1980 in China's Wolong Nature Preserve?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"What is the name of the protected area in China where these animals are cared for?\",\"Which wildlife sanctuary in China is known for housing these animals?\",\"What type of facility was established in 1980 in Wolong Nature Preserve?\",\"Which animals are the focus of a conservation center in China's Wolong Nature Preserve?\",\"What is the name of the center established in 1980 in China's Wolong Nature Preserve?\"]}"
+  },
+  {
+    "question_index": 16,
+    "category": "'80s NO.1 HITMAKERS",
+    "clue": "1988: \"Father Figure\"",
+    "answer": "George Michael",
+    "natural_questions": [
+      "Which 80s band had a number one hit in 1988 with the song 'Father Figure'?",
+      "What was the name of the band that topped the charts in 1988 with 'Father Figure'?",
+      "Which group achieved a number one hit in 1988 with the song 'Father Figure'?",
+      "What band was responsible for the 1988 number one hit 'Father Figure'?",
+      "Which 80s act had the chart-topping song 'Father Figure' in 1988?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which 80s band had a number one hit in 1988 with the song 'Father Figure'?\",\"What was the name of the band that topped the charts in 1988 with 'Father Figure'?\",\"Which group achieved a number one hit in 1988 with the song 'Father Figure'?\",\"What band was responsible for the 1988 number one hit 'Father Figure'?\",\"Which 80s act had the chart-topping song 'Father Figure' in 1988?\"]}"
+  },
+  {
+    "question_index": 17,
+    "category": "AFRICAN-AMERICAN WOMEN",
+    "clue": "In an essay defending this 2011 film, Myrlie Evers-Williams said, \"My mother was\" this film \"& so was her mother\"",
+    "answer": "The Help",
+    "natural_questions": [
+      "What 2011 film did Myrlie Evers-Williams mention in an essay, stating that both her mother and her mother's mother were associated with it?",
+      "Which movie was highlighted by Myrlie Evers-Williams in an essay, where she noted that her mother and her mother's mother were connected to it?",
+      "What film did Myrlie Evers-Williams reference in an essay, saying that both her mother and her mother's mother were linked to it?",
+      "Which 2011 movie was discussed by Myrlie Evers-Williams in an essay, where she mentioned that her mother and her mother's mother were part of its story?",
+      "What film was the subject of an essay by Myrlie Evers-Williams, in which she stated that both her mother and her mother's mother were connected to it?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"What 2011 film did Myrlie Evers-Williams mention in an essay, stating that both her mother and her mother's mother were associated with it?\",\"Which movie was highlighted by Myrlie Evers-Williams in an essay, where she noted that her mother and her mother's mother were connected to it?\",\"What film did Myrlie Evers-Williams reference in an essay, saying that both her mother and her mother's mother were linked to it?\",\"Which 2011 movie was discussed by Myrlie Evers-Williams in an essay, where she mentioned that her mother and her mother's mother were part of its story?\",\"What film was the subject of an essay by Myrlie Evers-Williams, in which she stated that both her mother and her mother's mother were connected to it?\"]}"
+  },
+  {
+    "question_index": 18,
+    "category": "SERVICE ORGANIZATIONS",
+    "clue": "Father Michael McGivney founded this fraternal society for Catholic laymen in 1882",
+    "answer": "Knights of Columbus",
+    "natural_questions": [
+      "Which Catholic laymen's fraternal society was founded by Father Michael McGivney in 1882?",
+      "What organization was established by Father Michael McGivney in 1882 for Catholic laymen?",
+      "Which fraternal society for Catholic laymen was founded in 1882 by Father Michael McGivney?",
+      "What is the name of the Catholic laymen's organization founded by Father Michael McGivney in 1882?",
+      "Which organization was created in 1882 by Father Michael McGivney for Catholic laymen?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which Catholic laymen's fraternal society was founded by Father Michael McGivney in 1882?\",\"What organization was established by Father Michael McGivney in 1882 for Catholic laymen?\",\"Which fraternal society for Catholic laymen was founded in 1882 by Father Michael McGivney?\",\"What is the name of the Catholic laymen's organization founded by Father Michael McGivney in 1882?\",\"Which organization was created in 1882 by Father Michael McGivney for Catholic laymen?\"]}"
+  },
+  {
+    "question_index": 19,
+    "category": "CONSERVATION",
+    "clue": "Early projects of the WWF, this organization, included work with the bald eagle & the red wolf",
+    "answer": "World Wide Fund|World Wide Fund for Nature",
+    "natural_questions": [
+      "Which organization was involved in early conservation efforts with the bald eagle and the red wolf?",
+      "What group worked on conserving the bald eagle and the red wolf in its early projects?",
+      "Which conservation group focused on protecting the bald eagle and the red wolf in its early days?",
+      "What organization included the bald eagle and the red wolf in its early conservation initiatives?",
+      "Which entity was part of the WWF's early projects focused on the bald eagle and the red wolf?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which organization was involved in early conservation efforts with the bald eagle and the red wolf?\",\"What group worked on conserving the bald eagle and the red wolf in its early projects?\",\"Which conservation group focused on protecting the bald eagle and the red wolf in its early days?\",\"What organization included the bald eagle and the red wolf in its early conservation initiatives?\",\"Which entity was part of the WWF's early projects focused on the bald eagle and the red wolf?\"]}"
+  },
+  {
+    "question_index": 20,
+    "category": "CONSERVATION",
+    "clue": "Indonesia's largest lizard, it's protected from poachers, though we wish it could breathe fire to do the job itself",
+    "answer": "Komodo dragon",
+    "natural_questions": [
+      "What is the name of Indonesia's largest lizard that is protected from poachers?",
+      "Which lizard species in Indonesia is known for being the largest and is protected from poachers?",
+      "What is the name of the protected lizard species found in Indonesia that is the largest there?",
+      "Which animal is considered Indonesia's largest lizard and is protected from poachers?",
+      "What is the name of the lizard that is Indonesia's largest and is protected from poachers?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"What is the name of Indonesia's largest lizard that is protected from poachers?\",\"Which lizard species in Indonesia is known for being the largest and is protected from poachers?\",\"What is the name of the protected lizard species found in Indonesia that is the largest there?\",\"Which animal is considered Indonesia's largest lizard and is protected from poachers?\",\"What is the name of the lizard that is Indonesia's largest and is protected from poachers?\"]}"
+  },
+  {
+    "question_index": 21,
+    "category": "1920s NEWS FLASH!",
+    "clue": "Nov. 28, 1929! This man & his chief pilot Bernt Balchen fly to South Pole! Yowza! You'll be an admirable admiral, sir!",
+    "answer": "Richard Byrd|Richard E. Byrd",
+    "natural_questions": [
+      "Who was the man who, along with his chief pilot Bernt Balchen, flew to the South Pole on November 28, 1929?",
+      "Which explorer, accompanied by his chief pilot Bernt Balchen, reached the South Pole on November 28, 1929?",
+      "On what date did the man and his chief pilot Bernt Balchen achieve the feat of flying to the South Pole?",
+      "Who is the person who, together with Bernt Balchen, made a historic flight to the South Pole on November 28, 1929?",
+      "What was the name of the individual who, along with his chief pilot Bernt Balchen, flew to the South Pole on November 28, 1929?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Who was the man who, along with his chief pilot Bernt Balchen, flew to the South Pole on November 28, 1929?\",\"Which explorer, accompanied by his chief pilot Bernt Balchen, reached the South Pole on November 28, 1929?\",\"On what date did the man and his chief pilot Bernt Balchen achieve the feat of flying to the South Pole?\",\"Who is the person who, together with Bernt Balchen, made a historic flight to the South Pole on November 28, 1929?\",\"What was the name of the individual who, along with his chief pilot Bernt Balchen, flew to the South Pole on November 28, 1929?\"]}"
+  },
+  {
+    "question_index": 22,
+    "category": "CEMETERIES",
+    "clue": "On May 5, 1878 Alice Chambers was the last person buried in this Dodge City, Kansas cemetery",
+    "answer": "Boot Hill",
+    "natural_questions": [
+      "Which cemetery in Dodge City, Kansas was the final resting place of Alice Chambers on May 5, 1878?",
+      "What is the name of the Dodge City, Kansas cemetery where Alice Chambers was buried on May 5, 1878?",
+      "Which cemetery in Kansas was the last to receive a burial on May 5, 1878, for Alice Chambers?",
+      "On what date was Alice Chambers, the last person buried in a Dodge City, Kansas cemetery, laid to rest?",
+      "Which Dodge City, Kansas cemetery is known for having Alice Chambers as its last burial on May 5, 1878?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which cemetery in Dodge City, Kansas was the final resting place of Alice Chambers on May 5, 1878?\",\"What is the name of the Dodge City, Kansas cemetery where Alice Chambers was buried on May 5, 1878?\",\"Which cemetery in Kansas was the last to receive a burial on May 5, 1878, for Alice Chambers?\",\"On what date was Alice Chambers, the last person buried in a Dodge City, Kansas cemetery, laid to rest?\",\"Which Dodge City, Kansas cemetery is known for having Alice Chambers as its last burial on May 5, 1878?\"]}"
+  },
+  {
+    "question_index": 23,
+    "category": "CAMBODIAN HISTORY & CULTURE",
+    "clue": "The Royal Palace grounds feature a statue of King Norodom, who in the late 1800s was compelled to first put his country under the control of this European power; of course, it was sculpted in that country",
+    "answer": "France",
+    "natural_questions": [
+      "Which European nation controlled Cambodia in the late 1800s after King Norodom was compelled to place his country under their rule?",
+      "Which country's influence over Cambodia began in the late 1800s when King Norodom was forced to submit to their control?",
+      "Which European power was responsible for Cambodia's colonization in the late 1800s, following King Norodom's submission?",
+      "What European nation's control over Cambodia started in the late 1800s after King Norodom was compelled to place his country under their rule?",
+      "Which European country's rule over Cambodia began in the late 1800s, following King Norodom's submission to their authority?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which European nation controlled Cambodia in the late 1800s after King Norodom was compelled to place his country under their rule?\",\"Which country's influence over Cambodia began in the late 1800s when King Norodom was forced to submit to their control?\",\"Which European power was responsible for Cambodia's colonization in the late 1800s, following King Norodom's submission?\",\"What European nation's control over Cambodia started in the late 1800s after King Norodom was compelled to place his country under their rule?\",\"Which European country's rule over Cambodia began in the late 1800s, following King Norodom's submission to their authority?\"]}"
+  },
+  {
+    "question_index": 24,
+    "category": "HISTORICAL HODGEPODGE",
+    "clue": "In the 400s B.C. this Chinese philosopher went into exile for 12 years",
+    "answer": "Confucius",
+    "natural_questions": [
+      "Which Chinese philosopher was in exile for 12 years in the 400s B.C.?",
+      "Who was the Chinese philosopher who spent 12 years in exile during the 400s B.C.?",
+      "Which philosopher from ancient China was exiled for 12 years in the 400s B.C.?",
+      "Who went into exile for 12 years in the 400s B.C. as a Chinese philosopher?",
+      "Which Chinese philosopher was exiled for 12 years during the 400s B.C.?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which Chinese philosopher was in exile for 12 years in the 400s B.C.?\", \"Who was the Chinese philosopher who spent 12 years in exile during the 400s B.C.?\", \"Which philosopher from ancient China was exiled for 12 years in the 400s B.C.?\", \"Who went into exile for 12 years in the 400s B.C. as a Chinese philosopher?\", \"Which Chinese philosopher was exiled for 12 years during the 400s B.C.?\"]}"
+  },
+  {
+    "question_index": 25,
+    "category": "AFRICAN-AMERICAN WOMEN",
+    "clue": "Bessie Coleman, the first black woman licensed as a pilot, landed a street named in her honor at this Chicago airport",
+    "answer": "O'Hare|O'Hare International Airport",
+    "natural_questions": [
+      "Which Chicago airport has a street named after Bessie Coleman, the first black woman licensed as a pilot?",
+      "What is the name of the Chicago airport that features a street honoring Bessie Coleman, the first black woman to earn a pilot's license?",
+      "Which street at a Chicago airport is named after Bessie Coleman, the first black woman licensed as a pilot?",
+      "At which Chicago airport can you find a street named in honor of Bessie Coleman, the first black woman to become a licensed pilot?",
+      "What Chicago airport has a street named after Bessie Coleman, who was the first black woman licensed as a pilot?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which Chicago airport has a street named after Bessie Coleman, the first black woman licensed as a pilot?\",\"What is the name of the Chicago airport that features a street honoring Bessie Coleman, the first black woman to earn a pilot's license?\",\"Which street at a Chicago airport is named after Bessie Coleman, the first black woman licensed as a pilot?\",\"At which Chicago airport can you find a street named in honor of Bessie Coleman, the first black woman to become a licensed pilot?\",\"What Chicago airport has a street named after Bessie Coleman, who was the first black woman licensed as a pilot?\"]}"
+  },
+  {
+    "question_index": 26,
+    "category": "HISTORICAL HODGEPODGE",
+    "clue": "The Ammonites held sway in this Mideast country in the 1200s B.C. & the capital is named for them",
+    "answer": "Jordan",
+    "natural_questions": [
+      "Which Middle Eastern country was ruled by the Ammonites in the 1200s B.C.?",
+      "What is the name of the Mideast country whose capital is named after the Ammonites?",
+      "Which nation in the Middle East was under the control of the Ammonites during the 1200s B.C.?",
+      "What country in the Mideast had its capital named after the Ammonites?",
+      "Which ancient country in the Middle East was ruled by the Ammonites in the 1200s B.C.?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which Middle Eastern country was ruled by the Ammonites in the 1200s B.C.?\",\"What is the name of the Mideast country whose capital is named after the Ammonites?\",\"Which nation in the Middle East was under the control of the Ammonites during the 1200s B.C.?\",\"What country in the Mideast had its capital named after the Ammonites?\",\"Which ancient country in the Middle East was ruled by the Ammonites in the 1200s B.C.?\"]}"
+  },
+  {
+    "question_index": 27,
+    "category": "HE PLAYED A GUY NAMED JACK RYAN IN...",
+    "clue": "\"The Sum of All Fears\"; he also won a screenwriting Oscar for \"Good Will Hunting\"",
+    "answer": "Ben Affleck",
+    "natural_questions": [
+      "Which actor portrayed a character named Jack Ryan in the movie 'The Sum of All Fears'?",
+      "Who is the actor that played Jack Ryan in 'The Sum of All Fears' and also won an Academy Award for screenwriting for 'Good Will Hunting'?",
+      "Which actor is known for playing Jack Ryan in 'The Sum of All Fears' and for writing the screenplay for 'Good Will Hunting'?",
+      "Who won an Oscar for screenwriting with 'Good Will Hunting' and also played Jack Ryan in 'The Sum of All Fears'?",
+      "Which actor played Jack Ryan in 'The Sum of All Fears' and was recognized with a screenwriting Oscar for 'Good Will Hunting'?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which actor portrayed a character named Jack Ryan in the movie 'The Sum of All Fears'?\",\"Who is the actor that played Jack Ryan in 'The Sum of All Fears' and also won an Academy Award for screenwriting for 'Good Will Hunting'?\",\"Which actor is known for playing Jack Ryan in 'The Sum of All Fears' and for writing the screenplay for 'Good Will Hunting'?\",\"Who won an Oscar for screenwriting with 'Good Will Hunting' and also played Jack Ryan in 'The Sum of All Fears'?\",\"Which actor played Jack Ryan in 'The Sum of All Fears' and was recognized with a screenwriting Oscar for 'Good Will Hunting'?\"]}"
+  },
+  {
+    "question_index": 28,
+    "category": "POTPOURRI",
+    "clue": "One of the N.Y. Times' headlines on this landmark 1973 Supreme Court decision was \"Cardinals shocked\"",
+    "answer": "Roe v. Wade",
+    "natural_questions": [
+      "What landmark 1973 Supreme Court decision was covered by the N.Y. Times with the headline 'Cardinals shocked'?",
+      "Which Supreme Court case from 1973 was highlighted by the N.Y. Times with the headline 'Cardinals shocked'?",
+      "What was the name of the 1973 Supreme Court decision that made headlines with 'Cardinals shocked' from the N.Y. Times?",
+      "Which landmark Supreme Court case in 1973 was reported by the N.Y. Times with the headline 'Cardinals shocked'?",
+      "What 1973 Supreme Court decision was referenced in a N.Y. Times headline that read 'Cardinals shocked'?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"What landmark 1973 Supreme Court decision was covered by the N.Y. Times with the headline 'Cardinals shocked'?\",\"Which Supreme Court case from 1973 was highlighted by the N.Y. Times with the headline 'Cardinals shocked'?\",\"What was the name of the 1973 Supreme Court decision that made headlines with 'Cardinals shocked' from the N.Y. Times?\",\"Which landmark Supreme Court case in 1973 was reported by the N.Y. Times with the headline 'Cardinals shocked'?\",\"What 1973 Supreme Court decision was referenced in a N.Y. Times headline that read 'Cardinals shocked'?\"]}"
+  },
+  {
+    "question_index": 29,
+    "category": "I'M BURNIN' FOR YOU",
+    "clue": "France's Philip IV--known as \"The Fair\"--had Jacques De Molay, the last Grand Master of this order, burned in 1314",
+    "answer": "Knights Templar",
+    "natural_questions": [
+      "Which religious order was led by Jacques De Molay before being burned by France's Philip IV in 1314?",
+      "Who was the last Grand Master of the order that was burned by Philip IV of France in 1314?",
+      "Which organization was associated with Jacques De Molay, who was burned by Philip IV of France in 1314?",
+      "What was the name of the order whose last Grand Master, Jacques De Molay, was burned by Philip IV of France in 1314?",
+      "Which group was led by Jacques De Molay, who was burned by Philip IV of France in 1314?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which religious order was led by Jacques De Molay before being burned by France's Philip IV in 1314?\",\"Who was the last Grand Master of the order that was burned by Philip IV of France in 1314?\",\"Which organization was associated with Jacques De Molay, who was burned by Philip IV of France in 1314?\",\"What was the name of the order whose last Grand Master, Jacques De Molay, was burned by Philip IV of France in 1314?\",\"Which group was led by Jacques De Molay, who was burned by Philip IV of France in 1314?\"]}"
+  },
+  {
+    "question_index": 30,
+    "category": "STATE OF THE ART MUSEUM (Alex: We'll give you the museum. You give us the state.)",
+    "clue": "The Georgia O'Keeffe Museum",
+    "answer": "New Mexico",
+    "natural_questions": [
+      "Which state is home to the Georgia O'Keeffe Museum?",
+      "What state's museum is dedicated to the artist Georgia O'Keeffe?",
+      "Which state's museum showcases the work of Georgia O'Keeffe?",
+      "What state is associated with the Georgia O'Keeffe Museum?",
+      "Which state's museum is named after the artist Georgia O'Keeffe?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which state is home to the Georgia O'Keeffe Museum?\",\"What state's museum is dedicated to the artist Georgia O'Keeffe?\",\"Which state's museum showcases the work of Georgia O'Keeffe?\",\"What state is associated with the Georgia O'Keeffe Museum?\",\"Which state's museum is named after the artist Georgia O'Keeffe?\"]}"
+  },
+  {
+    "question_index": 31,
+    "category": "AFRICAN CITIES",
+    "clue": "The name of this largest Moroccan city combines 2 Spanish words",
+    "answer": "Casablanca",
+    "natural_questions": [
+      "What is the largest city in Morocco known for its name combining two Spanish words?",
+      "Which Moroccan city's name is derived from two Spanish words?",
+      "What Moroccan city's name comes from a combination of two Spanish words?",
+      "Which city in Morocco is named after two Spanish words?",
+      "What is the name of the largest Moroccan city that combines two Spanish words?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"What is the largest city in Morocco known for its name combining two Spanish words?\",\"Which Moroccan city's name is derived from two Spanish words?\",\"What Moroccan city's name comes from a combination of two Spanish words?\",\"Which city in Morocco is named after two Spanish words?\",\"What is the name of the largest Moroccan city that combines two Spanish words?\"]}"
+  },
+  {
+    "question_index": 32,
+    "category": "NAME THE PARENT COMPANY",
+    "clue": "Jell-O",
+    "answer": "Kraft Foods",
+    "natural_questions": [
+      "Which company owns the Jell-O brand?",
+      "What is the parent company of Jell-O?",
+      "Which corporation is responsible for Jell-O products?",
+      "What company is the parent of the Jell-O brand?",
+      "Which conglomerate owns the Jell-O brand?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which company owns the Jell-O brand?\",\"What is the parent company of Jell-O?\",\"Which corporation is responsible for Jell-O products?\",\"What company is the parent of the Jell-O brand?\",\"Which conglomerate owns the Jell-O brand?\"]}"
+  },
+  {
+    "question_index": 33,
+    "category": "GOLDEN GLOBE WINNERS",
+    "clue": "2011: Chicago mayor Tom Kane",
+    "answer": "Kelsey Grammer",
+    "natural_questions": [
+      "Which actor portrayed the Chicago mayor Tom Kane in the 2011 Golden Globe-winning series?",
+      "In which Golden Globe-winning show did the actor play the role of Chicago mayor Tom Kane in 2011?",
+      "Who was the actor that won a Golden Globe for playing the Chicago mayor Tom Kane in 2011?",
+      "Which television series, which won a Golden Globe in 2011, featured the character of Chicago mayor Tom Kane?",
+      "What role did the actor win a Golden Globe for in 2011, which was that of Chicago mayor Tom Kane?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which actor portrayed the Chicago mayor Tom Kane in the 2011 Golden Globe-winning series?\",\"In which Golden Globe-winning show did the actor play the role of Chicago mayor Tom Kane in 2011?\",\"Who was the actor that won a Golden Globe for playing the Chicago mayor Tom Kane in 2011?\",\"Which television series, which won a Golden Globe in 2011, featured the character of Chicago mayor Tom Kane?\",\"What role did the actor win a Golden Globe for in 2011, which was that of Chicago mayor Tom Kane?\"]}"
+  },
+  {
+    "question_index": 34,
+    "category": "THE RESIDENTS",
+    "clue": "Title residence of Otter, Flounder, Pinto & Bluto in a 1978 comedy",
+    "answer": "Animal House",
+    "natural_questions": [
+      "What is the name of the home where Otter, Flounder, Pinto, and Bluto live in a 1978 comedy?",
+      "Which residence is shared by Otter, Flounder, Pinto, and Bluto in a 1978 film?",
+      "What is the title of the house where Otter, Flounder, Pinto, and Bluto reside in a 1978 comedy?",
+      "Which 1978 comedy features Otter, Flounder, Pinto, and Bluto living in a specific home?",
+      "What is the name of the place where Otter, Flounder, Pinto, and Bluto live in a 1978 movie?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"What is the name of the home where Otter, Flounder, Pinto, and Bluto live in a 1978 comedy?\",\"Which residence is shared by Otter, Flounder, Pinto, and Bluto in a 1978 film?\",\"What is the title of the house where Otter, Flounder, Pinto, and Bluto reside in a 1978 comedy?\",\"Which 1978 comedy features Otter, Flounder, Pinto, and Bluto living in a specific home?\",\"What is the name of the place where Otter, Flounder, Pinto, and Bluto live in a 1978 movie?\"]}"
+  },
+  {
+    "question_index": 35,
+    "category": "UCLA CELEBRITY ALUMNI",
+    "clue": "Neurobiologist Amy Farrah Fowler on \"The Big Bang Theory\", in real life she has a Ph.D. in neuroscience from UCLA",
+    "answer": "Mayim Bialik",
+    "natural_questions": [
+      "Which UCLA graduate is known for her role as Amy Farrah Fowler on 'The Big Bang Theory'?",
+      "Who is the neurobiologist portrayed by Mayim Bialik on 'The Big Bang Theory' and holds a Ph.D. in neuroscience from UCLA?",
+      "Which celebrity alum of UCLA has a Ph.D. in neuroscience and is known for her role on 'The Big Bang Theory'?",
+      "Who is the real-life neurobiologist and UCLA alum who plays Amy Farrah Fowler on 'The Big Bang Theory'?",
+      "Which UCLA alumni is a neurobiologist and portrayed the character Amy Farrah Fowler on 'The Big Bang Theory'?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which UCLA graduate is known for her role as Amy Farrah Fowler on 'The Big Bang Theory'?\",\"Who is the neurobiologist portrayed by Mayim Bialik on 'The Big Bang Theory' and holds a Ph.D. in neuroscience from UCLA?\",\"Which celebrity alum of UCLA has a Ph.D. in neuroscience and is known for her role on 'The Big Bang Theory'?\",\"Who is the real-life neurobiologist and UCLA alum who plays Amy Farrah Fowler on 'The Big Bang Theory'?\",\"Which UCLA alumni is a neurobiologist and portrayed the character Amy Farrah Fowler on 'The Big Bang Theory'?\"]}"
+  },
+  {
+    "question_index": 36,
+    "category": "NOTES FROM THE CAMPAIGN TRAIL",
+    "clue": "In \"The Deadlocked Election of 1800\", James R. Sharp outlines the fall of this dueling vice president",
+    "answer": "Aaron Burr",
+    "natural_questions": [
+      "Which vice president is discussed in the book 'The Deadlocked Election of 1800' by James R. Sharp regarding their downfall?",
+      "What vice president's decline is detailed in 'The Deadlocked Election of 1800' by James R. Sharp?",
+      "Which individual's fall from grace is covered in the book 'The Deadlocked Election of 1800' by James R. Sharp?",
+      "What was the name of the vice president who experienced a downfall as described in 'The Deadlocked Election of 1800' by James R. Sharp?",
+      "Which vice president's story of decline is explored in 'The Deadlocked Election of 1800' by James R. Sharp?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which vice president is discussed in the book 'The Deadlocked Election of 1800' by James R. Sharp regarding their downfall?\",\"What vice president's decline is detailed in 'The Deadlocked Election of 1800' by James R. Sharp?\",\"Which individual's fall from grace is covered in the book 'The Deadlocked Election of 1800' by James R. Sharp?\",\"What was the name of the vice president who experienced a downfall as described in 'The Deadlocked Election of 1800' by James R. Sharp?\",\"Which vice president's story of decline is explored in 'The Deadlocked Election of 1800' by James R. Sharp?\"]}"
+  },
+  {
+    "question_index": 37,
+    "category": "\"TIN\" MEN",
+    "clue": "He served in the KGB before becoming president & then prime minister of Russia",
+    "answer": "Vladimir Putin|Putin",
+    "natural_questions": [
+      "Who was a former KGB officer who later became president of Russia?",
+      "Which Russian leader previously worked for the KGB before holding the presidency?",
+      "What was the name of the individual who served in the KGB and later became president of Russia?",
+      "Who held the position of president of Russia after a career in the KGB?",
+      "Which person transitioned from the KGB to becoming the president of Russia?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Who was a former KGB officer who later became president of Russia?\",\"Which Russian leader previously worked for the KGB before holding the presidency?\",\"What was the name of the individual who served in the KGB and later became president of Russia?\",\"Who held the position of president of Russia after a career in the KGB?\",\"Which person transitioned from the KGB to becoming the president of Russia?\"]}"
+  },
+  {
+    "question_index": 38,
+    "category": "AFRICAN-AMERICAN WOMEN",
+    "clue": "When asked to describe herself, she says first & foremost, she is Malia & Sasha's mom",
+    "answer": "Michelle Obama",
+    "natural_questions": [
+      "Who is the mother of Malia and Sasha Obama?",
+      "Which African-American woman is known as the mother of Malia and Sasha Obama?",
+      "What is the name of the African-American woman who is the mother of Malia and Sasha Obama?",
+      "Who is the mother of the two daughters of the 44th President of the United States?",
+      "Which African-American woman is the mother of Malia and Sasha?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Who is the mother of Malia and Sasha Obama?\",\"Which African-American woman is known as the mother of Malia and Sasha Obama?\",\"What is the name of the African-American woman who is the mother of Malia and Sasha Obama?\",\"Who is the mother of the two daughters of the 44th President of the United States?\",\"Which African-American woman is the mother of Malia and Sasha?\"]}"
+  },
+  {
+    "question_index": 39,
+    "category": "POETS & POETRY",
+    "clue": "She wrote, \"My candle burns at both ends... but, ah, my foes, and oh, my friends--it gives a lovely light\"",
+    "answer": "Edna St. Vincent Millay",
+    "natural_questions": [
+      "What is the name of the poet who wrote the line 'My candle burns at both ends... but, ah, my foes, and oh, my friends--it gives a lovely light'?",
+      "Which poet is known for the line 'My candle burns at both ends... but, ah, my foes, and oh, my friends--it gives a lovely light'?",
+      "Who composed the poem that includes the line 'My candle burns at both ends... but, ah, my foes, and oh, my friends--it gives a lovely light'?",
+      "Which poet wrote the famous line 'My candle burns at both ends... but, ah, my foes, and oh, my friends--it gives a lovely light'?",
+      "What is the name of the poet behind the line 'My candle burns at both ends... but, ah, my foes, and oh, my friends--it gives a lovely light'?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"What is the name of the poet who wrote the line 'My candle burns at both ends... but, ah, my foes, and oh, my friends--it gives a lovely light'?\", \"Which poet is known for the line 'My candle burns at both ends... but, ah, my foes, and oh, my friends--it gives a lovely light'?\", \"Who composed the poem that includes the line 'My candle burns at both ends... but, ah, my foes, and oh, my friends--it gives a lovely light'?\", \"Which poet wrote the famous line 'My candle burns at both ends... but, ah, my foes, and oh, my friends--it gives a lovely light'?\", \"What is the name of the poet behind the line 'My candle burns at both ends... but, ah, my foes, and oh, my friends--it gives a lovely light'?\"]}"
+  },
+  {
+    "question_index": 40,
+    "category": "CAPITAL CITY CHURCHES (Alex: We'll give you the church. You tell us the capital city in which it is located.)",
+    "clue": "In this Finnish city, the Lutheran Cathedral, also known as Tuomiokirkko",
+    "answer": "Helsinki",
+    "natural_questions": [
+      "Which capital city is home to the Lutheran Cathedral known as Tuomiokirkko?",
+      "What is the capital city of Finland where the Tuomiokirkko, a Lutheran Cathedral, is located?",
+      "Which capital city in Finland has a Lutheran Cathedral called Tuomiokirkko?",
+      "What capital city is associated with the Lutheran Cathedral Tuomiokirkko?",
+      "Which capital city is the location of the Lutheran Cathedral Tuomiokirkko?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which capital city is home to the Lutheran Cathedral known as Tuomiokirkko?\",\"What is the capital city of Finland where the Tuomiokirkko, a Lutheran Cathedral, is located?\",\"Which capital city in Finland has a Lutheran Cathedral called Tuomiokirkko?\",\"What capital city is associated with the Lutheran Cathedral Tuomiokirkko?\",\"Which capital city is the location of the Lutheran Cathedral Tuomiokirkko?\"]}"
+  },
+  {
+    "question_index": 41,
+    "category": "NAME THE PARENT COMPANY",
+    "clue": "Milton Bradley games",
+    "answer": "Hasbro",
+    "natural_questions": [
+      "Which company is known for producing the game 'Checkers'?",
+      "What is the parent company of the brand that created the game 'Trouble'?",
+      "Which corporation is associated with the classic board game 'Milton Bradley'?",
+      "What company is the parent of the game manufacturer that made 'Milton Bradley games'?",
+      "Which company is the parent of the brand that produced the game 'Milton Bradley'?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which company is known for producing the game 'Checkers'?\", \"What is the parent company of the brand that created the game 'Trouble'?\", \"Which corporation is associated with the classic board game 'Milton Bradley'?\", \"What company is the parent of the game manufacturer that made 'Milton Bradley games'?\", \"Which company is the parent of the brand that produced the game 'Milton Bradley'?\"]}"
+  },
+  {
+    "question_index": 42,
+    "category": "OLD YEAR'S RESOLUTIONS",
+    "clue": "The Kentucky & Virginia resolutions were passed to protest these controversial 1798 acts of Congress",
+    "answer": "The Alien and Sedition Acts",
+    "natural_questions": [
+      "What were the controversial 1798 acts of Congress that led to the Kentucky and Virginia resolutions?",
+      "Which acts of Congress in 1798 prompted the passage of the Kentucky and Virginia resolutions?",
+      "What controversial legislation from 1798 did the Kentucky and Virginia resolutions aim to protest?",
+      "Which congressional acts in 1798 were the subject of the Kentucky and Virginia resolutions?",
+      "What 1798 congressional acts were protested by the Kentucky and Virginia resolutions?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"What were the controversial 1798 acts of Congress that led to the Kentucky and Virginia resolutions?\",\"Which acts of Congress in 1798 prompted the passage of the Kentucky and Virginia resolutions?\",\"What controversial legislation from 1798 did the Kentucky and Virginia resolutions aim to protest?\",\"Which congressional acts in 1798 were the subject of the Kentucky and Virginia resolutions?\",\"What 1798 congressional acts were protested by the Kentucky and Virginia resolutions?\"]}"
+  },
+  {
+    "question_index": 43,
+    "category": "'80s NO.1 HITMAKERS",
+    "clue": "1983: \"Beat It\"",
+    "answer": "Michael Jackson",
+    "natural_questions": [
+      "Which 80s band had a number one hit in 1983 with the song 'Beat It'?",
+      "What group achieved a No. 1 hit in 1983 with the track 'Beat It'?",
+      "Which 80s artists had a top charting song called 'Beat It' in 1983?",
+      "What band released the 1983 No. 1 hit 'Beat It'?",
+      "Which 80s group's 1983 song 'Beat It' became a number one hit?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which 80s band had a number one hit in 1983 with the song 'Beat It'?\", \"What group achieved a No. 1 hit in 1983 with the track 'Beat It'?\", \"Which 80s artists had a top charting song called 'Beat It' in 1983?\", \"What band released the 1983 No. 1 hit 'Beat It'?\", \"Which 80s group's 1983 song 'Beat It' became a number one hit?\"]}"
+  },
+  {
+    "question_index": 44,
+    "category": "GOLDEN GLOBE WINNERS",
+    "clue": "In 2009: Sookie Stackhouse",
+    "answer": "Anna Paquin",
+    "natural_questions": [
+      "Which TV show's character Sookie Stackhouse won a Golden Globe in 2009?",
+      "Which show's character Sookie Stackhouse was recognized with a Golden Globe in 2009?",
+      "In what year did the character Sookie Stackhouse win a Golden Globe?",
+      "Which TV series earned a Golden Globe in 2009 for its character Sookie Stackhouse?",
+      "Which show's character Sookie Stackhouse was awarded a Golden Globe in 2009?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which TV show's character Sookie Stackhouse won a Golden Globe in 2009?\",\"Which show's character Sookie Stackhouse was recognized with a Golden Globe in 2009?\",\"In what year did the character Sookie Stackhouse win a Golden Globe?\",\"Which TV series earned a Golden Globe in 2009 for its character Sookie Stackhouse?\",\"Which show's character Sookie Stackhouse was awarded a Golden Globe in 2009?\"]}"
+  },
+  {
+    "question_index": 45,
+    "category": "HISTORICAL HODGEPODGE",
+    "clue": "This member of the Nixon & Ford cabinets was born in Furth, Germany in 1923",
+    "answer": "Henry Kissinger",
+    "natural_questions": [
+      "Who was born in Furth, Germany in 1923 and served in the Nixon and Ford cabinets?",
+      "Which individual, born in Furth, Germany in 1923, held a position in the Nixon and Ford administrations?",
+      "What is the name of the person who was born in Furth, Germany in 1923 and worked in the Nixon and Ford cabinets?",
+      "Who served in the Nixon and Ford cabinets and was born in Furth, Germany in 1923?",
+      "Which cabinet member of Nixon and Ford was born in Furth, Germany in 1923?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Who was born in Furth, Germany in 1923 and served in the Nixon and Ford cabinets?\",\"Which individual, born in Furth, Germany in 1923, held a position in the Nixon and Ford administrations?\",\"What is the name of the person who was born in Furth, Germany in 1923 and worked in the Nixon and Ford cabinets?\",\"Who served in the Nixon and Ford cabinets and was born in Furth, Germany in 1923?\",\"Which cabinet member of Nixon and Ford was born in Furth, Germany in 1923?\"]}"
+  },
+  {
+    "question_index": 46,
+    "category": "CAPITAL CITY CHURCHES (Alex: We'll give you the church. You tell us the capital city in which it is located.)",
+    "clue": "The High Kirk of St. Giles, where John Knox was minister",
+    "answer": "Edinburgh",
+    "natural_questions": [
+      "Which capital city is home to the High Kirk of St. Giles, where John Knox served as a minister?",
+      "What is the capital city that houses the High Kirk of St. Giles, associated with John Knox's ministry?",
+      "In which capital city can you find the High Kirk of St. Giles, where John Knox was a minister?",
+      "Which capital city is the location of the High Kirk of St. Giles, linked to John Knox's religious work?",
+      "What capital city is associated with the High Kirk of St. Giles, where John Knox was the minister?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which capital city is home to the High Kirk of St. Giles, where John Knox served as a minister?\",\"What is the capital city that houses the High Kirk of St. Giles, associated with John Knox's ministry?\",\"In which capital city can you find the High Kirk of St. Giles, where John Knox was a minister?\",\"Which capital city is the location of the High Kirk of St. Giles, linked to John Knox's religious work?\",\"What capital city is associated with the High Kirk of St. Giles, where John Knox was the minister?\"]}"
+  },
+  {
+    "question_index": 47,
+    "category": "UCLA CELEBRITY ALUMNI",
+    "clue": "For the brief time he attended, he was a rebel with a cause, even landing a lead role in a 1950 stage production",
+    "answer": "James Dean",
+    "natural_questions": [
+      "Which UCLA alumnus was known for being a rebel with a cause during his brief time at the university?",
+      "What actor, who briefly attended UCLA, played a lead role in a 1950 stage production?",
+      "Which celebrity attended UCLA for a short period and became a rebel with a cause?",
+      "Who was a rebel with a cause at UCLA and later starred in a 1950 stage play?",
+      "Which UCLA alumni was involved in a 1950 stage production and was known as a rebel with a cause?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which UCLA alumnus was known for being a rebel with a cause during his brief time at the university?\",\"What actor, who briefly attended UCLA, played a lead role in a 1950 stage production?\",\"Which celebrity attended UCLA for a short period and became a rebel with a cause?\",\"Who was a rebel with a cause at UCLA and later starred in a 1950 stage play?\",\"Which UCLA alumni was involved in a 1950 stage production and was known as a rebel with a cause?\"]}"
+  },
+  {
+    "question_index": 48,
+    "category": "NAME THE PARENT COMPANY",
+    "clue": "Fisher-Price toys",
+    "answer": "Mattel",
+    "natural_questions": [
+      "Which company owns the brand that produces Fisher-Price toys?",
+      "What is the parent company of Fisher-Price?",
+      "Which corporation is responsible for Fisher-Price toys?",
+      "What company is the parent of Fisher-Price?",
+      "Which major toy company is the parent of Fisher-Price?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which company owns the brand that produces Fisher-Price toys?\",\"What is the parent company of Fisher-Price?\",\"Which corporation is responsible for Fisher-Price toys?\",\"What company is the parent of Fisher-Price?\",\"Which major toy company is the parent of Fisher-Price?\"]}"
+  },
+  {
+    "question_index": 49,
+    "category": "HISTORICAL QUOTES",
+    "clue": "In a 1959 American kitchen exhibit in Moscow, he told Khrushchev, \"In America, we like to make life easier for women\"",
+    "answer": "Richard Nixon|Nixon",
+    "natural_questions": [
+      "Who was the American figure who made a notable statement about making life easier for women during a 1959 exhibit in Moscow?",
+      "Which American individual spoke to Khrushchev about improving life for women in the context of a 1959 kitchen exhibit in Moscow?",
+      "What was the name of the person who said, 'In America, we like to make life easier for women,' during a 1959 American kitchen exhibit in Moscow?",
+      "Who made the statement about American efforts to ease women's lives during a 1959 exhibit in Moscow?",
+      "Which historical figure was involved in a 1959 American kitchen exhibit in Moscow and made a remark about making life easier for women?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Who was the American figure who made a notable statement about making life easier for women during a 1959 exhibit in Moscow?\",\"Which American individual spoke to Khrushchev about improving life for women in the context of a 1959 kitchen exhibit in Moscow?\",\"What was the name of the person who said, 'In America, we like to make life easier for women,' during a 1959 American kitchen exhibit in Moscow?\",\"Who made the statement about American efforts to ease women's lives during a 1959 exhibit in Moscow?\",\"Which historical figure was involved in a 1959 American kitchen exhibit in Moscow and made a remark about making life easier for women?\"]}"
+  },
+  {
+    "question_index": 50,
+    "category": "POETS & POETRY",
+    "clue": "One of his \"Tales of a Wayside Inn\" begins, \"Listen, my children, and you shall hear of the midnight ride of Paul Revere\"",
+    "answer": "Henry Wadsworth Longfellow",
+    "natural_questions": [
+      "What is the name of the poem that starts with 'Listen, my children, and you shall hear of the midnight ride of Paul Revere'?",
+      "Which poem by a famous poet begins with the line 'Listen, my children, and you shall hear of the midnight ride of Paul Revere'?",
+      "What is the title of the poem that includes the line 'Listen, my children, and you shall hear of the midnight ride of Paul Revere'?",
+      "Which of Henry Wadsworth Longfellow's works starts with the line 'Listen, my children, and you shall hear of the midnight ride of Paul Revere'?",
+      "What is the name of the poem that begins with the line 'Listen, my children, and you shall hear of the midnight ride of Paul Revere'?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"What is the name of the poem that starts with 'Listen, my children, and you shall hear of the midnight ride of Paul Revere'?\", \"Which poem by a famous poet begins with the line 'Listen, my children, and you shall hear of the midnight ride of Paul Revere'?\", \"What is the title of the poem that includes the line 'Listen, my children, and you shall hear of the midnight ride of Paul Revere'?\", \"Which of Henry Wadsworth Longfellow's works starts with the line 'Listen, my children, and you shall hear of the midnight ride of Paul Revere'?\", \"What is the name of the poem that begins with the line 'Listen, my children, and you shall hear of the midnight ride of Paul Revere'?\"]}"
+  },
+  {
+    "question_index": 51,
+    "category": "NOTES FROM THE CAMPAIGN TRAIL",
+    "clue": "This bestseller about problems on the McCain-Palin ticket became an HBO movie with Julianne Moore",
+    "answer": "Game Change",
+    "natural_questions": [
+      "What is the title of the book that was adapted into an HBO movie featuring Julianne Moore and discusses issues with the McCain-Palin campaign?",
+      "Which book about the McCain-Palin ticket was turned into an HBO film starring Julianne Moore?",
+      "What is the name of the bestseller that was made into an HBO movie with Julianne Moore, focusing on the McCain-Palin campaign?",
+      "Which book became an HBO movie with Julianne Moore and deals with problems on the McCain-Palin ticket?",
+      "What book was adapted into an HBO movie starring Julianne Moore and addresses issues with the McCain-Palin campaign?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"What is the title of the book that was adapted into an HBO movie featuring Julianne Moore and discusses issues with the McCain-Palin campaign?\",\"Which book about the McCain-Palin ticket was turned into an HBO film starring Julianne Moore?\",\"What is the name of the bestseller that was made into an HBO movie with Julianne Moore, focusing on the McCain-Palin campaign?\",\"Which book became an HBO movie with Julianne Moore and deals with problems on the McCain-Palin ticket?\",\"What book was adapted into an HBO movie starring Julianne Moore and addresses issues with the McCain-Palin campaign?\"]}"
+  },
+  {
+    "question_index": 52,
+    "category": "THAT 20-AUGHTS SHOW",
+    "clue": "A 2-part episode of \"JAG\" introduced this Mark Harmon drama",
+    "answer": "NCIS",
+    "natural_questions": [
+      "What is the name of the Mark Harmon drama that was introduced by a 2-part episode of 'JAG'?",
+      "Which Mark Harmon-led series was launched with a 2-part episode of 'JAG'?",
+      "What show, starring Mark Harmon, was introduced by a 2-part episode of 'JAG'?",
+      "Which drama series, featuring Mark Harmon, was first introduced through a 2-part episode of 'JAG'?",
+      "Name the Mark Harmon drama that began with a 2-part episode of 'JAG'"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"What is the name of the Mark Harmon drama that was introduced by a 2-part episode of 'JAG'?\",\n\"Which Mark Harmon-led series was launched with a 2-part episode of 'JAG'?\",\n\"What show, starring Mark Harmon, was introduced by a 2-part episode of 'JAG'?\",\n\"Which drama series, featuring Mark Harmon, was first introduced through a 2-part episode of 'JAG'?\",\n\"Name the Mark Harmon drama that began with a 2-part episode of 'JAG'\"]}"
+  },
+  {
+    "question_index": 53,
+    "category": "AFRICAN CITIES",
+    "clue": "This port is the southernmost of South Africa's 3 capitals",
+    "answer": "Cape Town",
+    "natural_questions": [
+      "Which city serves as the southernmost capital of South Africa?",
+      "What is the name of the southernmost capital city in South Africa?",
+      "Which city is the southernmost of the three capitals in South Africa?",
+      "What is the southernmost capital of South Africa called?",
+      "Which city is recognized as the southernmost capital of South Africa?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which city serves as the southernmost capital of South Africa?\",\"What is the name of the southernmost capital city in South Africa?\",\"Which city is the southernmost of the three capitals in South Africa?\",\"What is the southernmost capital of South Africa called?\",\"Which city is recognized as the southernmost capital of South Africa?\"]}"
+  },
+  {
+    "question_index": 54,
+    "category": "THE QUOTABLE KEATS",
+    "clue": "Keats was quoting this Edmund Spenser poem when he told Shelley to \"'load every rift' of your subject with ore\"",
+    "answer": "The Faerie Queene",
+    "natural_questions": [
+      "Which Edmund Spenser poem is referenced in the line 'load every rift' of your subject with ore' attributed to Keats?",
+      "What poem by Edmund Spenser is quoted by Keats in the line 'load every rift' of your subject with ore'?",
+      "Which poem by Edmund Spenser is alluded to in Keats' quote 'load every rift' of your subject with ore'?",
+      "What is the title of the Edmund Spenser poem that Keats is quoting in the line 'load every rift' of your subject with ore'?",
+      "Which work by Edmund Spenser is referenced in Keats' quote 'load every rift' of your subject with ore'?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which Edmund Spenser poem is referenced in the line 'load every rift' of your subject with ore' attributed to Keats?\",\"What poem by Edmund Spenser is quoted by Keats in the line 'load every rift' of your subject with ore'?\",\"Which poem by Edmund Spenser is alluded to in Keats' quote 'load every rift' of your subject with ore'?\",\"What is the title of the Edmund Spenser poem that Keats is quoting in the line 'load every rift' of your subject with ore'?\",\"Which work by Edmund Spenser is referenced in Keats' quote 'load every rift' of your subject with ore'?\"]}"
+  },
+  {
+    "question_index": 55,
+    "category": "THE QUOTABLE KEATS",
+    "clue": "In an 1819 letter Keats wrote that this lord & poet \"cuts a figure, but he is not figurative\"",
+    "answer": "Lord Byron",
+    "natural_questions": [
+      "Which poet and lord did Keats refer to as 'cuts a figure, but he is not figurative' in an 1819 letter?",
+      "What was the name of the poet and lord that Keats mentioned in an 1819 letter as 'cuts a figure, but he is not figurative'?",
+      "Which individual was called 'cuts a figure, but he is not figurative' by Keats in an 1819 letter?",
+      "Who was the subject of Keats' 1819 letter where he wrote 'cuts a figure, but he is not figurative'?",
+      "Which poet and lord was described by Keats in an 1819 letter as 'cuts a figure, but he is not figurative'?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which poet and lord did Keats refer to as 'cuts a figure, but he is not figurative' in an 1819 letter?\",\"What was the name of the poet and lord that Keats mentioned in an 1819 letter as 'cuts a figure, but he is not figurative'?\",\"Which individual was called 'cuts a figure, but he is not figurative' by Keats in an 1819 letter?\",\"Who was the subject of Keats' 1819 letter where he wrote 'cuts a figure, but he is not figurative'?\",\"Which poet and lord was described by Keats in an 1819 letter as 'cuts a figure, but he is not figurative'?\"]}"
+  },
+  {
+    "question_index": 56,
+    "category": "GREEK FOOD & DRINK",
+    "clue": "This clear Greek liqueur is quite potent, so it's usually mixed with water, which turns it white & cloudy",
+    "answer": "Ouzo",
+    "natural_questions": [
+      "What is a popular Greek liqueur that becomes cloudy when mixed with water?",
+      "What kind of Greek drink is known for turning white and cloudy when diluted with water?",
+      "Which Greek liqueur is typically diluted with water to make it less intense?",
+      "What is the name of the Greek spirit that turns white and cloudy when mixed with water?",
+      "What is the clear Greek liqueur that becomes cloudy when combined with water?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"What is a popular Greek liqueur that becomes cloudy when mixed with water?\",\"What kind of Greek drink is known for turning white and cloudy when diluted with water?\",\"Which Greek liqueur is typically diluted with water to make it less intense?\",\"What is the name of the Greek spirit that turns white and cloudy when mixed with water?\",\"What is the clear Greek liqueur that becomes cloudy when combined with water?\"]}"
+  },
+  {
+    "question_index": 57,
+    "category": "OLD YEAR'S RESOLUTIONS",
+    "clue": "Feb. 1, National Freedom Day, is the date in 1865 when a resolution sent the states an amendment ending this",
+    "answer": "Slavery|Slavery in the United States",
+    "natural_questions": [
+      "What significant event in 1865 was celebrated on February 1st as National Freedom Day?",
+      "Which amendment to the U.S. Constitution was ratified on February 1, 1865, and is associated with National Freedom Day?",
+      "What historical event occurred on February 1, 1865, that is commemorated as National Freedom Day?",
+      "Which constitutional amendment was sent to the states on February 1, 1865, and is linked to the end of slavery?",
+      "What major change in the United States was enacted on February 1, 1865, and is recognized as National Freedom Day?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"What significant event in 1865 was celebrated on February 1st as National Freedom Day?\",\"Which amendment to the U.S. Constitution was ratified on February 1, 1865, and is associated with National Freedom Day?\",\"What historical event occurred on February 1, 1865, that is commemorated as National Freedom Day?\",\"Which constitutional amendment was sent to the states on February 1, 1865, and is linked to the end of slavery?\",\"What major change in the United States was enacted on February 1, 1865, and is recognized as National Freedom Day?\"]}"
+  },
+  {
+    "question_index": 58,
+    "category": "RANKS & TITLES",
+    "clue": "This person is the queen's representative in Canada; currently the office is held by David Johnston",
+    "answer": "Governor General of Canada",
+    "natural_questions": [
+      "Who holds the position that is the queen's representative in Canada?",
+      "What is the name of the individual currently serving as the queen's representative in Canada?",
+      "Which person is currently the queen's representative in Canada?",
+      "Who is the current holder of the title that represents the queen in Canada?",
+      "What is the name of the person who currently serves as the queen's representative in Canada?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Who holds the position that is the queen's representative in Canada?\",\"What is the name of the individual currently serving as the queen's representative in Canada?\",\"Which person is currently the queen's representative in Canada?\",\"Who is the current holder of the title that represents the queen in Canada?\",\"What is the name of the person who currently serves as the queen's representative in Canada?\"]}"
+  },
+  {
+    "question_index": 59,
+    "category": "\"TIN\" MEN",
+    "clue": "He earned the \"fifth Beatle\" nickname by producing all of the Beatles' albums",
+    "answer": "George Martin",
+    "natural_questions": [
+      "Who is the person known for producing all of the Beatles' albums and earning the nickname 'fifth Beatle'?",
+      "Which producer was responsible for all of the Beatles' albums and was given the nickname 'fifth Beatle'?",
+      "Who was the producer of the Beatles' albums and received the nickname 'fifth Beatle'?",
+      "Which individual earned the 'fifth Beatle' title for producing all of the Beatles' albums?",
+      "Who is the person referred to as the 'fifth Beatle' for producing all of the Beatles' albums?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Who is the person known for producing all of the Beatles' albums and earning the nickname 'fifth Beatle'?\",\"Which producer was responsible for all of the Beatles' albums and was given the nickname 'fifth Beatle'?\",\"Who was the producer of the Beatles' albums and received the nickname 'fifth Beatle'?\",\"Which individual earned the 'fifth Beatle' title for producing all of the Beatles' albums?\",\"Who is the person referred to as the 'fifth Beatle' for producing all of the Beatles' albums?\"]}"
+  },
+  {
+    "question_index": 60,
+    "category": "NEWSPAPERS",
+    "clue": "Early in their careers, Mark Twain & Bret Harte wrote pieces for this California city's Chronicle",
+    "answer": "San Francisco",
+    "natural_questions": [
+      "Which California city's newspaper did Mark Twain and Bret Harte contribute to in their early careers?",
+      "What was the name of the newspaper based in California where Mark Twain and Bret Harte began their writing careers?",
+      "Which city's newspaper featured contributions from Mark Twain and Bret Harte during their early years?",
+      "What California city's Chronicle was written by Mark Twain and Bret Harte in the beginning of their careers?",
+      "Which newspaper in California was the first to publish works by Mark Twain and Bret Harte?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which California city's newspaper did Mark Twain and Bret Harte contribute to in their early careers?\",\"What was the name of the newspaper based in California where Mark Twain and Bret Harte began their writing careers?\",\"Which city's newspaper featured contributions from Mark Twain and Bret Harte during their early years?\",\"What California city's Chronicle was written by Mark Twain and Bret Harte in the beginning of their careers?\",\"Which newspaper in California was the first to publish works by Mark Twain and Bret Harte?\"]}"
+  },
+  {
+    "question_index": 61,
+    "category": "POTPOURRI",
+    "clue": "Large specimens of this marsupial can leap over barriers 6 feet high",
+    "answer": "Kangaroo",
+    "natural_questions": [
+      "What is the name of the marsupial known for its ability to leap over 6-foot-high barriers?",
+      "Which marsupial is capable of jumping over barriers that are six feet in height?",
+      "What large marsupial can leap over barriers that are more than five feet tall?",
+      "Which animal is famous for its ability to jump over six-foot-high obstacles?",
+      "What is the name of the large marsupial that can leap over barriers up to six feet high?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"What is the name of the marsupial known for its ability to leap over 6-foot-high barriers?\",\"Which marsupial is capable of jumping over barriers that are six feet in height?\",\"What large marsupial can leap over barriers that are more than five feet tall?\",\"Which animal is famous for its ability to jump over six-foot-high obstacles?\",\"What is the name of the large marsupial that can leap over barriers up to six feet high?\"]}"
+  },
+  {
+    "question_index": 62,
+    "category": "GREEK FOOD & DRINK",
+    "clue": "Because it's cured & stored in brine, this crumbly white cheese made from sheep's milk is often referred to as pickled cheese",
+    "answer": "Feta",
+    "natural_questions": [
+      "What is a crumbly white cheese made from sheep's milk that is often called pickled cheese due to being cured and stored in brine?",
+      "What type of cheese is known for being crumbly, white, and made from sheep's milk, and is often referred to as pickled cheese?",
+      "Which cheese is made from sheep's milk, is crumbly and white, and is commonly called pickled cheese because it's cured in brine?",
+      "What cheese is made from sheep's milk, is crumbly and white, and is often called pickled cheese due to being stored in brine?",
+      "What is the name of a cheese made from sheep's milk that is crumbly, white, and often called pickled cheese because it's cured in brine?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"What is a crumbly white cheese made from sheep's milk that is often called pickled cheese due to being cured and stored in brine?\",\"What type of cheese is known for being crumbly, white, and made from sheep's milk, and is often referred to as pickled cheese?\",\"Which cheese is made from sheep's milk, is crumbly and white, and is commonly called pickled cheese because it's cured in brine?\",\"What cheese is made from sheep's milk, is crumbly and white, and is often called pickled cheese due to being stored in brine?\",\"What is the name of a cheese made from sheep's milk that is crumbly, white, and often called pickled cheese because it's cured in brine?\"]}"
+  },
+  {
+    "question_index": 63,
+    "category": "1920s NEWS FLASH!",
+    "clue": "1927! Gene Tunney takes a long count in the squared circle but rises to defeat this \"Manassa Mauler\"! Howzabout that!",
+    "answer": "Jack Dempsey",
+    "natural_questions": [
+      "Who was the boxer defeated by Gene Tunney in the 1927 fight known as the 'Battle of the Giants'?",
+      "Which heavyweight champion was outpointed by Gene Tunney in the 1927 match that took place in Chicago?",
+      "In 1927, Gene Tunney defeated this 'Manassa Mauler' after a long count in the ring. Who was he?",
+      "What was the name of the boxer who lost to Gene Tunney in a 1927 fight that ended with a long count?",
+      "Who was the 'Manassa Mauler' that Gene Tunney defeated in a 1927 boxing match that became famous for the long count?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Who was the boxer defeated by Gene Tunney in the 1927 fight known as the 'Battle of the Giants'?\", \"Which heavyweight champion was outpointed by Gene Tunney in the 1927 match that took place in Chicago?\", \"In 1927, Gene Tunney defeated this 'Manassa Mauler' after a long count in the ring. Who was he?\", \"What was the name of the boxer who lost to Gene Tunney in a 1927 fight that ended with a long count?\", \"Who was the 'Manassa Mauler' that Gene Tunney defeated in a 1927 boxing match that became famous for the long count?\"]}"
+  },
+  {
+    "question_index": 64,
+    "category": "RANKS & TITLES",
+    "clue": "Italian for \"leader\", it was especially applied to Benito Mussolini",
+    "answer": "Duce",
+    "natural_questions": [
+      "What is the Italian term for 'leader' that was specifically used for Benito Mussolini?",
+      "Which Italian word meaning 'leader' was associated with Benito Mussolini?",
+      "What title, meaning 'leader' in Italian, was famously used by Benito Mussolini?",
+      "What is the Italian word for 'leader' that refers to a specific historical figure like Benito Mussolini?",
+      "Which Italian term for 'leader' was historically linked to Benito Mussolini?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"What is the Italian term for 'leader' that was specifically used for Benito Mussolini?\",\"Which Italian word meaning 'leader' was associated with Benito Mussolini?\",\"What title, meaning 'leader' in Italian, was famously used by Benito Mussolini?\",\"What is the Italian word for 'leader' that refers to a specific historical figure like Benito Mussolini?\",\"Which Italian term for 'leader' was historically linked to Benito Mussolini?\"]}"
+  },
+  {
+    "question_index": 65,
+    "category": "STATE OF THE ART MUSEUM (Alex: We'll give you the museum. You give us the state.)",
+    "clue": "The Kalamazoo Institute of Arts",
+    "answer": "Michigan",
+    "natural_questions": [
+      "Which state is home to the Kalamazoo Institute of Arts?",
+      "What state can you find the Kalamazoo Institute of Arts in?",
+      "Which state's museum is the Kalamazoo Institute of Arts located in?",
+      "What state is the Kalamazoo Institute of Arts situated in?",
+      "Which state houses the Kalamazoo Institute of Arts?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which state is home to the Kalamazoo Institute of Arts?\",\"What state can you find the Kalamazoo Institute of Arts in?\",\"Which state's museum is the Kalamazoo Institute of Arts located in?\",\"What state is the Kalamazoo Institute of Arts situated in?\",\"Which state houses the Kalamazoo Institute of Arts?\"]}"
+  },
+  {
+    "question_index": 66,
+    "category": "STATE OF THE ART MUSEUM (Alex: We'll give you the museum. You give us the state.)",
+    "clue": "The Sun Valley Center for the Arts",
+    "answer": "Idaho",
+    "natural_questions": [
+      "Which state is home to the Sun Valley Center for the Arts?",
+      "What state can you find the Sun Valley Center for the Arts in?",
+      "Which U.S. state hosts the Sun Valley Center for the Arts?",
+      "What is the name of the state where the Sun Valley Center for the Arts is located?",
+      "Which state is associated with the Sun Valley Center for the Arts?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which state is home to the Sun Valley Center for the Arts?\",\"What state can you find the Sun Valley Center for the Arts in?\",\"Which U.S. state hosts the Sun Valley Center for the Arts?\",\"What is the name of the state where the Sun Valley Center for the Arts is located?\",\"Which state is associated with the Sun Valley Center for the Arts?\"]}"
+  },
+  {
+    "question_index": 67,
+    "category": "\"TIN\" MEN",
+    "clue": "You can't mention this shortstop without mentioning his double-play associates Evers & Chance",
+    "answer": "Joe Tinker",
+    "natural_questions": [
+      "Who is the shortstop known for his double-play partnerships with Evers and Chance?",
+      "Which shortstop is often mentioned alongside his double-play partners Evers and Chance?",
+      "What is the name of the shortstop who frequently plays with Evers and Chance in a double-play?",
+      "Which player is typically associated with the double-play combination of Evers and Chance?",
+      "Who was the shortstop who played with Evers and Chance in a double-play?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Who is the shortstop known for his double-play partnerships with Evers and Chance?\",\"Which shortstop is often mentioned alongside his double-play partners Evers and Chance?\",\"What is the name of the shortstop who frequently plays with Evers and Chance in a double-play?\",\"Which player is typically associated with the double-play combination of Evers and Chance?\",\"Who was the shortstop who played with Evers and Chance in a double-play?\"]}"
+  },
+  {
+    "question_index": 68,
+    "category": "NEWSPAPERS",
+    "clue": "In 1840 Horace Greeley began publishing \"The Log Cabin\", a weekly campaign paper in support of this Whig candidate",
+    "answer": "William Henry Harrison",
+    "natural_questions": [
+      "Which Whig candidate did Horace Greeley support through his weekly campaign paper 'The Log Cabin' starting in 1840?",
+      "What was the name of the Whig candidate who received support from Horace Greeley's 'The Log Cabin' starting in 1840?",
+      "Which political figure was the focus of Horace Greeley's 'The Log Cabin' campaign paper in 1840?",
+      "Who was the Whig candidate that Horace Greeley's 'The Log Cabin' newspaper supported in 1840?",
+      "Which candidate was backed by Horace Greeley's 'The Log Cabin' newspaper during the 1840 campaign?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which Whig candidate did Horace Greeley support through his weekly campaign paper 'The Log Cabin' starting in 1840?\",\"What was the name of the Whig candidate who received support from Horace Greeley's 'The Log Cabin' starting in 1840?\",\"Which political figure was the focus of Horace Greeley's 'The Log Cabin' campaign paper in 1840?\",\"Who was the Whig candidate that Horace Greeley's 'The Log Cabin' newspaper supported in 1840?\",\"Which candidate was backed by Horace Greeley's 'The Log Cabin' newspaper during the 1840 campaign?\"]}"
+  },
+  {
+    "question_index": 69,
+    "category": "I'M BURNIN' FOR YOU",
+    "clue": "Pierre Cauchon, Bishop of Beauvais, presided over the trial of this woman who went up in smoke May 30, 1431",
+    "answer": "Joan of Arc|Jeanne d'Arc",
+    "natural_questions": [
+      "Which woman was burned at the stake on May 30, 1431, and was presided over by Pierre Cauchon, Bishop of Beauvais?",
+      "Who was the subject of a trial presided over by Pierre Cauchon, Bishop of Beauvais, and was executed by burning on May 30, 1431?",
+      "On what date was a woman burned at the stake, and who was the presiding figure of her trial, Pierre Cauchon, Bishop of Beauvais?",
+      "Which historical figure was tried by Pierre Cauchon, Bishop of Beauvais, and died by burning on May 30, 1431?",
+      "Who was the woman who faced a trial led by Pierre Cauchon, Bishop of Beauvais, and was executed by fire on May 30, 1431?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which woman was burned at the stake on May 30, 1431, and was presided over by Pierre Cauchon, Bishop of Beauvais?\",\"Who was the subject of a trial presided over by Pierre Cauchon, Bishop of Beauvais, and was executed by burning on May 30, 1431?\",\"On what date was a woman burned at the stake, and who was the presiding figure of her trial, Pierre Cauchon, Bishop of Beauvais?\",\"Which historical figure was tried by Pierre Cauchon, Bishop of Beauvais, and died by burning on May 30, 1431?\",\"Who was the woman who faced a trial led by Pierre Cauchon, Bishop of Beauvais, and was executed by fire on May 30, 1431?\"]}"
+  },
+  {
+    "question_index": 70,
+    "category": "COMPLETE DOM-INATION(Alex: Not \"domination.\")",
+    "clue": "This Wisconsin city claims to have built the USA's only granite dome",
+    "answer": "Madison",
+    "natural_questions": [
+      "Which Wisconsin city is known for having the only granite dome in the United States?",
+      "What city in Wisconsin boasts the construction of the U.S.'s sole granite dome?",
+      "Which city in the state of Wisconsin is home to the only granite dome in the country?",
+      "What Wisconsin city can claim to have built the United States' only granite dome?",
+      "Which city in Wisconsin is recognized for having the unique granite dome that's the only one in the United States?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which Wisconsin city is known for having the only granite dome in the United States?\",\"What city in Wisconsin boasts the construction of the U.S.'s sole granite dome?\",\"Which city in the state of Wisconsin is home to the only granite dome in the country?\",\"What Wisconsin city can claim to have built the United States' only granite dome?\",\"Which city in Wisconsin is recognized for having the unique granite dome that's the only one in the United States?\"]}"
+  },
+  {
+    "question_index": 71,
+    "category": "NEWSPAPERS",
+    "clue": "This Georgia paper is known as the AJC for short",
+    "answer": "The Atlanta Journal-Constitution",
+    "natural_questions": [
+      "What is the common abbreviation for the Atlanta Journal-Constitution?",
+      "Which newspaper based in Georgia is often referred to by its abbreviation AJC?",
+      "What is the shortened name of the newspaper that is based in Atlanta, Georgia?",
+      "Which Georgia-based newspaper is known by the abbreviation AJC?",
+      "What is the name of the Atlanta newspaper that is commonly abbreviated as AJC?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"What is the common abbreviation for the Atlanta Journal-Constitution?\",\"Which newspaper based in Georgia is often referred to by its abbreviation AJC?\",\"What is the shortened name of the newspaper that is based in Atlanta, Georgia?\",\"Which Georgia-based newspaper is known by the abbreviation AJC?\",\"What is the name of the Atlanta newspaper that is commonly abbreviated as AJC?\"]}"
+  },
+  {
+    "question_index": 72,
+    "category": "AFRICAN CITIES",
+    "clue": "Wooden 2-story verandas in this Liberian capital are an architectural link to the U.S. south",
+    "answer": "Monrovia",
+    "natural_questions": [
+      "What African city is known for its wooden 2-story verandas that connect to the U.S. south architecture?",
+      "Which Liberian capital features wooden verandas that reflect architectural influences from the U.S. south?",
+      "What is the name of the Liberian capital with 2-story wooden verandas linked to U.S. southern architecture?",
+      "Which city in Liberia is recognized for its traditional wooden verandas that mirror U.S. southern styles?",
+      "What African city is famous for its wooden verandas that serve as an architectural bridge to the U.S. south?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"What African city is known for its wooden 2-story verandas that connect to the U.S. south architecture?\",\"Which Liberian capital features wooden verandas that reflect architectural influences from the U.S. south?\",\"What is the name of the Liberian capital with 2-story wooden verandas linked to U.S. southern architecture?\",\"Which city in Liberia is recognized for its traditional wooden verandas that mirror U.S. southern styles?\",\"What African city is famous for its wooden verandas that serve as an architectural bridge to the U.S. south?\"]}"
+  },
+  {
+    "question_index": 73,
+    "category": "COMPLETE DOM-INATION(Alex: Not \"domination.\")",
+    "clue": "This New Orleans venue reopened Sept. 25, 2006",
+    "answer": "Mercedes-Benz Superdome|The Superdome",
+    "natural_questions": [
+      "Which New Orleans venue reopened on September 25, 2006?",
+      "What was the name of the New Orleans venue that reopened on September 25, 2006?",
+      "Which venue in New Orleans reopened on September 25, 2006?",
+      "What is the name of the venue in New Orleans that reopened on September 25, 2006?",
+      "Which famous New Orleans venue reopened on September 25, 2006?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which New Orleans venue reopened on September 25, 2006?\",\"What was the name of the New Orleans venue that reopened on September 25, 2006?\",\"Which venue in New Orleans reopened on September 25, 2006?\",\"What is the name of the venue in New Orleans that reopened on September 25, 2006?\",\"Which famous New Orleans venue reopened on September 25, 2006?\"]}"
+  },
+  {
+    "question_index": 74,
+    "category": "HE PLAYED A GUY NAMED JACK RYAN IN...",
+    "clue": "\"The Hunt for Red October\"; he went more comedic as Jack Donaghy on \"30 Rock\"",
+    "answer": "Alec Baldwin",
+    "natural_questions": [
+      "Which actor portrayed a character named Jack Ryan in the movie 'The Hunt for Red October'?",
+      "What actor played Jack Donaghy on the TV show '30 Rock'?",
+      "Who is the actor known for playing Jack Ryan in 'The Hunt for Red October' and Jack Donaghy in '30 Rock'?",
+      "Which actor appeared in both 'The Hunt for Red October' as Jack Ryan and '30 Rock' as Jack Donaghy?",
+      "What actor played Jack Ryan in 'The Hunt for Red October' and later played Jack Donaghy on '30 Rock'?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which actor portrayed a character named Jack Ryan in the movie 'The Hunt for Red October'?\", \"What actor played Jack Donaghy on the TV show '30 Rock'?\", \"Who is the actor known for playing Jack Ryan in 'The Hunt for Red October' and Jack Donaghy in '30 Rock'?\", \"Which actor appeared in both 'The Hunt for Red October' as Jack Ryan and '30 Rock' as Jack Donaghy?\", \"What actor played Jack Ryan in 'The Hunt for Red October' and later played Jack Donaghy on '30 Rock'?\"]}"
+  },
+  {
+    "question_index": 75,
+    "category": "AFRICAN-AMERICAN WOMEN",
+    "clue": "Rita Dove titled a collection of poems \"On the Bus with\" this woman",
+    "answer": "Rosa Parks",
+    "natural_questions": [
+      "Which historical figure is featured in Rita Dove's poetry collection titled 'On the Bus with'?",
+      "What woman is the subject of Rita Dove's poem collection 'On the Bus with'?",
+      "Which prominent figure is referenced in Rita Dove's collection 'On the Bus with'?",
+      "What individual is the focus of Rita Dove's poetry collection 'On the Bus with'?",
+      "Which African-American woman is the subject of Rita Dove's 'On the Bus with' collection?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which historical figure is featured in Rita Dove's poetry collection titled 'On the Bus with'?\", \"What woman is the subject of Rita Dove's poem collection 'On the Bus with'?\", \"Which prominent figure is referenced in Rita Dove's collection 'On the Bus with'?\", \"What individual is the focus of Rita Dove's poetry collection 'On the Bus with'?\", \"Which African-American woman is the subject of Rita Dove's 'On the Bus with' collection?\"]}"
+  },
+  {
+    "question_index": 76,
+    "category": "HE PLAYED A GUY NAMED JACK RYAN IN...",
+    "clue": "\"Patriot Games\"; he's had other iconic roles, in space & underground",
+    "answer": "Harrison Ford",
+    "natural_questions": [
+      "Which movie features a character named Jack Ryan that the actor played in the 1992 film 'Patriot Games'?",
+      "What is the name of the actor who portrayed Jack Ryan in 'Patriot Games' and also played a role in space in another film?",
+      "Which actor is known for playing Jack Ryan in 'Patriot Games' and has also appeared in a film set in an underground environment?",
+      "What actor played the role of Jack Ryan in 'Patriot Games' and has taken on other memorable roles in different settings?",
+      "Which actor portrayed Jack Ryan in 'Patriot Games' and has also been in a movie involving space and an underground setting?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which movie features a character named Jack Ryan that the actor played in the 1992 film 'Patriot Games'?\",\"What is the name of the actor who portrayed Jack Ryan in 'Patriot Games' and also played a role in space in another film?\",\"Which actor is known for playing Jack Ryan in 'Patriot Games' and has also appeared in a film set in an underground environment?\",\"What actor played the role of Jack Ryan in 'Patriot Games' and has taken on other memorable roles in different settings?\",\"Which actor portrayed Jack Ryan in 'Patriot Games' and has also been in a movie involving space and an underground setting?\"]}"
+  },
+  {
+    "question_index": 77,
+    "category": "COMPLETE DOM-INATION(Alex: Not \"domination.\")",
+    "clue": "This sacred structure dates from the late 600's A.D.",
+    "answer": "Dome of the Rock",
+    "natural_questions": [
+      "What is the name of the religious building constructed in the late 600s A.D.?",
+      "Which sacred site was built during the late 600s A.D.?",
+      "What structure was completed in the late 600s A.D. and holds religious significance?",
+      "Which holy place was constructed in the late 600s A.D.?",
+      "What is the name of the religious structure that was completed in the late 600s A.D.?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"What is the name of the religious building constructed in the late 600s A.D.?\", \"Which sacred site was built during the late 600s A.D.?\", \"What structure was completed in the late 600s A.D. and holds religious significance?\", \"Which holy place was constructed in the late 600s A.D.?\", \"What is the name of the religious structure that was completed in the late 600s A.D.?\"]}"
+  },
+  {
+    "question_index": 78,
+    "category": "'80s NO.1 HITMAKERS",
+    "clue": "1988: \"Man In The Mirror\"",
+    "answer": "Michael Jackson",
+    "natural_questions": [
+      "Which 1988 song topped the charts and was titled 'Man In The Mirror'?",
+      "What was the title of the 1988 number one hit by a popular 80s group?",
+      "Which song by a 80s hitmaking group was a number one hit in 1988?",
+      "What 1988 song was a number one hit and is known as 'Man In The Mirror'?",
+      "Which 80s group had a number one hit in 1988 called 'Man In The Mirror'?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which 1988 song topped the charts and was titled 'Man In The Mirror'?\",\"What was the title of the 1988 number one hit by a popular 80s group?\",\"Which song by a 80s hitmaking group was a number one hit in 1988?\",\"What 1988 song was a number one hit and is known as 'Man In The Mirror'?\",\"Which 80s group had a number one hit in 1988 called 'Man In The Mirror'?\"]}"
+  },
+  {
+    "question_index": 79,
+    "category": "CAPITAL CITY CHURCHES (Alex: We'll give you the church. You tell us the capital city in which it is located.)",
+    "clue": "Matthias Church, or Matyas Templom, where Franz Joseph was crowned in 1867",
+    "answer": "Budapest",
+    "natural_questions": [
+      "Which capital city is home to Matthias Church, also known as Matyas Templom, where Franz Joseph was crowned in 1867?",
+      "In which capital city can you find Matthias Church, the site of Franz Joseph's coronation in 1867?",
+      "What is the name of the capital city that hosts Matthias Church, where Franz Joseph was crowned in 1867?",
+      "Which capital city is associated with Matthias Church, where Franz Joseph was crowned in 1867?",
+      "What capital city is known for housing Matthias Church, the location of Franz Joseph's coronation in 1867?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which capital city is home to Matthias Church, also known as Matyas Templom, where Franz Joseph was crowned in 1867?\",\"In which capital city can you find Matthias Church, the site of Franz Joseph's coronation in 1867?\",\"What is the name of the capital city that hosts Matthias Church, where Franz Joseph was crowned in 1867?\",\"Which capital city is associated with Matthias Church, where Franz Joseph was crowned in 1867?\",\"What capital city is known for housing Matthias Church, the location of Franz Joseph's coronation in 1867?\"]}"
+  },
+  {
+    "question_index": 80,
+    "category": "UCLA CELEBRITY ALUMNI",
+    "clue": "Attending UCLA in the '60s, he was no \"Meathead\", he just played one later on television",
+    "answer": "Rob Reiner",
+    "natural_questions": [
+      "Which famous actor attended UCLA in the 1960s and later played the character Meathead on television?",
+      "Who is the UCLA alumnus from the 1960s known for playing the role of Meathead on TV?",
+      "Which celebrity attended UCLA in the 1960s and later portrayed the character Meathead on a television show?",
+      "Who was the UCLA graduate from the 1960s that played the role of Meathead on television?",
+      "Which UCLA alumni from the 1960s is known for playing the character Meathead on TV?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which famous actor attended UCLA in the 1960s and later played the character Meathead on television?\",\"Who is the UCLA alumnus from the 1960s known for playing the role of Meathead on TV?\",\"Which celebrity attended UCLA in the 1960s and later portrayed the character Meathead on a television show?\",\"Who was the UCLA graduate from the 1960s that played the role of Meathead on television?\",\"Which UCLA alumni from the 1960s is known for playing the character Meathead on TV?\"]}"
+  },
+  {
+    "question_index": 81,
+    "category": "THE RESIDENTS",
+    "clue": "Kinch, Carter & LeBeau were all residents of Stalag 13 on this TV show",
+    "answer": "Hogan's Heroes",
+    "natural_questions": [
+      "Which TV show featured Kinch, Carter, and LeBeau as residents of Stalag 13?",
+      "What was the name of the TV series that included Kinch, Carter, and LeBeau as characters in Stalag 13?",
+      "Which show had Kinch, Carter, and LeBeau as prisoners at Stalag 13?",
+      "What TV series is known for having Kinch, Carter, and LeBeau as residents of Stalag 13?",
+      "Which show featured the characters Kinch, Carter, and LeBeau in the setting of Stalag 13?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which TV show featured Kinch, Carter, and LeBeau as residents of Stalag 13?\",\"What was the name of the TV series that included Kinch, Carter, and LeBeau as characters in Stalag 13?\",\"Which show had Kinch, Carter, and LeBeau as prisoners at Stalag 13?\",\"What TV series is known for having Kinch, Carter, and LeBeau as residents of Stalag 13?\",\"Which show featured the characters Kinch, Carter, and LeBeau in the setting of Stalag 13?\"]}"
+  },
+  {
+    "question_index": 82,
+    "category": "1920s NEWS FLASH!",
+    "clue": "News flash! This less-than-yappy pappy is sixth veep to be nation's top dog after chief takes deep sleep!",
+    "answer": "Calvin Coolidge",
+    "natural_questions": [
+      "Who was the sixth vice president to become president after the previous president died in office?",
+      "Which vice president became president following the death of the sitting president in the 1920s?",
+      "Who took over as president after the previous president died in the 1920s?",
+      "Which president was a former vice president who became president after the previous president died?",
+      "Who was the sixth vice president to assume the presidency after the death of the sitting president in the 1920s?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Who was the sixth vice president to become president after the previous president died in office?\",\"Which vice president became president following the death of the sitting president in the 1920s?\",\"Who took over as president after the previous president died in the 1920s?\",\"Which president was a former vice president who became president after the previous president died?\",\"Who was the sixth vice president to assume the presidency after the death of the sitting president in the 1920s?\"]}"
+  },
+  {
+    "question_index": 83,
+    "category": "GOLDEN GLOBE WINNERS",
+    "clue": "In 2001: The president of the United States on television",
+    "answer": "Martin Sheen",
+    "natural_questions": [
+      "Which U.S. president was featured on television in 2001 and won a Golden Globe award?",
+      "Who was the U.S. president that appeared on TV in 2001 and received a Golden Globe?",
+      "In what year did the U.S. president appear on television and win a Golden Globe?",
+      "Which president of the United States was on television in 2001 and earned a Golden Globe?",
+      "Who was the U.S. president that was on television in 2001 and won a Golden Globe award?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which U.S. president was featured on television in 2001 and won a Golden Globe award?\",\"Who was the U.S. president that appeared on TV in 2001 and received a Golden Globe?\",\"In what year did the U.S. president appear on television and win a Golden Globe?\",\"Which president of the United States was on television in 2001 and earned a Golden Globe?\",\"Who was the U.S. president that was on television in 2001 and won a Golden Globe award?\"]}"
+  },
+  {
+    "question_index": 84,
+    "category": "'80s NO.1 HITMAKERS",
+    "clue": "1989: \"Miss You Much\"",
+    "answer": "Janet Jackson",
+    "natural_questions": [
+      "Which 1980s group had a number one hit in 1989 with the song 'Miss You Much'?",
+      "What 80s band released the number one hit 'Miss You Much' in 1989?",
+      "Which 80s music group achieved a No. 1 hit with 'Miss You Much' in 1989?",
+      "What 80s act had a chart-topping single called 'Miss You Much' in 1989?",
+      "Which 80s pop group's 1989 hit was 'Miss You Much'?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which 1980s group had a number one hit in 1989 with the song 'Miss You Much'?\", \"What 80s band released the number one hit 'Miss You Much' in 1989?\", \"Which 80s music group achieved a No. 1 hit with 'Miss You Much' in 1989?\", \"What 80s act had a chart-topping single called 'Miss You Much' in 1989?\", \"Which 80s pop group's 1989 hit was 'Miss You Much'?\"]}"
+  },
+  {
+    "question_index": 85,
+    "category": "1920s NEWS FLASH!",
+    "clue": "1922: It's the end of an empire! This empire, in fact! After 600 years, it's goodbye, this, hello, Turkish Republic!",
+    "answer": "Ottoman Empire",
+    "natural_questions": [
+      "Which empire ended in 1922 after 600 years of existence?",
+      "What was the name of the empire that ceased to exist in 1922?",
+      "Which country was formed in 1922 as a result of the end of an empire?",
+      "What empire was replaced by the Turkish Republic in 1922?",
+      "Which historical empire was officially dissolved in 1922, leading to the establishment of the Turkish Republic?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which empire ended in 1922 after 600 years of existence?\",\"What was the name of the empire that ceased to exist in 1922?\",\"Which country was formed in 1922 as a result of the end of an empire?\",\"What empire was replaced by the Turkish Republic in 1922?\",\"Which historical empire was officially dissolved in 1922, leading to the establishment of the Turkish Republic?\"]}"
+  },
+  {
+    "question_index": 86,
+    "category": "NAME THE PARENT COMPANY",
+    "clue": "Crest toothpaste",
+    "answer": "Procter & Gamble",
+    "natural_questions": [
+      "Which company owns the Crest toothpaste brand?",
+      "What is the parent company of Crest toothpaste?",
+      "Which corporation is responsible for Crest toothpaste?",
+      "What company produces Crest toothpaste under its umbrella?",
+      "Which major company is the parent of the Crest toothpaste brand?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which company owns the Crest toothpaste brand?\",\"What is the parent company of Crest toothpaste?\",\"Which corporation is responsible for Crest toothpaste?\",\"What company produces Crest toothpaste under its umbrella?\",\"Which major company is the parent of the Crest toothpaste brand?\"]}"
+  },
+  {
+    "question_index": 87,
+    "category": "HISTORICAL QUOTES",
+    "clue": "In 1888 this Chancellor told the Reichstag, \"we Germans fear God, but nothing else in the world\"",
+    "answer": "Otto von Bismarck|Von Bismarck",
+    "natural_questions": [
+      "Which German leader made a famous statement in 1888 that reflected a strong nationalistic sentiment?",
+      "Who was the Chancellor of Germany in 1888 known for a quote about fearing God and nothing else?",
+      "What was the name of the German Chancellor who said, 'we Germans fear God, but nothing else in the world' in 1888?",
+      "Which historical figure delivered the quote 'we Germans fear God, but nothing else in the world' in 1888?",
+      "Who held the position of Chancellor in Germany in 1888 and is associated with the quote about fearing God and nothing else?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which German leader made a famous statement in 1888 that reflected a strong nationalistic sentiment?\",\"Who was the Chancellor of Germany in 1888 known for a quote about fearing God and nothing else?\",\"What was the name of the German Chancellor who said, 'we Germans fear God, but nothing else in the world' in 1888?\",\"Which historical figure delivered the quote 'we Germans fear God, but nothing else in the world' in 1888?\",\"Who held the position of Chancellor in Germany in 1888 and is associated with the quote about fearing God and nothing else?\"]}"
+  },
+  {
+    "question_index": 88,
+    "category": "POETS & POETRY",
+    "clue": "In 1787 he signed his first published poem \"Axiologus\"; axio- is from the Greek for \"worth\"",
+    "answer": "William Wordsworth",
+    "natural_questions": [
+      "What is the name of the poet who signed his first published poem 'Axiologus' in 1787?",
+      "Which poet's first published poem was titled 'Axiologus' and was signed in 1787?",
+      "What was the name of the poet who used the title 'Axiologus' for his first published poem in 1787?",
+      "Who was the poet who signed his first published poem 'Axiologus' in 1787?",
+      "Which poet's first published poem was titled 'Axiologus' and included the prefix 'axio-' meaning 'worth' in Greek?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"What is the name of the poet who signed his first published poem 'Axiologus' in 1787?\",\"Which poet's first published poem was titled 'Axiologus' and was signed in 1787?\",\"What was the name of the poet who used the title 'Axiologus' for his first published poem in 1787?\",\"Who was the poet who signed his first published poem 'Axiologus' in 1787?\",\"Which poet's first published poem was titled 'Axiologus' and included the prefix 'axio-' meaning 'worth' in Greek?\"]}"
+  },
+  {
+    "question_index": 89,
+    "category": "CAMBODIAN HISTORY & CULTURE",
+    "clue": "Not to be confused with karma, krama is a popular accessory sold in cambodia; the word means \"scarf\" in this national language of Cambodia",
+    "answer": "Khmer language",
+    "natural_questions": [
+      "What is the name of the popular accessory commonly sold in Cambodia that is often mistaken for karma?",
+      "What does the word 'krama' mean in the national language of Cambodia?",
+      "What is the term for a traditional scarf that is a popular item in Cambodia?",
+      "What is the name of the national language of Cambodia where 'krama' means scarf?",
+      "What is the name of the accessory that is often confused with the concept of karma in Cambodia?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"What is the name of the popular accessory commonly sold in Cambodia that is often mistaken for karma?\",\"What does the word 'krama' mean in the national language of Cambodia?\",\"What is the term for a traditional scarf that is a popular item in Cambodia?\",\"What is the name of the national language of Cambodia where 'krama' means scarf?\",\"What is the name of the accessory that is often confused with the concept of karma in Cambodia?\"]}"
+  },
+  {
+    "question_index": 90,
+    "category": "CAMBODIAN HISTORY & CULTURE",
+    "clue": "Phnom Penh's notorious gridlock is circumvented by the nimble tuk-tuk, a motorized taxi that's also known as an auto this, a similar Asian conveyance.",
+    "answer": "Rickshaw",
+    "natural_questions": [
+      "What is the common name for the motorized taxi known as a tuk-tuk in Phnom Penh?",
+      "What is another term for the motorized three-wheeled vehicle used as a taxi in Phnom Penh?",
+      "What is the name of the three-wheeled motorized taxi that helps avoid traffic in Phnom Penh?",
+      "What is the alternative name for the tuk-tuk, a vehicle used in Phnom Penh?",
+      "What is the name of the motorized taxi that is commonly used in Phnom Penh to navigate traffic?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"What is the common name for the motorized taxi known as a tuk-tuk in Phnom Penh?\", \"What is another term for the motorized three-wheeled vehicle used as a taxi in Phnom Penh?\", \"What is the name of the three-wheeled motorized taxi that helps avoid traffic in Phnom Penh?\", \"What is the alternative name for the tuk-tuk, a vehicle used in Phnom Penh?\", \"What is the name of the motorized taxi that is commonly used in Phnom Penh to navigate traffic?\"]}"
+  },
+  {
+    "question_index": 91,
+    "category": "'80s NO.1 HITMAKERS",
+    "clue": "1980: \"Rock With You\"",
+    "answer": "Michael Jackson",
+    "natural_questions": [
+      "Which 1980s band had a number one hit with 'Rock With You' in 1980?",
+      "What was the name of the 1980s group that topped the charts with 'Rock With You' in 1980?",
+      "Which 1980s artist achieved a number one hit with 'Rock With You' in 1980?",
+      "What 1980s band had the hit song 'Rock With You' that reached number one in 1980?",
+      "Which 1980s group's 1980 hit 'Rock With You' reached number one on the charts?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which 1980s band had a number one hit with 'Rock With You' in 1980?\",\"What was the name of the 1980s group that topped the charts with 'Rock With You' in 1980?\",\"Which 1980s artist achieved a number one hit with 'Rock With You' in 1980?\",\"What 1980s band had the hit song 'Rock With You' that reached number one in 1980?\",\"Which 1980s group's 1980 hit 'Rock With You' reached number one on the charts?\"]}"
+  },
+  {
+    "question_index": 92,
+    "category": "NOTES FROM THE CAMPAIGN TRAIL",
+    "clue": "The Pulitzer-winning \"The Making of the President 1960\" covered this man's successful presidential campaign",
+    "answer": "JFK|John F. Kennedy",
+    "natural_questions": [
+      "Which president's campaign was detailed in the Pulitzer-winning book 'The Making of the President 1960'?",
+      "What candidate's presidential campaign is the focus of the Pulitzer Prize-winning book 'The Making of the President 1960'?",
+      "Which individual's successful presidential campaign is covered in the book 'The Making of the President 1960'?",
+      "Who was the subject of the Pulitzer-winning book 'The Making of the President 1960' about their presidential campaign?",
+      "Which president's 1960 campaign was analyzed in the Pulitzer Prize-winning book 'The Making of the President 1960'?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which president's campaign was detailed in the Pulitzer-winning book 'The Making of the President 1960'?\",\"What candidate's presidential campaign is the focus of the Pulitzer Prize-winning book 'The Making of the President 1960'?\",\"Which individual's successful presidential campaign is covered in the book 'The Making of the President 1960'?\",\"Who was the subject of the Pulitzer-winning book 'The Making of the President 1960' about their presidential campaign?\",\"Which president's 1960 campaign was analyzed in the Pulitzer Prize-winning book 'The Making of the President 1960'?\"]}"
+  },
+  {
+    "question_index": 93,
+    "category": "SERVICE ORGANIZATIONS",
+    "clue": "In 1843 Isaac Dittenhoefer became the first pres. of this Jewish club whose name means \"children of the covenant\"",
+    "answer": "B'nai B'rith",
+    "natural_questions": [
+      "What is the name of the Jewish club that Isaac Dittenhoefer became the first president of in 1843?",
+      "Which Jewish organization was founded in 1843 with Isaac Dittenhoefer as its first president?",
+      "What organization, founded in 1843, is known for its name meaning 'children of the covenant'?",
+      "Which service organization's name translates to 'children of the covenant' and was established in 1843?",
+      "What is the name of the Jewish service organization that Isaac Dittenhoefer was the first president of, and which means 'children of the covenant'?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"What is the name of the Jewish club that Isaac Dittenhoefer became the first president of in 1843?\",\"Which Jewish organization was founded in 1843 with Isaac Dittenhoefer as its first president?\",\"What organization, founded in 1843, is known for its name meaning 'children of the covenant'?\",\"Which service organization's name translates to 'children of the covenant' and was established in 1843?\",\"What is the name of the Jewish service organization that Isaac Dittenhoefer was the first president of, and which means 'children of the covenant'?\"]}"
+  },
+  {
+    "question_index": 94,
+    "category": "THE RESIDENTS",
+    "clue": "Don Knotts took over from Norman Fell as the resident landlord on this sitcom",
+    "answer": "Three's Company",
+    "natural_questions": [
+      "Which sitcom featured Don Knotts as the resident landlord after Norman Fell left?",
+      "Who replaced Norman Fell as the resident landlord in a popular sitcom?",
+      "Which TV show had Don Knotts take over as the landlord role from Norman Fell?",
+      "What sitcom had a character played by Don Knotts who became the resident landlord?",
+      "Which show had a transition where Don Knotts took over the role of the resident landlord from Norman Fell?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which sitcom featured Don Knotts as the resident landlord after Norman Fell left?\",\"Who replaced Norman Fell as the resident landlord in a popular sitcom?\",\"Which TV show had Don Knotts take over as the landlord role from Norman Fell?\",\"What sitcom had a character played by Don Knotts who became the resident landlord?\",\"Which show had a transition where Don Knotts took over the role of the resident landlord from Norman Fell?\"]}"
+  },
+  {
+    "question_index": 95,
+    "category": "OLD YEAR'S RESOLUTIONS",
+    "clue": "U.N. Res. 242 supports \"secure and recognized boundaries\" for Israel & neighbors following this June 1967 war",
+    "answer": "The Six Day War",
+    "natural_questions": [
+      "What war did the U.N. Res. 242 refer to when discussing secure and recognized boundaries for Israel and its neighbors?",
+      "Which conflict led to the U.N. Res. 242 calling for secure and recognized boundaries for Israel and its neighbors?",
+      "What event prompted the U.N. to pass Res. 242 regarding secure and recognized boundaries for Israel and its neighbors?",
+      "Which war resulted in the U.N. Res. 242 addressing secure and recognized boundaries for Israel and its neighbors?",
+      "What war is associated with the U.N. Res. 242 that mentions secure and recognized boundaries for Israel and its neighbors?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"What war did the U.N. Res. 242 refer to when discussing secure and recognized boundaries for Israel and its neighbors?\",\"Which conflict led to the U.N. Res. 242 calling for secure and recognized boundaries for Israel and its neighbors?\",\"What event prompted the U.N. to pass Res. 242 regarding secure and recognized boundaries for Israel and its neighbors?\",\"Which war resulted in the U.N. Res. 242 addressing secure and recognized boundaries for Israel and its neighbors?\",\"What war is associated with the U.N. Res. 242 that mentions secure and recognized boundaries for Israel and its neighbors?\"]}"
+  },
+  {
+    "question_index": 96,
+    "category": "UCLA CELEBRITY ALUMNI",
+    "clue": "This blonde beauty who reprised her role as Amanda on the new \"Melrose Place\" was a psychology major",
+    "answer": "Heather Locklear",
+    "natural_questions": [
+      "Which UCLA psychology major played Amanda on the new 'Melrose Place'?",
+      "Who is the blonde beauty that reprised her role as Amanda on the new 'Melrose Place' and studied psychology at UCLA?",
+      "Which actress, known for her role as Amanda on the new 'Melrose Place', was a psychology major at UCLA?",
+      "What is the name of the UCLA psychology graduate who played Amanda on the new 'Melrose Place'?",
+      "Which celebrity alumna of UCLA, a psychology major, reprised her role as Amanda on the new 'Melrose Place'?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which UCLA psychology major played Amanda on the new 'Melrose Place'?\",\"Who is the blonde beauty that reprised her role as Amanda on the new 'Melrose Place' and studied psychology at UCLA?\",\"Which actress, known for her role as Amanda on the new 'Melrose Place', was a psychology major at UCLA?\",\"What is the name of the UCLA psychology graduate who played Amanda on the new 'Melrose Place'?\",\"Which celebrity alumna of UCLA, a psychology major, reprised her role as Amanda on the new 'Melrose Place'?\"]}"
+  },
+  {
+    "question_index": 97,
+    "category": "GREEK FOOD & DRINK",
+    "clue": "The name of this dish of marinated lamb, skewered & grilled, comes from the Greek for \"skewer\" & also starts with \"s\"",
+    "answer": "Souvlaki",
+    "natural_questions": [
+      "What is the name of a Greek dish made from marinated lamb that is skewered and grilled, and the name comes from the Greek word for 'skewer'?",
+      "Which Greek dish features marinated lamb that is skewered and grilled, and its name originates from the Greek word for 'skewer'?",
+      "What is the name of a traditional Greek meal that involves skewered and grilled marinated lamb, with its name derived from the Greek word for 'skewer'?",
+      "What Greek dish is made by skewering and grilling marinated lamb, and its name is based on the Greek word for 'skewer'?",
+      "What is the name of a Greek food item that is skewered and grilled marinated lamb, and the name comes from the Greek word for 'skewer'?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"What is the name of a Greek dish made from marinated lamb that is skewered and grilled, and the name comes from the Greek word for 'skewer'?\", \"Which Greek dish features marinated lamb that is skewered and grilled, and its name originates from the Greek word for 'skewer'?\", \"What is the name of a traditional Greek meal that involves skewered and grilled marinated lamb, with its name derived from the Greek word for 'skewer'?\", \"What Greek dish is made by skewering and grilling marinated lamb, and its name is based on the Greek word for 'skewer'?\", \"What is the name of a Greek food item that is skewered and grilled marinated lamb, and the name comes from the Greek word for 'skewer'?\"]}"
+  },
+  {
+    "question_index": 98,
+    "category": "NAME THE PARENT COMPANY",
+    "clue": "Post-it notes",
+    "answer": "3M",
+    "natural_questions": [
+      "Which company is known for creating Post-it notes?",
+      "What is the parent company of the brand that makes Post-it notes?",
+      "Which corporation owns the brand responsible for Post-it notes?",
+      "What company is associated with the invention of Post-it notes?",
+      "Which business is the parent entity of the company that produces Post-it notes?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which company is known for creating Post-it notes?\",\"What is the parent company of the brand that makes Post-it notes?\",\"Which corporation owns the brand responsible for Post-it notes?\",\"What company is associated with the invention of Post-it notes?\",\"Which business is the parent entity of the company that produces Post-it notes?\"]}"
+  },
+  {
+    "question_index": 99,
+    "category": "GOLDEN GLOBE WINNERS",
+    "clue": "In 2010: As Sherlock Holmes on film",
+    "answer": "Robert Downey, Jr.",
+    "natural_questions": [
+      "Which actor won a Golden Globe for their portrayal of Sherlock Holmes in 2010?",
+      "Who received a Golden Globe award for playing Sherlock Holmes in 2010?",
+      "Which film actor was honored with a Golden Globe for their role as Sherlock Holmes in 2010?",
+      "Who was recognized with a Golden Globe for their performance as Sherlock Holmes in 2010?",
+      "Which actor was awarded a Golden Globe for their role as Sherlock Holmes in the year 2010?"
+    ],
+    "model_name": "Qwen/Qwen3-8B",
+    "raw_model_output": "{\"questions\":[\"Which actor won a Golden Globe for their portrayal of Sherlock Holmes in 2010?\",\"Who received a Golden Globe award for playing Sherlock Holmes in 2010?\",\"Which film actor was honored with a Golden Globe for their role as Sherlock Holmes in 2010?\",\"Who was recognized with a Golden Globe for their performance as Sherlock Holmes in 2010?\",\"Which actor was awarded a Golden Globe for their role as Sherlock Holmes in the year 2010?\"]}"
+  }
+]
