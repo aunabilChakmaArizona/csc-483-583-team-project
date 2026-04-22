@@ -21,6 +21,7 @@ data/processed/dpr_articles.jsonl
 data/processed/dpr_articles.jsonl.gz
 data/processed/dpr_articles_summary.json
 data/processed/question_dpr_embeddings.npz
+data/processed/question_dpr_embeddings_qwen3_14b.npz
 
 # Python cache and virtualenvs
 __pycache__/

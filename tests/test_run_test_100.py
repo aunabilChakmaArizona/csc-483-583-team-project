@@ -86,6 +86,8 @@ def test_search_questions_expands_queries_and_merges_results(monkeypatch):
         weighted_cole=False,
         skip_redirects=False,
         dense_query_embeddings=None,
+        natural_questions_embeddings=None,
+        natural_questions_concat_embeddings=None,
         search_progress_every=0,
     ):
         captured["queries"] = queries
@@ -97,6 +99,8 @@ def test_search_questions_expands_queries_and_merges_results(monkeypatch):
         captured["weighted_cole"] = weighted_cole
         captured["skip_redirects"] = skip_redirects
         captured["dense_query_embeddings"] = dense_query_embeddings
+        captured["natural_questions_embeddings"] = natural_questions_embeddings
+        captured["natural_questions_concat_embeddings"] = natural_questions_concat_embeddings
         captured["search_progress_every"] = search_progress_every
         query_to_results = {
             "Raw clue": [make_hit("Alpha", article_index=1), make_hit("Beta", article_index=2)],
@@ -130,6 +134,8 @@ def test_search_questions_expands_queries_and_merges_results(monkeypatch):
         "weighted_cole": False,
         "skip_redirects": False,
         "dense_query_embeddings": None,
+        "natural_questions_embeddings": None,
+        "natural_questions_concat_embeddings": None,
         "search_progress_every": 0,
     }
     assert searches[0]["queries"] == ["Raw clue", "Alt one", "Alt two", "Alt three", "Alt four"]
@@ -150,6 +156,8 @@ def test_search_questions_passes_weight_equal_to_search_batch(monkeypatch):
         weighted_cole=False,
         skip_redirects=False,
         dense_query_embeddings=None,
+        natural_questions_embeddings=None,
+        natural_questions_concat_embeddings=None,
         search_progress_every=0,
     ):
         captured["queries"] = queries
@@ -161,6 +169,8 @@ def test_search_questions_passes_weight_equal_to_search_batch(monkeypatch):
         captured["weighted_cole"] = weighted_cole
         captured["skip_redirects"] = skip_redirects
         captured["dense_query_embeddings"] = dense_query_embeddings
+        captured["natural_questions_embeddings"] = natural_questions_embeddings
+        captured["natural_questions_concat_embeddings"] = natural_questions_concat_embeddings
         captured["search_progress_every"] = search_progress_every
         return [{"query": queries[0], "results": [make_hit("Beta", article_index=2)]}]
 
@@ -168,6 +178,13 @@ def test_search_questions_passes_weight_equal_to_search_batch(monkeypatch):
     monkeypatch.setattr(
         "src.run_test_100.get_precomputed_dense_query_embeddings",
         lambda questions, include_category: [np.array([1.0, 2.0], dtype=np.float32)],
+    )
+    monkeypatch.setattr(
+        "src.run_test_100.get_precomputed_natural_question_dense_embeddings",
+        lambda questions: (
+            [np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32)],
+            [np.array([5.0, 6.0], dtype=np.float32)],
+        ),
     )
 
     searches = search_questions(
@@ -182,7 +199,11 @@ def test_search_questions_passes_weight_equal_to_search_batch(monkeypatch):
         paraphrase=False,
     )
 
-    assert {key: value for key, value in captured.items() if key != "dense_query_embeddings"} == {
+    assert {
+        key: value
+        for key, value in captured.items()
+        if key not in {"dense_query_embeddings", "natural_questions_embeddings", "natural_questions_concat_embeddings"}
+    } == {
         "queries": ["Raw clue"],
         "categories": ["Science"],
         "limit": 5,
@@ -195,6 +216,10 @@ def test_search_questions_passes_weight_equal_to_search_batch(monkeypatch):
     }
     assert len(captured["dense_query_embeddings"]) == 1
     assert captured["dense_query_embeddings"][0].tolist() == [1.0, 2.0]
+    assert len(captured["natural_questions_embeddings"]) == 1
+    assert captured["natural_questions_embeddings"][0].tolist() == [[1.0, 2.0], [3.0, 4.0]]
+    assert len(captured["natural_questions_concat_embeddings"]) == 1
+    assert captured["natural_questions_concat_embeddings"][0].tolist() == [5.0, 6.0]
     assert [result["title"] for result in searches[0]["results"]] == ["Beta"]
 
 
@@ -242,13 +267,24 @@ def test_search_questions_passes_precomputed_dense_embeddings_to_weighted_batch(
         weighted_cole=False,
         skip_redirects=False,
         dense_query_embeddings=None,
+        natural_questions_embeddings=None,
+        natural_questions_concat_embeddings=None,
         search_progress_every=0,
     ):
         captured["dense_query_embeddings"] = dense_query_embeddings
+        captured["natural_questions_embeddings"] = natural_questions_embeddings
+        captured["natural_questions_concat_embeddings"] = natural_questions_concat_embeddings
         captured["search_progress_every"] = search_progress_every
         return [{"query": queries[0], "results": [make_hit("Beta", article_index=2)]}]
 
     monkeypatch.setattr("src.run_test_100.run_search_batch", fake_run_search_batch)
+    monkeypatch.setattr(
+        "src.run_test_100.get_precomputed_natural_question_dense_embeddings",
+        lambda questions: (
+            [np.array([[7.0, 6.0], [5.0, 4.0]], dtype=np.float32)],
+            [np.array([3.0, 2.0], dtype=np.float32)],
+        ),
+    )
 
     searches = search_questions(
         [question],
@@ -262,6 +298,10 @@ def test_search_questions_passes_precomputed_dense_embeddings_to_weighted_batch(
 
     assert len(captured["dense_query_embeddings"]) == 1
     assert captured["dense_query_embeddings"][0].tolist() == [9.0, 8.0]
+    assert len(captured["natural_questions_embeddings"]) == 1
+    assert captured["natural_questions_embeddings"][0].tolist() == [[7.0, 6.0], [5.0, 4.0]]
+    assert len(captured["natural_questions_concat_embeddings"]) == 1
+    assert captured["natural_questions_concat_embeddings"][0].tolist() == [3.0, 2.0]
     assert captured["search_progress_every"] == 0
     assert [result["title"] for result in searches[0]["results"]] == ["Beta"]
 

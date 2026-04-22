@@ -114,11 +114,13 @@ except ModuleNotFoundError:
 
 WEIGHTED_TITLE_WEIGHT = 0.0
 WEIGHTED_REDIRECT_WEIGHT = 0.0 # so far it has no impact
-WEIGHTED_BODY_WEIGHT = 10.0
+WEIGHTED_BODY_WEIGHT = 0.0
 WEIGHTED_FIRST_SENTENCE_WEIGHT = 0.0
 WEIGHTED_FIRST_TWO_SENTENCES_WEIGHT = 0.0
 WEIGHTED_FIRST_PARAGRAPH_WEIGHT = 0.0
-WEIGHTED_FAISS_WEIGHT = 2.0
+WEIGHTED_FAISS_WEIGHT = 0.0
+WEIGHTED_NATURAL_QUESTIONS_AVG_FAISS_WEIGHT = 1.0
+WEIGHTED_NATURAL_QUESTIONS_CONCAT_FAISS_WEIGHT = 0.0
 WEIGHTED_YEAR_MATCH_WEIGHT = 0.0
 WEIGHTED_QUOTE_MATCH_WEIGHT = 0.0
 WEIGHTED_CATEGORY_FIRST_SENTENCE_WEIGHT = 0.0
@@ -131,6 +133,8 @@ EQUAL_FIRST_SENTENCE_WEIGHT = 1.0
 EQUAL_FIRST_TWO_SENTENCES_WEIGHT = 1.0
 EQUAL_FIRST_PARAGRAPH_WEIGHT = 1.0
 EQUAL_FAISS_WEIGHT = 1.0
+EQUAL_NATURAL_QUESTIONS_AVG_FAISS_WEIGHT = 1.0
+EQUAL_NATURAL_QUESTIONS_CONCAT_FAISS_WEIGHT = 1.0
 EQUAL_YEAR_MATCH_WEIGHT = 1.0
 EQUAL_QUOTE_MATCH_WEIGHT = 1.0
 EQUAL_CATEGORY_FIRST_SENTENCE_WEIGHT = 1.0
@@ -383,6 +387,7 @@ def search_dpr_faiss(
     limit: int = WEIGHTED_COMPONENT_LIMIT,
     dpr_faiss_index_dir: Path = DEFAULT_DPR_FAISS_INDEX_DIR,
     query_embedding=None,
+    cache_namespace: str = "default",
 ) -> list[dict]:
     import numpy as np
 
@@ -450,6 +455,7 @@ def search_dpr_faiss(
             extra_config={
                 "metric": "inner_product",
                 "doc_variant": variant_name,
+                "query_source": cache_namespace,
             },
             query_embedding=query_embedding,
             compute_results=compute_dense_results,
@@ -466,6 +472,106 @@ def search_dpr_faiss(
         key=lambda result: (-result["score"], result["article_index"]),
     )
     return ranked_results[:limit]
+
+
+def average_dense_component_results(component_results_sets: list[list[dict]]) -> list[dict]:
+    if not component_results_sets:
+        return []
+
+    aggregated_results: dict[tuple[str, int], dict] = {}
+    total_components = len(component_results_sets)
+
+    for component_results in component_results_sets:
+        for result in component_results:
+            key = weighted_result_key(result)
+            entry = aggregated_results.get(key)
+            if entry is None:
+                entry = {
+                    **result,
+                    "score": 0.0,
+                }
+                aggregated_results[key] = entry
+            entry["score"] += result["score"]
+
+    for result in aggregated_results.values():
+        result["score"] /= total_components
+
+    return sorted(
+        aggregated_results.values(),
+        key=lambda result: (-result["score"], result["article_index"]),
+    )
+
+
+def build_faiss_precomputed_components(
+    *,
+    query_text: str,
+    component_limit: int,
+    dpr_faiss_index_dir: Path,
+    faiss_weight: float,
+    dense_query_embedding=None,
+    natural_questions_avg_faiss_weight: float = 0.0,
+    natural_questions_embeddings=None,
+    natural_questions_concat_faiss_weight: float = 0.0,
+    natural_questions_concat_embedding=None,
+) -> list[tuple[str, float, list[dict]]]:
+    precomputed_components = []
+
+    if faiss_weight > 0:
+        precomputed_components.append(
+            (
+                "faiss_score",
+                faiss_weight,
+                search_dpr_faiss(
+                    query_text,
+                    limit=component_limit,
+                    dpr_faiss_index_dir=dpr_faiss_index_dir,
+                    query_embedding=dense_query_embedding,
+                    cache_namespace="default",
+                ),
+            )
+        )
+
+    if natural_questions_avg_faiss_weight > 0 and natural_questions_embeddings is not None:
+        natural_question_results = [
+            search_dpr_faiss(
+                query_text,
+                limit=component_limit,
+                dpr_faiss_index_dir=dpr_faiss_index_dir,
+                query_embedding=natural_question_embedding,
+                cache_namespace=f"natural_question_{index_number}",
+            )
+            for index_number, natural_question_embedding in enumerate(
+                natural_questions_embeddings,
+                start=1,
+            )
+        ]
+        precomputed_components.append(
+            (
+                "natural_questions_avg_faiss_score",
+                natural_questions_avg_faiss_weight,
+                average_dense_component_results(natural_question_results),
+            )
+        )
+
+    if (
+        natural_questions_concat_faiss_weight > 0
+        and natural_questions_concat_embedding is not None
+    ):
+        precomputed_components.append(
+            (
+                "natural_questions_concat_faiss_score",
+                natural_questions_concat_faiss_weight,
+                search_dpr_faiss(
+                    query_text,
+                    limit=component_limit,
+                    dpr_faiss_index_dir=dpr_faiss_index_dir,
+                    query_embedding=natural_questions_concat_embedding,
+                    cache_namespace="natural_questions_concat",
+                ),
+            )
+        )
+
+    return precomputed_components
 
 
 @lru_cache(maxsize=4)
@@ -897,10 +1003,14 @@ def search_whoosh_weighted(
     first_two_sentences_weight: float = WEIGHTED_FIRST_TWO_SENTENCES_WEIGHT,
     first_paragraph_weight: float = WEIGHTED_FIRST_PARAGRAPH_WEIGHT,
     faiss_weight: float = WEIGHTED_FAISS_WEIGHT,
+    natural_questions_avg_faiss_weight: float = WEIGHTED_NATURAL_QUESTIONS_AVG_FAISS_WEIGHT,
+    natural_questions_concat_faiss_weight: float = WEIGHTED_NATURAL_QUESTIONS_CONCAT_FAISS_WEIGHT,
     category_first_sentence_weight: float = WEIGHTED_CATEGORY_FIRST_SENTENCE_WEIGHT,
     category_first_two_sentences_weight: float = WEIGHTED_CATEGORY_FIRST_TWO_SENTENCES_WEIGHT,
     dpr_faiss_index_dir: Path = DEFAULT_DPR_FAISS_INDEX_DIR,
     dense_query_embedding=None,
+    natural_questions_embeddings=None,
+    natural_questions_concat_embedding=None,
 ) -> list[dict]:
     index = open_whoosh_title_body_index(index_dir)
     category_index = open_whoosh_title_body_category_index(category_index_dir)
@@ -1040,18 +1150,17 @@ def search_whoosh_weighted(
                                         "title_first_two_sentences_categories",
                                     ),
                                 ],
-                                precomputed_components=[
-                                    (
-                                        "faiss_score",
-                                        faiss_weight,
-                                        search_dpr_faiss(
-                                            query,
-                                            limit=component_limit,
-                                            dpr_faiss_index_dir=dpr_faiss_index_dir,
-                                            query_embedding=dense_query_embedding,
-                                        ),
-                                    )
-                                ],
+                                precomputed_components=build_faiss_precomputed_components(
+                                    query_text=query,
+                                    component_limit=component_limit,
+                                    dpr_faiss_index_dir=dpr_faiss_index_dir,
+                                    faiss_weight=faiss_weight,
+                                    dense_query_embedding=dense_query_embedding,
+                                    natural_questions_avg_faiss_weight=natural_questions_avg_faiss_weight,
+                                    natural_questions_embeddings=natural_questions_embeddings,
+                                    natural_questions_concat_faiss_weight=natural_questions_concat_faiss_weight,
+                                    natural_questions_concat_embedding=natural_questions_concat_embedding,
+                                ),
                                 component_cache_context=component_cache_context,
                                 redirect_searcher=redirect_searcher,
                                 redirect_title_parser=redirect_title_parser,
@@ -1081,12 +1190,16 @@ def search_whoosh_weighted_cole(
     first_two_sentences_weight: float = WEIGHTED_FIRST_TWO_SENTENCES_WEIGHT,
     first_paragraph_weight: float = WEIGHTED_FIRST_PARAGRAPH_WEIGHT,
     faiss_weight: float = WEIGHTED_FAISS_WEIGHT,
+    natural_questions_avg_faiss_weight: float = WEIGHTED_NATURAL_QUESTIONS_AVG_FAISS_WEIGHT,
+    natural_questions_concat_faiss_weight: float = WEIGHTED_NATURAL_QUESTIONS_CONCAT_FAISS_WEIGHT,
     year_match_weight: float = WEIGHTED_YEAR_MATCH_WEIGHT,
     quote_match_weight: float = WEIGHTED_QUOTE_MATCH_WEIGHT,
     category_first_sentence_weight: float = WEIGHTED_CATEGORY_FIRST_SENTENCE_WEIGHT,
     category_first_two_sentences_weight: float = WEIGHTED_CATEGORY_FIRST_TWO_SENTENCES_WEIGHT,
     dpr_faiss_index_dir: Path = DEFAULT_DPR_FAISS_INDEX_DIR,
     dense_query_embedding=None,
+    natural_questions_embeddings=None,
+    natural_questions_concat_embedding=None,
 ) -> list[dict]:
     index = open_whoosh_cole_index(index_dir)
     category_index = open_whoosh_title_body_category_index(category_index_dir)
@@ -1251,18 +1364,17 @@ def search_whoosh_weighted_cole(
                                         "title_first_two_sentences_categories",
                                     ),
                                 ],
-                                precomputed_components=[
-                                    (
-                                        "faiss_score",
-                                        faiss_weight,
-                                        search_dpr_faiss(
-                                            query,
-                                            limit=component_limit,
-                                            dpr_faiss_index_dir=dpr_faiss_index_dir,
-                                            query_embedding=dense_query_embedding,
-                                        ),
-                                    )
-                                ],
+                                precomputed_components=build_faiss_precomputed_components(
+                                    query_text=query,
+                                    component_limit=component_limit,
+                                    dpr_faiss_index_dir=dpr_faiss_index_dir,
+                                    faiss_weight=faiss_weight,
+                                    dense_query_embedding=dense_query_embedding,
+                                    natural_questions_avg_faiss_weight=natural_questions_avg_faiss_weight,
+                                    natural_questions_embeddings=natural_questions_embeddings,
+                                    natural_questions_concat_faiss_weight=natural_questions_concat_faiss_weight,
+                                    natural_questions_concat_embedding=natural_questions_concat_embedding,
+                                ),
                                 component_cache_context=component_cache_context,
                                 redirect_searcher=redirect_searcher,
                                 redirect_title_parser=redirect_title_parser,
@@ -1293,10 +1405,14 @@ def multi_search_whoosh_weighted(
     first_two_sentences_weight: float = WEIGHTED_FIRST_TWO_SENTENCES_WEIGHT,
     first_paragraph_weight: float = WEIGHTED_FIRST_PARAGRAPH_WEIGHT,
     faiss_weight: float = WEIGHTED_FAISS_WEIGHT,
+    natural_questions_avg_faiss_weight: float = WEIGHTED_NATURAL_QUESTIONS_AVG_FAISS_WEIGHT,
+    natural_questions_concat_faiss_weight: float = WEIGHTED_NATURAL_QUESTIONS_CONCAT_FAISS_WEIGHT,
     category_first_sentence_weight: float = WEIGHTED_CATEGORY_FIRST_SENTENCE_WEIGHT,
     category_first_two_sentences_weight: float = WEIGHTED_CATEGORY_FIRST_TWO_SENTENCES_WEIGHT,
     dpr_faiss_index_dir: Path = DEFAULT_DPR_FAISS_INDEX_DIR,
     dense_query_embeddings: list | None = None,
+    natural_questions_embeddings: list | None = None,
+    natural_questions_concat_embeddings: list | None = None,
 ) -> list[dict]:
     index = open_whoosh_title_body_index(index_dir)
     category_index = open_whoosh_title_body_category_index(category_index_dir)
@@ -1397,6 +1513,16 @@ def multi_search_whoosh_weighted(
                                 dense_query_embedding = None
                                 if dense_query_embeddings is not None:
                                     dense_query_embedding = dense_query_embeddings[index_number - 1]
+                                natural_questions_embedding = None
+                                if natural_questions_embeddings is not None:
+                                    natural_questions_embedding = natural_questions_embeddings[
+                                        index_number - 1
+                                    ]
+                                natural_questions_concat_embedding = None
+                                if natural_questions_concat_embeddings is not None:
+                                    natural_questions_concat_embedding = (
+                                        natural_questions_concat_embeddings[index_number - 1]
+                                    )
                                 all_results.append(
                                     {
                                         "query": query_text,
@@ -1447,18 +1573,17 @@ def multi_search_whoosh_weighted(
                                                     "title_first_two_sentences_categories",
                                                 ),
                                             ],
-                                            precomputed_components=[
-                                                (
-                                                    "faiss_score",
-                                                    faiss_weight,
-                                                    search_dpr_faiss(
-                                                        query_text,
-                                                        limit=component_limit,
-                                                        dpr_faiss_index_dir=dpr_faiss_index_dir,
-                                                        query_embedding=dense_query_embedding,
-                                                    ),
-                                                )
-                                            ],
+                                            precomputed_components=build_faiss_precomputed_components(
+                                                query_text=query_text,
+                                                component_limit=component_limit,
+                                                dpr_faiss_index_dir=dpr_faiss_index_dir,
+                                                faiss_weight=faiss_weight,
+                                                dense_query_embedding=dense_query_embedding,
+                                                natural_questions_avg_faiss_weight=natural_questions_avg_faiss_weight,
+                                                natural_questions_embeddings=natural_questions_embedding,
+                                                natural_questions_concat_faiss_weight=natural_questions_concat_faiss_weight,
+                                                natural_questions_concat_embedding=natural_questions_concat_embedding,
+                                            ),
                                             component_cache_context=component_cache_context,
                                             redirect_searcher=redirect_searcher,
                                             redirect_title_parser=redirect_title_parser,
@@ -1499,12 +1624,16 @@ def multi_search_whoosh_weighted_cole(
     first_two_sentences_weight: float = WEIGHTED_FIRST_TWO_SENTENCES_WEIGHT,
     first_paragraph_weight: float = WEIGHTED_FIRST_PARAGRAPH_WEIGHT,
     faiss_weight: float = WEIGHTED_FAISS_WEIGHT,
+    natural_questions_avg_faiss_weight: float = WEIGHTED_NATURAL_QUESTIONS_AVG_FAISS_WEIGHT,
+    natural_questions_concat_faiss_weight: float = WEIGHTED_NATURAL_QUESTIONS_CONCAT_FAISS_WEIGHT,
     year_match_weight: float = WEIGHTED_YEAR_MATCH_WEIGHT,
     quote_match_weight: float = WEIGHTED_QUOTE_MATCH_WEIGHT,
     category_first_sentence_weight: float = WEIGHTED_CATEGORY_FIRST_SENTENCE_WEIGHT,
     category_first_two_sentences_weight: float = WEIGHTED_CATEGORY_FIRST_TWO_SENTENCES_WEIGHT,
     dpr_faiss_index_dir: Path = DEFAULT_DPR_FAISS_INDEX_DIR,
     dense_query_embeddings: list | None = None,
+    natural_questions_embeddings: list | None = None,
+    natural_questions_concat_embeddings: list | None = None,
 ) -> list[dict]:
     index = open_whoosh_cole_index(index_dir)
     category_index = open_whoosh_title_body_category_index(category_index_dir)
@@ -1616,6 +1745,16 @@ def multi_search_whoosh_weighted_cole(
                                 dense_query_embedding = None
                                 if dense_query_embeddings is not None:
                                     dense_query_embedding = dense_query_embeddings[index_number - 1]
+                                natural_questions_embedding = None
+                                if natural_questions_embeddings is not None:
+                                    natural_questions_embedding = natural_questions_embeddings[
+                                        index_number - 1
+                                    ]
+                                natural_questions_concat_embedding = None
+                                if natural_questions_concat_embeddings is not None:
+                                    natural_questions_concat_embedding = (
+                                        natural_questions_concat_embeddings[index_number - 1]
+                                    )
                                 all_results.append(
                                     {
                                         "query": query_text,
@@ -1680,18 +1819,17 @@ def multi_search_whoosh_weighted_cole(
                                                     "title_first_two_sentences_categories",
                                                 ),
                                             ],
-                                            precomputed_components=[
-                                                (
-                                                    "faiss_score",
-                                                    faiss_weight,
-                                                    search_dpr_faiss(
-                                                        query_text,
-                                                        limit=component_limit,
-                                                        dpr_faiss_index_dir=dpr_faiss_index_dir,
-                                                        query_embedding=dense_query_embedding,
-                                                    ),
-                                                )
-                                            ],
+                                            precomputed_components=build_faiss_precomputed_components(
+                                                query_text=query_text,
+                                                component_limit=component_limit,
+                                                dpr_faiss_index_dir=dpr_faiss_index_dir,
+                                                faiss_weight=faiss_weight,
+                                                dense_query_embedding=dense_query_embedding,
+                                                natural_questions_avg_faiss_weight=natural_questions_avg_faiss_weight,
+                                                natural_questions_embeddings=natural_questions_embedding,
+                                                natural_questions_concat_faiss_weight=natural_questions_concat_faiss_weight,
+                                                natural_questions_concat_embedding=natural_questions_concat_embedding,
+                                            ),
                                             component_cache_context=component_cache_context,
                                             redirect_searcher=redirect_searcher,
                                             redirect_title_parser=redirect_title_parser,

@@ -14,6 +14,9 @@ import time
 
 try:
     from src.processor1_parse import DEFAULT_QUESTIONS_JSON_PATH
+    from src.processor_natural_question_dpr_embeddings import (
+        DEFAULT_OUTPUT_PATH as DEFAULT_NATURAL_QUESTION_DPR_EMBEDDINGS_PATH,
+    )
     from src.processor_question_dpr_embeddings import (
         DEFAULT_OUTPUT_PATH as DEFAULT_QUESTION_DPR_EMBEDDINGS_PATH,
         category_plus_clue_text,
@@ -29,6 +32,8 @@ try:
         EQUAL_FIRST_PARAGRAPH_WEIGHT,
         EQUAL_FIRST_SENTENCE_WEIGHT,
         EQUAL_FIRST_TWO_SENTENCES_WEIGHT,
+        EQUAL_NATURAL_QUESTIONS_AVG_FAISS_WEIGHT,
+        EQUAL_NATURAL_QUESTIONS_CONCAT_FAISS_WEIGHT,
         EQUAL_QUOTE_MATCH_WEIGHT,
         EQUAL_REDIRECT_WEIGHT,
         EQUAL_TITLE_WEIGHT,
@@ -41,6 +46,8 @@ try:
         WEIGHTED_FIRST_PARAGRAPH_WEIGHT,
         WEIGHTED_FIRST_SENTENCE_WEIGHT,
         WEIGHTED_FIRST_TWO_SENTENCES_WEIGHT,
+        WEIGHTED_NATURAL_QUESTIONS_AVG_FAISS_WEIGHT,
+        WEIGHTED_NATURAL_QUESTIONS_CONCAT_FAISS_WEIGHT,
         WEIGHTED_QUOTE_MATCH_WEIGHT,
         WEIGHTED_REDIRECT_WEIGHT,
         WEIGHTED_TITLE_WEIGHT,
@@ -66,6 +73,9 @@ try:
     )
 except ModuleNotFoundError:
     from processor1_parse import DEFAULT_QUESTIONS_JSON_PATH
+    from processor_natural_question_dpr_embeddings import (
+        DEFAULT_OUTPUT_PATH as DEFAULT_NATURAL_QUESTION_DPR_EMBEDDINGS_PATH,
+    )
     from processor_question_dpr_embeddings import (
         DEFAULT_OUTPUT_PATH as DEFAULT_QUESTION_DPR_EMBEDDINGS_PATH,
         category_plus_clue_text,
@@ -81,6 +91,8 @@ except ModuleNotFoundError:
         EQUAL_FIRST_PARAGRAPH_WEIGHT,
         EQUAL_FIRST_SENTENCE_WEIGHT,
         EQUAL_FIRST_TWO_SENTENCES_WEIGHT,
+        EQUAL_NATURAL_QUESTIONS_AVG_FAISS_WEIGHT,
+        EQUAL_NATURAL_QUESTIONS_CONCAT_FAISS_WEIGHT,
         EQUAL_QUOTE_MATCH_WEIGHT,
         EQUAL_REDIRECT_WEIGHT,
         EQUAL_TITLE_WEIGHT,
@@ -93,6 +105,8 @@ except ModuleNotFoundError:
         WEIGHTED_FIRST_PARAGRAPH_WEIGHT,
         WEIGHTED_FIRST_SENTENCE_WEIGHT,
         WEIGHTED_FIRST_TWO_SENTENCES_WEIGHT,
+        WEIGHTED_NATURAL_QUESTIONS_AVG_FAISS_WEIGHT,
+        WEIGHTED_NATURAL_QUESTIONS_CONCAT_FAISS_WEIGHT,
         WEIGHTED_QUOTE_MATCH_WEIGHT,
         WEIGHTED_REDIRECT_WEIGHT,
         WEIGHTED_TITLE_WEIGHT,
@@ -375,6 +389,13 @@ def load_precomputed_question_embeddings(
     return np.load(path, allow_pickle=True)
 
 
+@lru_cache(maxsize=1)
+def load_precomputed_natural_question_embeddings(
+    path: Path = DEFAULT_NATURAL_QUESTION_DPR_EMBEDDINGS_PATH,
+):
+    return np.load(path, allow_pickle=True)
+
+
 def get_precomputed_dense_query_embeddings(
     questions: list[JeopardyQuestion],
     include_category: bool,
@@ -414,6 +435,30 @@ def get_precomputed_dense_query_embeddings(
     if saved_texts != expected_texts:
         return None
     return [row for row in saved["clue_only_embeddings"][: len(questions)]]
+
+
+def get_precomputed_natural_question_dense_embeddings(
+    questions: list[JeopardyQuestion],
+) -> tuple[list[np.ndarray], list[np.ndarray]] | tuple[None, None]:
+    embeddings_path = DEFAULT_NATURAL_QUESTION_DPR_EMBEDDINGS_PATH
+    if not embeddings_path.exists():
+        return None, None
+
+    saved = load_precomputed_natural_question_embeddings(embeddings_path)
+    expected_categories = [question.category for question in questions]
+    expected_clues = [question.clue for question in questions]
+    saved_categories = saved["categories"].tolist()[: len(questions)]
+    saved_clues = saved["clues"].tolist()[: len(questions)]
+    if saved_categories != expected_categories or saved_clues != expected_clues:
+        return None, None
+
+    natural_question_embeddings = [
+        row for row in saved["natural_questions_embeddings"][: len(questions)]
+    ]
+    natural_questions_concat_embeddings = [
+        row for row in saved["combined_natural_questions_embeddings"][: len(questions)]
+    ]
+    return natural_question_embeddings, natural_questions_concat_embeddings
 
 
 def warmup_retrieval_resources(
@@ -467,6 +512,8 @@ def warmup_retrieval_resources(
         else:
             load_dpr_question_encoder()
 
+        get_precomputed_natural_question_dense_embeddings(questions)
+
         for variant_name in DPR_FAISS_VARIANT_NAMES:
             variant_dir = DEFAULT_DPR_FAISS_INDEX_DIR / variant_name
             if variant_dir.exists():
@@ -483,7 +530,7 @@ def print_question_progress(
     print(
         f"[question-progress] Questions: {processed_questions}/{total_questions} | "
         f"elapsed: {format_elapsed_minutes(elapsed_seconds)} min | "
-        f"cache hits: {cache_stats['hits']}"
+        f"cache misses: {cache_stats['misses']}"
     )
 
 
@@ -525,6 +572,8 @@ def run_search_batch(
     weighted_cole: bool = False,
     skip_redirects: bool = False,
     dense_query_embeddings: list[np.ndarray] | None = None,
+    natural_questions_embeddings: list[np.ndarray] | None = None,
+    natural_questions_concat_embeddings: list[np.ndarray] | None = None,
     search_progress_every: int = 0,
 ) -> list[dict]:
     if weighted_cole:
@@ -534,6 +583,8 @@ def run_search_batch(
             limit=limit,
             skip_redirects=skip_redirects,
             dense_query_embeddings=dense_query_embeddings,
+            natural_questions_embeddings=natural_questions_embeddings,
+            natural_questions_concat_embeddings=natural_questions_concat_embeddings,
             progress_every=search_progress_every,
         )
 
@@ -543,6 +594,8 @@ def run_search_batch(
             "limit": limit,
             "skip_redirects": skip_redirects,
             "dense_query_embeddings": dense_query_embeddings,
+            "natural_questions_embeddings": natural_questions_embeddings,
+            "natural_questions_concat_embeddings": natural_questions_concat_embeddings,
             "progress_every": search_progress_every,
         }
         if weight_equal:
@@ -555,6 +608,8 @@ def run_search_batch(
                     "first_two_sentences_weight": 1.0,
                     "first_paragraph_weight": 1.0,
                     "faiss_weight": 1.0,
+                    "natural_questions_avg_faiss_weight": 1.0,
+                    "natural_questions_concat_faiss_weight": 1.0,
                     "category_first_sentence_weight": 1.0,
                     "category_first_two_sentences_weight": 1.0,
                 }
@@ -653,17 +708,33 @@ def search_questions(
         queries = [question_query(question, query_mode, include_category) for question in questions]
         categories = [question.category for question in questions]
         dense_query_embeddings = None
+        natural_questions_embeddings = None
+        natural_questions_concat_embeddings = None
         if query_mode == "full" and (weighted or weight_equal or weighted_cole):
             dense_query_embeddings = get_precomputed_dense_query_embeddings(
                 questions,
                 include_category=include_category,
             )
+            (
+                natural_questions_embeddings,
+                natural_questions_concat_embeddings,
+            ) = get_precomputed_natural_question_dense_embeddings(questions)
         searches = []
         for batch_start in range(0, total_questions, progress_every):
             batch_end = min(batch_start + progress_every, total_questions)
             batch_dense_embeddings = None
             if dense_query_embeddings is not None:
                 batch_dense_embeddings = dense_query_embeddings[batch_start:batch_end]
+            batch_natural_questions_embeddings = None
+            if natural_questions_embeddings is not None:
+                batch_natural_questions_embeddings = natural_questions_embeddings[
+                    batch_start:batch_end
+                ]
+            batch_natural_questions_concat_embeddings = None
+            if natural_questions_concat_embeddings is not None:
+                batch_natural_questions_concat_embeddings = (
+                    natural_questions_concat_embeddings[batch_start:batch_end]
+                )
             searches.extend(
                 run_search_batch(
                     queries[batch_start:batch_end],
@@ -675,6 +746,8 @@ def search_questions(
                     weighted_cole=weighted_cole,
                     skip_redirects=skip_redirects,
                     dense_query_embeddings=batch_dense_embeddings,
+                    natural_questions_embeddings=batch_natural_questions_embeddings,
+                    natural_questions_concat_embeddings=batch_natural_questions_concat_embeddings,
                     search_progress_every=0,
                 )
             )
@@ -852,6 +925,8 @@ def print_metrics(
             "first_two_sentences_weight": EQUAL_FIRST_TWO_SENTENCES_WEIGHT,
             "first_paragraph_weight": EQUAL_FIRST_PARAGRAPH_WEIGHT,
             "faiss_weight": EQUAL_FAISS_WEIGHT,
+            "natural_questions_avg_faiss_weight": EQUAL_NATURAL_QUESTIONS_AVG_FAISS_WEIGHT,
+            "natural_questions_concat_faiss_weight": EQUAL_NATURAL_QUESTIONS_CONCAT_FAISS_WEIGHT,
             "category_first_sentence_weight": EQUAL_CATEGORY_FIRST_SENTENCE_WEIGHT,
             "category_first_two_sentences_weight": EQUAL_CATEGORY_FIRST_TWO_SENTENCES_WEIGHT,
         }
@@ -867,6 +942,8 @@ def print_metrics(
             "first_two_sentences_weight": WEIGHTED_FIRST_TWO_SENTENCES_WEIGHT,
             "first_paragraph_weight": WEIGHTED_FIRST_PARAGRAPH_WEIGHT,
             "faiss_weight": WEIGHTED_FAISS_WEIGHT,
+            "natural_questions_avg_faiss_weight": WEIGHTED_NATURAL_QUESTIONS_AVG_FAISS_WEIGHT,
+            "natural_questions_concat_faiss_weight": WEIGHTED_NATURAL_QUESTIONS_CONCAT_FAISS_WEIGHT,
             "category_first_sentence_weight": WEIGHTED_CATEGORY_FIRST_SENTENCE_WEIGHT,
             "category_first_two_sentences_weight": WEIGHTED_CATEGORY_FIRST_TWO_SENTENCES_WEIGHT,
         }

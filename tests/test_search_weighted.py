@@ -201,7 +201,13 @@ def test_weighted_search_includes_faiss_score_component(tmp_path, monkeypatch):
         index_dir=redirect_index_dir,
     )
 
-    def fake_search_dpr_faiss(query_text, limit, dpr_faiss_index_dir, query_embedding=None):
+    def fake_search_dpr_faiss(
+        query_text,
+        limit,
+        dpr_faiss_index_dir,
+        query_embedding=None,
+        cache_namespace="default",
+    ):
         assert query_text == "dense-only"
         return [
             {
