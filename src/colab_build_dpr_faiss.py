@@ -221,7 +221,7 @@ def main() -> None:
     print(f"Using device: {device}")
 
     tokenizer = DPRContextEncoderTokenizer.from_pretrained(MODEL_NAME)
-    model = DPRContextEncoder.from_pretrained(MODEL_NAME).to(device)
+    model = DPRContextEncoder.from_pretrained(MODEL_NAME, use_safetensors=True).to(device)
     model.eval()
 
     metadata_rows = load_metadata(local_input_path)

@@ -20,6 +20,7 @@ data/processed/wiki_articles_step1_remove_stop_words.sqlite3
 data/processed/dpr_articles.jsonl
 data/processed/dpr_articles.jsonl.gz
 data/processed/dpr_articles_summary.json
+data/processed/question_dpr_embeddings.npz
 
 # Python cache and virtualenvs
 __pycache__/

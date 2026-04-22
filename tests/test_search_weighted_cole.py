@@ -133,6 +133,7 @@ def test_weighted_cole_search_maps_redirect_hits_to_canonical_article(tmp_path):
         first_paragraph_index_dir=first_paragraph_index_dir,
         redirect_index_dir=redirect_index_dir,
         redirect_db_path=redirect_db_path,
+        dpr_faiss_index_dir=tmp_path / "missing_dpr_faiss",
     )
     body_results = search_whoosh_weighted_cole(
         "secondword",
@@ -142,6 +143,7 @@ def test_weighted_cole_search_maps_redirect_hits_to_canonical_article(tmp_path):
         first_paragraph_index_dir=first_paragraph_index_dir,
         redirect_index_dir=redirect_index_dir,
         redirect_db_path=redirect_db_path,
+        dpr_faiss_index_dir=tmp_path / "missing_dpr_faiss",
     )
     full_body_results = search_whoosh_weighted_cole(
         "otherword",
@@ -151,6 +153,7 @@ def test_weighted_cole_search_maps_redirect_hits_to_canonical_article(tmp_path):
         first_paragraph_index_dir=first_paragraph_index_dir,
         redirect_index_dir=redirect_index_dir,
         redirect_db_path=redirect_db_path,
+        dpr_faiss_index_dir=tmp_path / "missing_dpr_faiss",
     )
     year_results = search_whoosh_weighted_cole(
         "2011",
@@ -160,6 +163,7 @@ def test_weighted_cole_search_maps_redirect_hits_to_canonical_article(tmp_path):
         first_paragraph_index_dir=first_paragraph_index_dir,
         redirect_index_dir=redirect_index_dir,
         redirect_db_path=redirect_db_path,
+        dpr_faiss_index_dir=tmp_path / "missing_dpr_faiss",
     )
     quote_results = search_whoosh_weighted_cole(
         '"leadword first sentence"',
@@ -169,6 +173,7 @@ def test_weighted_cole_search_maps_redirect_hits_to_canonical_article(tmp_path):
         first_paragraph_index_dir=first_paragraph_index_dir,
         redirect_index_dir=redirect_index_dir,
         redirect_db_path=redirect_db_path,
+        dpr_faiss_index_dir=tmp_path / "missing_dpr_faiss",
     )
     missing_quote_results = search_whoosh_weighted_cole(
         '"leadword missing sentence"',
@@ -178,6 +183,7 @@ def test_weighted_cole_search_maps_redirect_hits_to_canonical_article(tmp_path):
         first_paragraph_index_dir=first_paragraph_index_dir,
         redirect_index_dir=redirect_index_dir,
         redirect_db_path=redirect_db_path,
+        dpr_faiss_index_dir=tmp_path / "missing_dpr_faiss",
     )
 
     assert [result["title"] for result in redirect_results] == ["Core Article"]
@@ -198,3 +204,64 @@ def test_weighted_cole_search_maps_redirect_hits_to_canonical_article(tmp_path):
     assert [result["title"] for result in quote_results] == ["Core Article"]
     assert quote_results[0]["quote_match_score"] > 0
     assert missing_quote_results == []
+
+
+def test_weighted_cole_search_includes_faiss_score_component(tmp_path, monkeypatch):
+    db_path = tmp_path / "wiki_articles_step1_clean.sqlite3"
+    cole_index_dir = tmp_path / "whoosh_cole_index"
+    first_sentence_index_dir = tmp_path / "whoosh_cole_first_sentence_index"
+    first_two_sentences_index_dir = tmp_path / "whoosh_cole_first_two_sentences_index"
+    first_paragraph_index_dir = tmp_path / "whoosh_cole_first_paragraph_index"
+    redirect_index_dir = tmp_path / "whoosh_cole_redirect_index"
+    redirect_db_path = tmp_path / "wiki_redirects.sqlite3"
+    initialize_clean_articles_database(db_path)
+    initialize_redirect_database(redirect_db_path)
+
+    materialize_whoosh_cole_index(input_db_path=db_path, index_dir=cole_index_dir)
+    materialize_whoosh_cole_first_sentence_index(
+        input_db_path=db_path,
+        index_dir=first_sentence_index_dir,
+    )
+    materialize_whoosh_cole_first_two_sentences_index(
+        input_db_path=db_path,
+        index_dir=first_two_sentences_index_dir,
+    )
+    materialize_whoosh_cole_first_paragraph_index(
+        input_db_path=db_path,
+        index_dir=first_paragraph_index_dir,
+    )
+    materialize_whoosh_cole_redirect_index(
+        input_db_path=db_path,
+        index_dir=redirect_index_dir,
+    )
+
+    def fake_search_dpr_faiss(query_text, limit, dpr_faiss_index_dir, query_embedding=None):
+        assert query_text == "dense-only"
+        return [
+            {
+                "title": "Core Article",
+                "body": "",
+                "source_file": "a.txt",
+                "article_index": 0,
+                "is_redirect": 0,
+                "score": 1.0,
+            }
+        ]
+
+    monkeypatch.setattr("src.search.search_dpr_faiss", fake_search_dpr_faiss)
+
+    results = search_whoosh_weighted_cole(
+        "dense-only",
+        index_dir=cole_index_dir,
+        first_sentence_index_dir=first_sentence_index_dir,
+        first_two_sentences_index_dir=first_two_sentences_index_dir,
+        first_paragraph_index_dir=first_paragraph_index_dir,
+        redirect_index_dir=redirect_index_dir,
+        redirect_db_path=redirect_db_path,
+        dpr_faiss_index_dir=tmp_path / "missing_dpr_faiss",
+    )
+
+    assert [result["title"] for result in results] == ["Core Article"]
+    assert results[0]["faiss_score"] == 1.0
+    assert results[0]["score"] == 1.0
+    assert results[0]["body_score"] == 0

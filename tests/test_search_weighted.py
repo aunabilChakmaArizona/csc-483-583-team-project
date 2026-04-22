@@ -133,6 +133,7 @@ def test_weighted_search_maps_redirect_hits_to_canonical_article(tmp_path):
         first_paragraph_index_dir=first_paragraph_index_dir,
         redirect_index_dir=redirect_index_dir,
         redirect_db_path=redirect_db_path,
+        dpr_faiss_index_dir=tmp_path / "missing_dpr_faiss",
     )
     body_results = search_whoosh_weighted(
         "secondword",
@@ -142,6 +143,7 @@ def test_weighted_search_maps_redirect_hits_to_canonical_article(tmp_path):
         first_paragraph_index_dir=first_paragraph_index_dir,
         redirect_index_dir=redirect_index_dir,
         redirect_db_path=redirect_db_path,
+        dpr_faiss_index_dir=tmp_path / "missing_dpr_faiss",
     )
     full_body_results = search_whoosh_weighted(
         "otherword",
@@ -151,6 +153,7 @@ def test_weighted_search_maps_redirect_hits_to_canonical_article(tmp_path):
         first_paragraph_index_dir=first_paragraph_index_dir,
         redirect_index_dir=redirect_index_dir,
         redirect_db_path=redirect_db_path,
+        dpr_faiss_index_dir=tmp_path / "missing_dpr_faiss",
     )
 
     assert [result["title"] for result in redirect_results] == ["Core Article"]
@@ -167,3 +170,65 @@ def test_weighted_search_maps_redirect_hits_to_canonical_article(tmp_path):
     assert full_body_results[0]["first_sentence_score"] == 0
     assert full_body_results[0]["first_two_sentences_score"] == 0
     assert full_body_results[0]["first_paragraph_score"] == 0
+
+
+def test_weighted_search_includes_faiss_score_component(tmp_path, monkeypatch):
+    db_path = tmp_path / "wiki_articles_step1_clean.sqlite3"
+    index_dir = tmp_path / "whoosh_title_body_index"
+    first_sentence_index_dir = tmp_path / "whoosh_cole_first_sentence_index"
+    first_two_sentences_index_dir = tmp_path / "whoosh_cole_first_two_sentences_index"
+    first_paragraph_index_dir = tmp_path / "whoosh_cole_first_paragraph_index"
+    redirect_index_dir = tmp_path / "whoosh_cole_redirect_index"
+    redirect_db_path = tmp_path / "wiki_redirects.sqlite3"
+    initialize_clean_articles_database(db_path)
+    initialize_redirect_database(redirect_db_path)
+
+    materialize_whoosh_title_body_index(input_db_path=db_path, index_dir=index_dir)
+    materialize_whoosh_cole_first_sentence_index(
+        input_db_path=db_path,
+        index_dir=first_sentence_index_dir,
+    )
+    materialize_whoosh_cole_first_two_sentences_index(
+        input_db_path=db_path,
+        index_dir=first_two_sentences_index_dir,
+    )
+    materialize_whoosh_cole_first_paragraph_index(
+        input_db_path=db_path,
+        index_dir=first_paragraph_index_dir,
+    )
+    materialize_whoosh_cole_redirect_index(
+        input_db_path=db_path,
+        index_dir=redirect_index_dir,
+    )
+
+    def fake_search_dpr_faiss(query_text, limit, dpr_faiss_index_dir, query_embedding=None):
+        assert query_text == "dense-only"
+        return [
+            {
+                "title": "Core Article",
+                "body": "",
+                "source_file": "a.txt",
+                "article_index": 0,
+                "is_redirect": 0,
+                "score": 1.0,
+            }
+        ]
+
+    monkeypatch.setattr("src.search.search_dpr_faiss", fake_search_dpr_faiss)
+
+    results = search_whoosh_weighted(
+        "dense-only",
+        index_dir=index_dir,
+        first_sentence_index_dir=first_sentence_index_dir,
+        first_two_sentences_index_dir=first_two_sentences_index_dir,
+        first_paragraph_index_dir=first_paragraph_index_dir,
+        redirect_index_dir=redirect_index_dir,
+        redirect_db_path=redirect_db_path,
+        dpr_faiss_index_dir=tmp_path / "missing_dpr_faiss",
+    )
+
+    assert [result["title"] for result in results] == ["Core Article"]
+    assert results[0]["faiss_score"] == 1.0
+    assert results[0]["score"] == 1.0
+    assert results[0]["title_score"] == 0
+    assert results[0]["body_score"] == 0

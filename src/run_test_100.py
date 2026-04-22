@@ -6,13 +6,41 @@ import argparse
 from dataclasses import dataclass
 from functools import lru_cache
 import json
+import numpy as np
 from pathlib import Path
 import re
 import time
 
 try:
     from src.processor1_parse import DEFAULT_QUESTIONS_JSON_PATH
+    from src.processor_question_dpr_embeddings import (
+        DEFAULT_OUTPUT_PATH as DEFAULT_QUESTION_DPR_EMBEDDINGS_PATH,
+        category_plus_clue_text,
+        clue_only_text,
+    )
     from src.search import (
+        EQUAL_BODY_WEIGHT,
+        EQUAL_CATEGORY_FIRST_SENTENCE_WEIGHT,
+        EQUAL_CATEGORY_FIRST_TWO_SENTENCES_WEIGHT,
+        EQUAL_FAISS_WEIGHT,
+        EQUAL_FIRST_PARAGRAPH_WEIGHT,
+        EQUAL_FIRST_SENTENCE_WEIGHT,
+        EQUAL_FIRST_TWO_SENTENCES_WEIGHT,
+        EQUAL_QUOTE_MATCH_WEIGHT,
+        EQUAL_REDIRECT_WEIGHT,
+        EQUAL_TITLE_WEIGHT,
+        EQUAL_YEAR_MATCH_WEIGHT,
+        WEIGHTED_BODY_WEIGHT,
+        WEIGHTED_CATEGORY_FIRST_SENTENCE_WEIGHT,
+        WEIGHTED_CATEGORY_FIRST_TWO_SENTENCES_WEIGHT,
+        WEIGHTED_FAISS_WEIGHT,
+        WEIGHTED_FIRST_PARAGRAPH_WEIGHT,
+        WEIGHTED_FIRST_SENTENCE_WEIGHT,
+        WEIGHTED_FIRST_TWO_SENTENCES_WEIGHT,
+        WEIGHTED_QUOTE_MATCH_WEIGHT,
+        WEIGHTED_REDIRECT_WEIGHT,
+        WEIGHTED_TITLE_WEIGHT,
+        WEIGHTED_YEAR_MATCH_WEIGHT,
         multi_search,
         multi_search_whoosh_cole,
         multi_search_whoosh_default,
@@ -22,7 +50,34 @@ try:
     )
 except ModuleNotFoundError:
     from processor1_parse import DEFAULT_QUESTIONS_JSON_PATH
+    from processor_question_dpr_embeddings import (
+        DEFAULT_OUTPUT_PATH as DEFAULT_QUESTION_DPR_EMBEDDINGS_PATH,
+        category_plus_clue_text,
+        clue_only_text,
+    )
     from search import (
+        EQUAL_BODY_WEIGHT,
+        EQUAL_CATEGORY_FIRST_SENTENCE_WEIGHT,
+        EQUAL_CATEGORY_FIRST_TWO_SENTENCES_WEIGHT,
+        EQUAL_FAISS_WEIGHT,
+        EQUAL_FIRST_PARAGRAPH_WEIGHT,
+        EQUAL_FIRST_SENTENCE_WEIGHT,
+        EQUAL_FIRST_TWO_SENTENCES_WEIGHT,
+        EQUAL_QUOTE_MATCH_WEIGHT,
+        EQUAL_REDIRECT_WEIGHT,
+        EQUAL_TITLE_WEIGHT,
+        EQUAL_YEAR_MATCH_WEIGHT,
+        WEIGHTED_BODY_WEIGHT,
+        WEIGHTED_CATEGORY_FIRST_SENTENCE_WEIGHT,
+        WEIGHTED_CATEGORY_FIRST_TWO_SENTENCES_WEIGHT,
+        WEIGHTED_FAISS_WEIGHT,
+        WEIGHTED_FIRST_PARAGRAPH_WEIGHT,
+        WEIGHTED_FIRST_SENTENCE_WEIGHT,
+        WEIGHTED_FIRST_TWO_SENTENCES_WEIGHT,
+        WEIGHTED_QUOTE_MATCH_WEIGHT,
+        WEIGHTED_REDIRECT_WEIGHT,
+        WEIGHTED_TITLE_WEIGHT,
+        WEIGHTED_YEAR_MATCH_WEIGHT,
         multi_search,
         multi_search_whoosh_cole,
         multi_search_whoosh_default,
@@ -38,6 +93,7 @@ DEFAULT_PARAPHRASE_FETCH_LIMIT = 1000
 PARAPHRASE_MODEL_NAME = "Vamsi/T5_Paraphrase_Paws"
 RANK_FUSION_K = 60
 WHITESPACE_RE = re.compile(r"\s+")
+QUESTION_RESULTS_PREVIEW_LIMIT = 10
 
 
 @dataclass(frozen=True)
@@ -124,6 +180,14 @@ def parse_args() -> argparse.Namespace:
         help=(
             "Number of documents to retrieve for each paraphrase-expanded query before "
             f"rank fusion. Default: {DEFAULT_PARAPHRASE_FETCH_LIMIT}."
+        ),
+    )
+    parser.add_argument(
+        "--print-question-results",
+        action="store_true",
+        help=(
+            "Print each question grouped by its first matching Top-k bucket, plus a "
+            "preview of the top retrieved titles."
         ),
     )
     return parser.parse_args()
@@ -264,6 +328,54 @@ def question_query(question: JeopardyQuestion, query_mode: str, include_category
     return transform_query_text(question_text(question, include_category), query_mode)
 
 
+@lru_cache(maxsize=1)
+def load_precomputed_question_embeddings(
+    path: Path = DEFAULT_QUESTION_DPR_EMBEDDINGS_PATH,
+):
+    return np.load(path, allow_pickle=True)
+
+
+def get_precomputed_dense_query_embeddings(
+    questions: list[JeopardyQuestion],
+    include_category: bool,
+) -> list[np.ndarray] | None:
+    embeddings_path = DEFAULT_QUESTION_DPR_EMBEDDINGS_PATH
+    if not embeddings_path.exists():
+        return None
+
+    saved = load_precomputed_question_embeddings(embeddings_path)
+    if include_category:
+        expected_texts = [
+            category_plus_clue_text(
+                {
+                    "category": question.category,
+                    "clue": question.clue,
+                    "answer": question.answer,
+                }
+            )
+            for question in questions
+        ]
+        saved_texts = saved["category_plus_clue_texts"].tolist()[: len(questions)]
+        if saved_texts != expected_texts:
+            return None
+        return [row for row in saved["category_plus_clue_embeddings"][: len(questions)]]
+
+    expected_texts = [
+        clue_only_text(
+            {
+                "category": question.category,
+                "clue": question.clue,
+                "answer": question.answer,
+            }
+        )
+        for question in questions
+    ]
+    saved_texts = saved["clue_only_texts"].tolist()[: len(questions)]
+    if saved_texts != expected_texts:
+        return None
+    return [row for row in saved["clue_only_embeddings"][: len(questions)]]
+
+
 def question_queries(
     question: JeopardyQuestion,
     query_mode: str,
@@ -301,6 +413,7 @@ def run_search_batch(
     weight_equal: bool = False,
     weighted_cole: bool = False,
     skip_redirects: bool = False,
+    dense_query_embeddings: list[np.ndarray] | None = None,
 ) -> list[dict]:
     if weighted_cole:
         return multi_search_whoosh_weighted_cole(
@@ -308,6 +421,7 @@ def run_search_batch(
             query_categories=categories,
             limit=limit,
             skip_redirects=skip_redirects,
+            dense_query_embeddings=dense_query_embeddings,
         )
 
     if weighted or weight_equal:
@@ -315,6 +429,7 @@ def run_search_batch(
             "query_categories": categories,
             "limit": limit,
             "skip_redirects": skip_redirects,
+            "dense_query_embeddings": dense_query_embeddings,
         }
         if weight_equal:
             weighted_kwargs.update(
@@ -325,6 +440,7 @@ def run_search_batch(
                     "first_sentence_weight": 1.0,
                     "first_two_sentences_weight": 1.0,
                     "first_paragraph_weight": 1.0,
+                    "faiss_weight": 1.0,
                     "category_first_sentence_weight": 1.0,
                     "category_first_two_sentences_weight": 1.0,
                 }
@@ -397,6 +513,12 @@ def search_questions(
     if not paraphrase:
         queries = [question_query(question, query_mode, include_category) for question in questions]
         categories = [question.category for question in questions]
+        dense_query_embeddings = None
+        if query_mode == "full" and (weighted or weight_equal or weighted_cole):
+            dense_query_embeddings = get_precomputed_dense_query_embeddings(
+                questions,
+                include_category=include_category,
+            )
         return run_search_batch(
             queries,
             categories=categories,
@@ -406,6 +528,7 @@ def search_questions(
             weight_equal=weight_equal,
             weighted_cole=weighted_cole,
             skip_redirects=skip_redirects,
+            dense_query_embeddings=dense_query_embeddings,
         )
 
     print("Running paraphrasing...")
@@ -467,6 +590,7 @@ def evaluate_questions(
     paraphrase: bool = False,
     paraphrase_count: int = DEFAULT_PARAPHRASE_COUNT,
     paraphrase_fetch_limit: int = DEFAULT_PARAPHRASE_FETCH_LIMIT,
+    print_question_results: bool = False,
     top_k_values: list[int] = TOP_K_VALUES,
 ) -> dict[int, float]:
     max_k = max(top_k_values)
@@ -485,7 +609,8 @@ def evaluate_questions(
         paraphrase_fetch_limit=paraphrase_fetch_limit,
     )
     correct_counts = {k: 0 for k in top_k_values}
-    matched_clues_by_k = {k: [] for k in top_k_values}
+    grouped_questions_by_k = {k: [] for k in top_k_values}
+    unmatched_questions = []
 
     for question, search_result in zip(questions, searches):
         answers = valid_answers(question.answer)
@@ -493,22 +618,37 @@ def evaluate_questions(
         matched_k = first_correct_k(results, answers, top_k_values)
 
         if matched_k is not None:
-            matched_clues_by_k[matched_k].append(question.clue)
+            grouped_questions_by_k[matched_k].append((question, results))
+        else:
+            unmatched_questions.append((question, results))
 
         for k in top_k_values:
             if is_correct_at_k(results, answers, k):
                 correct_counts[k] += 1
 
-    if any(matched_clues_by_k.values()):
-        print("Matched clues grouped by first Top-k:")
+    if print_question_results and (any(grouped_questions_by_k.values()) or unmatched_questions):
+        print("Question results grouped by first Top-k:")
         for k in top_k_values:
-            clues = matched_clues_by_k[k]
-            if not clues:
+            grouped_questions = grouped_questions_by_k[k]
+            if not grouped_questions:
                 continue
 
             print(f"Top-{k}:")
-            for clue in clues:
-                print(f"  {clue}")
+            for question, results in grouped_questions:
+                top_titles = [result["title"] for result in results[:QUESTION_RESULTS_PREVIEW_LIMIT]]
+                print(f"  Category: {question.category}")
+                print(f"  Clue: {question.clue}")
+                print(f"  Answer: {question.answer}")
+                print(f"  Retrieved titles: {top_titles}")
+
+        if unmatched_questions:
+            print("No match in evaluated Top-k range:")
+            for question, results in unmatched_questions:
+                top_titles = [result["title"] for result in results[:QUESTION_RESULTS_PREVIEW_LIMIT]]
+                print(f"  Category: {question.category}")
+                print(f"  Clue: {question.clue}")
+                print(f"  Answer: {question.answer}")
+                print(f"  Retrieved titles: {top_titles}")
 
     total = len(questions)
     return {k: correct_counts[k] / total for k in top_k_values}
@@ -529,6 +669,39 @@ def print_metrics(
     paraphrase_count: int,
     paraphrase_fetch_limit: int,
 ) -> None:
+    if weight_equal:
+        active_weights = {
+            "title_weight": EQUAL_TITLE_WEIGHT,
+            "redirect_weight": EQUAL_REDIRECT_WEIGHT,
+            "body_weight": EQUAL_BODY_WEIGHT,
+            "first_sentence_weight": EQUAL_FIRST_SENTENCE_WEIGHT,
+            "first_two_sentences_weight": EQUAL_FIRST_TWO_SENTENCES_WEIGHT,
+            "first_paragraph_weight": EQUAL_FIRST_PARAGRAPH_WEIGHT,
+            "faiss_weight": EQUAL_FAISS_WEIGHT,
+            "category_first_sentence_weight": EQUAL_CATEGORY_FIRST_SENTENCE_WEIGHT,
+            "category_first_two_sentences_weight": EQUAL_CATEGORY_FIRST_TWO_SENTENCES_WEIGHT,
+        }
+        if weighted_cole:
+            active_weights["year_match_weight"] = EQUAL_YEAR_MATCH_WEIGHT
+            active_weights["quote_match_weight"] = EQUAL_QUOTE_MATCH_WEIGHT
+    elif weighted or weighted_cole:
+        active_weights = {
+            "title_weight": WEIGHTED_TITLE_WEIGHT,
+            "redirect_weight": WEIGHTED_REDIRECT_WEIGHT,
+            "body_weight": WEIGHTED_BODY_WEIGHT,
+            "first_sentence_weight": WEIGHTED_FIRST_SENTENCE_WEIGHT,
+            "first_two_sentences_weight": WEIGHTED_FIRST_TWO_SENTENCES_WEIGHT,
+            "first_paragraph_weight": WEIGHTED_FIRST_PARAGRAPH_WEIGHT,
+            "faiss_weight": WEIGHTED_FAISS_WEIGHT,
+            "category_first_sentence_weight": WEIGHTED_CATEGORY_FIRST_SENTENCE_WEIGHT,
+            "category_first_two_sentences_weight": WEIGHTED_CATEGORY_FIRST_TWO_SENTENCES_WEIGHT,
+        }
+        if weighted_cole:
+            active_weights["year_match_weight"] = WEIGHTED_YEAR_MATCH_WEIGHT
+            active_weights["quote_match_weight"] = WEIGHTED_QUOTE_MATCH_WEIGHT
+    else:
+        active_weights = {}
+
     print(f"Mode: {mode}")
     print(f"Query mode: {query_mode}")
     print(f"Include category: {include_category}")
@@ -540,6 +713,10 @@ def print_metrics(
     if paraphrase:
         print(f"Paraphrase count: {paraphrase_count}")
         print(f"Paraphrase fetch limit: {paraphrase_fetch_limit}")
+    if active_weights:
+        print("Weights:")
+        for weight_name, weight_value in active_weights.items():
+            print(f"  {weight_name}: {weight_value}")
     print(f"Questions: {total}")
     print(f"Time: {elapsed:.2f}s")
 
@@ -565,6 +742,7 @@ def main() -> None:
         paraphrase=args.paraphrase,
         paraphrase_count=args.paraphrase_count,
         paraphrase_fetch_limit=args.paraphrase_fetch_limit,
+        print_question_results=args.print_question_results,
     )
     elapsed = time.time() - start_time
 

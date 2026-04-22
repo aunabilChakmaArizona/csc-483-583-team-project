@@ -1,6 +1,7 @@
 """Search entry points."""
 
 from functools import lru_cache
+import json
 from pathlib import Path
 import re
 import sqlite3
@@ -101,6 +102,7 @@ WEIGHTED_BODY_WEIGHT = 7.0
 WEIGHTED_FIRST_SENTENCE_WEIGHT = 0.0
 WEIGHTED_FIRST_TWO_SENTENCES_WEIGHT = 0.0
 WEIGHTED_FIRST_PARAGRAPH_WEIGHT = 0.0
+WEIGHTED_FAISS_WEIGHT = 0.0
 WEIGHTED_YEAR_MATCH_WEIGHT = 0.0
 WEIGHTED_QUOTE_MATCH_WEIGHT = 0.0
 WEIGHTED_CATEGORY_FIRST_SENTENCE_WEIGHT = 0.0
@@ -112,6 +114,7 @@ EQUAL_BODY_WEIGHT = 1.0
 EQUAL_FIRST_SENTENCE_WEIGHT = 1.0
 EQUAL_FIRST_TWO_SENTENCES_WEIGHT = 1.0
 EQUAL_FIRST_PARAGRAPH_WEIGHT = 1.0
+EQUAL_FAISS_WEIGHT = 1.0
 EQUAL_YEAR_MATCH_WEIGHT = 1.0
 EQUAL_QUOTE_MATCH_WEIGHT = 1.0
 EQUAL_CATEGORY_FIRST_SENTENCE_WEIGHT = 1.0
@@ -120,6 +123,19 @@ WEIGHTED_COMPONENT_LIMIT = 10000
 YEAR_RE = re.compile(r"\b(?:1\d{3}|20\d{2})\b")
 QUOTE_RE = re.compile(r'["“”]([^"“”]+)["“”]')
 INLINE_WHITESPACE_RE = re.compile(r"\s+")
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_DPR_FAISS_INDEX_DIR = PROJECT_ROOT / "index/dpr_faiss"
+DPR_FAISS_VARIANT_NAMES = (
+    "title_first_sentence",
+    "title_first_two_sentences",
+    "title_first_paragraph",
+    "title_entire_article",
+)
+
+
+@lru_cache(maxsize=None)
+def warn_once(message: str) -> None:
+    print(message)
 
 
 @lru_cache(maxsize=1)
@@ -237,6 +253,153 @@ def normalize_results_to_unit_interval(results: list[dict]) -> list[dict]:
         }
         for result in results
     ]
+
+
+def normalize_dense_results_to_unit_interval(results: list[dict]) -> list[dict]:
+    if not results:
+        return []
+
+    min_score = min(result["score"] for result in results)
+    max_score = max(result["score"] for result in results)
+    if max_score == min_score:
+        normalized_score = 1.0 if max_score > 0 else 0.0
+        return [
+            {
+                **result,
+                "raw_score": result["score"],
+                "score": normalized_score,
+            }
+            for result in results
+        ]
+
+    score_range = max_score - min_score
+    return [
+        {
+            **result,
+            "raw_score": result["score"],
+            "score": (result["score"] - min_score) / score_range,
+        }
+        for result in results
+    ]
+
+
+@lru_cache(maxsize=1)
+def load_dpr_question_encoder():
+    try:
+        import torch
+        from transformers import DPRQuestionEncoder, DPRQuestionEncoderTokenizer
+    except ModuleNotFoundError as error:
+        raise RuntimeError(
+            "transformers and torch are required for FAISS-backed DPR scoring."
+        ) from error
+
+    model_name = "facebook/dpr-question_encoder-single-nq-base"
+    tokenizer = DPRQuestionEncoderTokenizer.from_pretrained(model_name)
+    model = DPRQuestionEncoder.from_pretrained(model_name, use_safetensors=True)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = model.to(device)
+    model.eval()
+    return tokenizer, model, device
+
+
+@lru_cache(maxsize=8)
+def load_dpr_faiss_variant(variant_dir: str):
+    try:
+        import faiss
+    except ModuleNotFoundError as error:
+        raise RuntimeError("faiss is required for FAISS-backed DPR scoring.") from error
+
+    variant_path = Path(variant_dir)
+    index = faiss.read_index(str(variant_path / "index.faiss"))
+    metadata_path = variant_path / "metadata.jsonl"
+    metadata_rows = [
+        json.loads(line)
+        for line in metadata_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    return index, metadata_rows
+
+
+def encode_dpr_query(query_text: str):
+    import numpy as np
+    import torch
+
+    tokenizer, model, device = load_dpr_question_encoder()
+    encoded_inputs = tokenizer(
+        query_text,
+        truncation=True,
+        max_length=512,
+        return_tensors="pt",
+    )
+    encoded_inputs = {key: value.to(device) for key, value in encoded_inputs.items()}
+
+    with torch.no_grad():
+        outputs = model(**encoded_inputs).pooler_output
+
+    return outputs.detach().cpu().numpy().astype(np.float32)
+
+
+def search_dpr_faiss(
+    query_text: str,
+    limit: int = WEIGHTED_COMPONENT_LIMIT,
+    dpr_faiss_index_dir: Path = DEFAULT_DPR_FAISS_INDEX_DIR,
+    query_embedding=None,
+) -> list[dict]:
+    if not query_text.strip() or not dpr_faiss_index_dir.exists():
+        return []
+
+    if query_embedding is None:
+        try:
+            query_embedding = encode_dpr_query(query_text)
+        except Exception as error:
+            warn_once(f"[search_dpr_faiss] Skipping dense scoring: {error}")
+            return []
+
+    aggregated_results: dict[tuple[str, int], dict] = {}
+
+    for variant_name in DPR_FAISS_VARIANT_NAMES:
+        variant_dir = dpr_faiss_index_dir / variant_name
+        if not variant_dir.exists():
+            continue
+
+        try:
+            index, metadata_rows = load_dpr_faiss_variant(str(variant_dir))
+        except Exception as error:
+            warn_once(f"[search_dpr_faiss] Skipping dense scoring: {error}")
+            return []
+        search_limit = min(limit, index.ntotal)
+        if search_limit <= 0:
+            continue
+
+        scores, row_indexes = index.search(query_embedding, search_limit)
+        dense_results = []
+        for score, row_index in zip(scores[0], row_indexes[0]):
+            if row_index < 0:
+                continue
+
+            metadata = metadata_rows[row_index]
+            dense_results.append(
+                {
+                    "title": metadata["title"],
+                    "body": "",
+                    "source_file": metadata["source_file"],
+                    "article_index": metadata["article_index"],
+                    "is_redirect": 0,
+                    "score": float(score),
+                }
+            )
+
+        for result in normalize_dense_results_to_unit_interval(dense_results):
+            key = weighted_result_key(result)
+            existing = aggregated_results.get(key)
+            if existing is None or result["score"] > existing["score"]:
+                aggregated_results[key] = result
+
+    ranked_results = sorted(
+        aggregated_results.values(),
+        key=lambda result: (-result["score"], result["article_index"]),
+    )
+    return ranked_results[:limit]
 
 
 @lru_cache(maxsize=4)
@@ -392,6 +555,7 @@ def search_whoosh_weighted_with_searcher(
     extra_body_components: list[tuple[str, float, object, object]] | None = None,
     extra_components: list[tuple[str, float, object, object]] | None = None,
     category_components: list[tuple[str, float, object, str]] | None = None,
+    precomputed_components: list[tuple[str, float, list[dict]]] | None = None,
     redirect_searcher=None,
     redirect_title_parser=None,
     filter_main_redirects: bool = True,
@@ -404,6 +568,7 @@ def search_whoosh_weighted_with_searcher(
     extra_body_components = extra_body_components or []
     extra_components = extra_components or []
     category_components = category_components or []
+    precomputed_components = precomputed_components or []
     redirect_searcher = redirect_searcher or searcher
     redirect_title_parser = redirect_title_parser or title_parser
     title_query = title_parser.parse(query_text)
@@ -483,6 +648,7 @@ def search_whoosh_weighted_with_searcher(
         *[score_name for score_name, _, _, _ in extra_body_components],
         *[score_name for score_name, _, _, _ in extra_components],
         *[score_name for score_name, _, _, _ in category_components],
+        *[score_name for score_name, _, _ in precomputed_components],
     ]
 
     def resolve_base_result(result: dict) -> dict:
@@ -523,6 +689,9 @@ def search_whoosh_weighted_with_searcher(
             ensure_entry(result)[score_name] = max(ensure_entry(result)[score_name], result["score"])
     for score_name, _, _, _ in category_components:
         for result in extra_component_results[score_name]:
+            ensure_entry(result)[score_name] = max(ensure_entry(result)[score_name], result["score"])
+    for score_name, _, component_results in precomputed_components:
+        for result in component_results:
             ensure_entry(result)[score_name] = max(ensure_entry(result)[score_name], result["score"])
 
     for redirect_result in redirect_results:
@@ -565,6 +734,8 @@ def search_whoosh_weighted_with_searcher(
             result["score"] += component_weight * result[score_name]
         for score_name, component_weight, _, _ in category_components:
             result["score"] += component_weight * result[score_name]
+        for score_name, component_weight, _ in precomputed_components:
+            result["score"] += component_weight * result[score_name]
 
     ranked_results = sorted(
         aggregated_results.values(),
@@ -576,6 +747,7 @@ def search_whoosh_weighted_with_searcher(
             *[-result[score_name] for score_name, _, _, _ in extra_body_components],
             *[-result[score_name] for score_name, _, _, _ in extra_components],
             *[-result[score_name] for score_name, _, _, _ in category_components],
+            *[-result[score_name] for score_name, _, _ in precomputed_components],
             result["article_index"],
         ),
     )
@@ -601,8 +773,11 @@ def search_whoosh_weighted(
     first_sentence_weight: float = WEIGHTED_FIRST_SENTENCE_WEIGHT,
     first_two_sentences_weight: float = WEIGHTED_FIRST_TWO_SENTENCES_WEIGHT,
     first_paragraph_weight: float = WEIGHTED_FIRST_PARAGRAPH_WEIGHT,
+    faiss_weight: float = WEIGHTED_FAISS_WEIGHT,
     category_first_sentence_weight: float = WEIGHTED_CATEGORY_FIRST_SENTENCE_WEIGHT,
     category_first_two_sentences_weight: float = WEIGHTED_CATEGORY_FIRST_TWO_SENTENCES_WEIGHT,
+    dpr_faiss_index_dir: Path = DEFAULT_DPR_FAISS_INDEX_DIR,
+    dense_query_embedding=None,
 ) -> list[dict]:
     index = open_whoosh_title_body_index(index_dir)
     category_index = open_whoosh_title_body_category_index(category_index_dir)
@@ -694,6 +869,18 @@ def search_whoosh_weighted(
                                         "title_first_two_sentences_categories",
                                     ),
                                 ],
+                                precomputed_components=[
+                                    (
+                                        "faiss_score",
+                                        faiss_weight,
+                                        search_dpr_faiss(
+                                            query,
+                                            limit=component_limit,
+                                            dpr_faiss_index_dir=dpr_faiss_index_dir,
+                                            query_embedding=dense_query_embedding,
+                                        ),
+                                    )
+                                ],
                                 redirect_searcher=redirect_searcher,
                                 redirect_title_parser=redirect_title_parser,
                                 filter_main_redirects=True,
@@ -721,10 +908,13 @@ def search_whoosh_weighted_cole(
     first_sentence_weight: float = WEIGHTED_FIRST_SENTENCE_WEIGHT,
     first_two_sentences_weight: float = WEIGHTED_FIRST_TWO_SENTENCES_WEIGHT,
     first_paragraph_weight: float = WEIGHTED_FIRST_PARAGRAPH_WEIGHT,
+    faiss_weight: float = WEIGHTED_FAISS_WEIGHT,
     year_match_weight: float = WEIGHTED_YEAR_MATCH_WEIGHT,
     quote_match_weight: float = WEIGHTED_QUOTE_MATCH_WEIGHT,
     category_first_sentence_weight: float = WEIGHTED_CATEGORY_FIRST_SENTENCE_WEIGHT,
     category_first_two_sentences_weight: float = WEIGHTED_CATEGORY_FIRST_TWO_SENTENCES_WEIGHT,
+    dpr_faiss_index_dir: Path = DEFAULT_DPR_FAISS_INDEX_DIR,
+    dense_query_embedding=None,
 ) -> list[dict]:
     index = open_whoosh_cole_index(index_dir)
     category_index = open_whoosh_title_body_category_index(category_index_dir)
@@ -831,6 +1021,18 @@ def search_whoosh_weighted_cole(
                                         "title_first_two_sentences_categories",
                                     ),
                                 ],
+                                precomputed_components=[
+                                    (
+                                        "faiss_score",
+                                        faiss_weight,
+                                        search_dpr_faiss(
+                                            query,
+                                            limit=component_limit,
+                                            dpr_faiss_index_dir=dpr_faiss_index_dir,
+                                            query_embedding=dense_query_embedding,
+                                        ),
+                                    )
+                                ],
                                 redirect_searcher=redirect_searcher,
                                 redirect_title_parser=redirect_title_parser,
                                 filter_main_redirects=False,
@@ -859,8 +1061,11 @@ def multi_search_whoosh_weighted(
     first_sentence_weight: float = WEIGHTED_FIRST_SENTENCE_WEIGHT,
     first_two_sentences_weight: float = WEIGHTED_FIRST_TWO_SENTENCES_WEIGHT,
     first_paragraph_weight: float = WEIGHTED_FIRST_PARAGRAPH_WEIGHT,
+    faiss_weight: float = WEIGHTED_FAISS_WEIGHT,
     category_first_sentence_weight: float = WEIGHTED_CATEGORY_FIRST_SENTENCE_WEIGHT,
     category_first_two_sentences_weight: float = WEIGHTED_CATEGORY_FIRST_TWO_SENTENCES_WEIGHT,
+    dpr_faiss_index_dir: Path = DEFAULT_DPR_FAISS_INDEX_DIR,
+    dense_query_embeddings: list | None = None,
 ) -> list[dict]:
     index = open_whoosh_title_body_index(index_dir)
     category_index = open_whoosh_title_body_category_index(category_index_dir)
@@ -910,6 +1115,9 @@ def multi_search_whoosh_weighted(
                             )
 
                             for index_number, query_text in enumerate(queries, start=1):
+                                dense_query_embedding = None
+                                if dense_query_embeddings is not None:
+                                    dense_query_embedding = dense_query_embeddings[index_number - 1]
                                 all_results.append(
                                     {
                                         "query": query_text,
@@ -960,6 +1168,18 @@ def multi_search_whoosh_weighted(
                                                     "title_first_two_sentences_categories",
                                                 ),
                                             ],
+                                            precomputed_components=[
+                                                (
+                                                    "faiss_score",
+                                                    faiss_weight,
+                                                    search_dpr_faiss(
+                                                        query_text,
+                                                        limit=component_limit,
+                                                        dpr_faiss_index_dir=dpr_faiss_index_dir,
+                                                        query_embedding=dense_query_embedding,
+                                                    ),
+                                                )
+                                            ],
                                             redirect_searcher=redirect_searcher,
                                             redirect_title_parser=redirect_title_parser,
                                             filter_main_redirects=True,
@@ -998,10 +1218,13 @@ def multi_search_whoosh_weighted_cole(
     first_sentence_weight: float = WEIGHTED_FIRST_SENTENCE_WEIGHT,
     first_two_sentences_weight: float = WEIGHTED_FIRST_TWO_SENTENCES_WEIGHT,
     first_paragraph_weight: float = WEIGHTED_FIRST_PARAGRAPH_WEIGHT,
+    faiss_weight: float = WEIGHTED_FAISS_WEIGHT,
     year_match_weight: float = WEIGHTED_YEAR_MATCH_WEIGHT,
     quote_match_weight: float = WEIGHTED_QUOTE_MATCH_WEIGHT,
     category_first_sentence_weight: float = WEIGHTED_CATEGORY_FIRST_SENTENCE_WEIGHT,
     category_first_two_sentences_weight: float = WEIGHTED_CATEGORY_FIRST_TWO_SENTENCES_WEIGHT,
+    dpr_faiss_index_dir: Path = DEFAULT_DPR_FAISS_INDEX_DIR,
+    dense_query_embeddings: list | None = None,
 ) -> list[dict]:
     index = open_whoosh_cole_index(index_dir)
     category_index = open_whoosh_title_body_category_index(category_index_dir)
@@ -1052,6 +1275,9 @@ def multi_search_whoosh_weighted_cole(
                             quote_match_query_builder = build_quote_match_query
 
                             for index_number, query_text in enumerate(queries, start=1):
+                                dense_query_embedding = None
+                                if dense_query_embeddings is not None:
+                                    dense_query_embedding = dense_query_embeddings[index_number - 1]
                                 all_results.append(
                                     {
                                         "query": query_text,
@@ -1115,6 +1341,18 @@ def multi_search_whoosh_weighted_cole(
                                                     category_searcher,
                                                     "title_first_two_sentences_categories",
                                                 ),
+                                            ],
+                                            precomputed_components=[
+                                                (
+                                                    "faiss_score",
+                                                    faiss_weight,
+                                                    search_dpr_faiss(
+                                                        query_text,
+                                                        limit=component_limit,
+                                                        dpr_faiss_index_dir=dpr_faiss_index_dir,
+                                                        query_embedding=dense_query_embedding,
+                                                    ),
+                                                )
                                             ],
                                             redirect_searcher=redirect_searcher,
                                             redirect_title_parser=redirect_title_parser,
