@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import atexit
 from functools import lru_cache
 import hashlib
 import json
@@ -16,6 +17,8 @@ DEFAULT_CACHE_DB_PATH = PROJECT_ROOT / "data/processed/retrieval_component_cache
 CACHE_SCHEMA_VERSION = "retrieval_component_cache_v1"
 RETRIEVAL_LOGIC_VERSION = "retrieval_logic_v1"
 _CACHE_STATS = {"hits": 0, "misses": 0}
+_CACHE_CONNECTIONS: dict[str, sqlite3.Connection] = {}
+_INITIALIZED_CACHE_PATHS: set[str] = set()
 
 
 def canonical_json(value) -> str:
@@ -106,8 +109,12 @@ def build_component_cache_key(
 
 
 def initialize_cache_database(cache_db_path: Path = DEFAULT_CACHE_DB_PATH) -> None:
-    cache_db_path.parent.mkdir(parents=True, exist_ok=True)
-    with sqlite3.connect(cache_db_path) as connection:
+    connection = get_cache_connection(cache_db_path)
+    cache_path_key = str(cache_db_path.resolve())
+    if cache_path_key in _INITIALIZED_CACHE_PATHS:
+        return
+
+    with connection:
         connection.execute(
             """
             CREATE TABLE IF NOT EXISTS component_cache (
@@ -121,7 +128,33 @@ def initialize_cache_database(cache_db_path: Path = DEFAULT_CACHE_DB_PATH) -> No
         connection.execute(
             "CREATE INDEX IF NOT EXISTS idx_component_cache_name ON component_cache(component_name)"
         )
-        connection.commit()
+    _INITIALIZED_CACHE_PATHS.add(cache_path_key)
+
+
+def get_cache_connection(cache_db_path: Path = DEFAULT_CACHE_DB_PATH) -> sqlite3.Connection:
+    cache_db_path.parent.mkdir(parents=True, exist_ok=True)
+    cache_path_key = str(cache_db_path.resolve())
+    connection = _CACHE_CONNECTIONS.get(cache_path_key)
+    if connection is not None:
+        return connection
+
+    connection = sqlite3.connect(cache_db_path, timeout=30.0)
+    connection.execute("PRAGMA busy_timeout = 30000")
+    _CACHE_CONNECTIONS[cache_path_key] = connection
+    return connection
+
+
+def close_cache_connections() -> None:
+    for connection in _CACHE_CONNECTIONS.values():
+        try:
+            connection.close()
+        except sqlite3.Error:
+            pass
+    _CACHE_CONNECTIONS.clear()
+    _INITIALIZED_CACHE_PATHS.clear()
+
+
+atexit.register(close_cache_connections)
 
 
 def reset_cache_stats() -> None:
@@ -141,11 +174,11 @@ def load_cached_component_results(
     cache_db_path: Path = DEFAULT_CACHE_DB_PATH,
 ) -> list[dict] | None:
     initialize_cache_database(cache_db_path)
-    with sqlite3.connect(cache_db_path) as connection:
-        row = connection.execute(
-            "SELECT payload FROM component_cache WHERE cache_key = ?",
-            (cache_key,),
-        ).fetchone()
+    connection = get_cache_connection(cache_db_path)
+    row = connection.execute(
+        "SELECT payload FROM component_cache WHERE cache_key = ?",
+        (cache_key,),
+    ).fetchone()
 
     if row is None:
         return None
@@ -164,7 +197,8 @@ def store_component_results(
     payload = zlib.compress(
         json.dumps(results, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
     )
-    with sqlite3.connect(cache_db_path) as connection:
+    connection = get_cache_connection(cache_db_path)
+    with connection:
         connection.execute(
             """
             INSERT OR REPLACE INTO component_cache (cache_key, component_name, created_at, payload)
@@ -172,7 +206,6 @@ def store_component_results(
             """,
             (cache_key, component_name, time.time(), payload),
         )
-        connection.commit()
 
 
 def get_or_compute_component_results(
