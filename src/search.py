@@ -135,14 +135,17 @@ except ModuleNotFoundError:
 
 WEIGHTED_TITLE_WEIGHT = 0.0
 WEIGHTED_REDIRECT_WEIGHT = 0.0 # so far it has no impact
-WEIGHTED_BODY_WEIGHT = 20.0
+WEIGHTED_BODY_WEIGHT = 15.0
 WEIGHTED_FIRST_SENTENCE_WEIGHT = 0.0
 WEIGHTED_FIRST_TWO_SENTENCES_WEIGHT = 0.0
 WEIGHTED_FIRST_PARAGRAPH_WEIGHT = 0.0
 WEIGHTED_FAISS_WEIGHT = 1.0
+WEIGHTED_QWEN_SUMMARY_FAISS_WEIGHT = 0.0
 WEIGHTED_NATURAL_QUESTIONS_AVG_FAISS_WEIGHT = 1.0
 WEIGHTED_NATURAL_QUESTIONS_CONCAT_FAISS_WEIGHT = 1.0
-WEIGHTED_YEAR_MATCH_WEIGHT = 1.0
+WEIGHTED_NATURAL_QUESTIONS_AVG_QWEN_SUMMARY_FAISS_WEIGHT = 0.0
+WEIGHTED_NATURAL_QUESTIONS_CONCAT_QWEN_SUMMARY_FAISS_WEIGHT = 0.0
+WEIGHTED_YEAR_MATCH_WEIGHT = 0.0
 WEIGHTED_QUOTE_MATCH_WEIGHT = 0.0 #todo: it will be best to make it a ngram match
 WEIGHTED_CATEGORY_FIRST_SENTENCE_WEIGHT = 0.0
 WEIGHTED_CATEGORY_FIRST_TWO_SENTENCES_WEIGHT = 0.0
@@ -156,8 +159,11 @@ EQUAL_FIRST_SENTENCE_WEIGHT = 1.0
 EQUAL_FIRST_TWO_SENTENCES_WEIGHT = 1.0
 EQUAL_FIRST_PARAGRAPH_WEIGHT = 1.0
 EQUAL_FAISS_WEIGHT = 1.0
+EQUAL_QWEN_SUMMARY_FAISS_WEIGHT = 1.0
 EQUAL_NATURAL_QUESTIONS_AVG_FAISS_WEIGHT = 1.0
 EQUAL_NATURAL_QUESTIONS_CONCAT_FAISS_WEIGHT = 1.0
+EQUAL_NATURAL_QUESTIONS_AVG_QWEN_SUMMARY_FAISS_WEIGHT = 1.0
+EQUAL_NATURAL_QUESTIONS_CONCAT_QWEN_SUMMARY_FAISS_WEIGHT = 1.0
 EQUAL_YEAR_MATCH_WEIGHT = 1.0
 EQUAL_QUOTE_MATCH_WEIGHT = 1.0
 EQUAL_CATEGORY_FIRST_SENTENCE_WEIGHT = 1.0
@@ -174,6 +180,7 @@ DPR_FAISS_VARIANT_NAMES = (
     "title_first_paragraph",
     "title_entire_article",
 )
+DPR_QWEN_SUMMARY_FAISS_VARIANT_NAMES = ("title_qwen_summary",)
 
 
 @lru_cache(maxsize=None)
@@ -411,6 +418,7 @@ def search_dpr_faiss(
     dpr_faiss_index_dir: Path = DEFAULT_DPR_FAISS_INDEX_DIR,
     query_embedding=None,
     cache_namespace: str = "default",
+    variant_names: tuple[str, ...] | None = None,
 ) -> list[dict]:
     import numpy as np
 
@@ -434,7 +442,9 @@ def search_dpr_faiss(
 
     aggregated_results: dict[tuple[str, int], dict] = {}
 
-    for variant_name in DPR_FAISS_VARIANT_NAMES:
+    variant_names = variant_names or DPR_FAISS_VARIANT_NAMES
+
+    for variant_name in variant_names:
         variant_dir = dpr_faiss_index_dir / variant_name
         if not variant_dir.exists():
             continue
@@ -532,10 +542,13 @@ def build_faiss_precomputed_components(
     dpr_faiss_index_dir: Path,
     faiss_weight: float,
     dense_query_embedding=None,
+    qwen_summary_faiss_weight: float = 0.0,
     natural_questions_avg_faiss_weight: float = 0.0,
     natural_questions_embeddings=None,
     natural_questions_concat_faiss_weight: float = 0.0,
     natural_questions_concat_embedding=None,
+    natural_questions_avg_qwen_summary_faiss_weight: float = 0.0,
+    natural_questions_concat_qwen_summary_faiss_weight: float = 0.0,
 ) -> list[tuple[str, float, list[dict]]]:
     precomputed_components = []
 
@@ -550,6 +563,22 @@ def build_faiss_precomputed_components(
                     dpr_faiss_index_dir=dpr_faiss_index_dir,
                     query_embedding=dense_query_embedding,
                     cache_namespace="default",
+                ),
+            )
+        )
+
+    if qwen_summary_faiss_weight > 0:
+        precomputed_components.append(
+            (
+                "qwen_summary_faiss_score",
+                qwen_summary_faiss_weight,
+                search_dpr_faiss(
+                    query_text,
+                    limit=component_limit,
+                    dpr_faiss_index_dir=dpr_faiss_index_dir,
+                    query_embedding=dense_query_embedding,
+                    cache_namespace="qwen_summary",
+                    variant_names=DPR_QWEN_SUMMARY_FAISS_VARIANT_NAMES,
                 ),
             )
         )
@@ -577,6 +606,32 @@ def build_faiss_precomputed_components(
         )
 
     if (
+        natural_questions_avg_qwen_summary_faiss_weight > 0
+        and natural_questions_embeddings is not None
+    ):
+        natural_question_summary_results = [
+            search_dpr_faiss(
+                query_text,
+                limit=component_limit,
+                dpr_faiss_index_dir=dpr_faiss_index_dir,
+                query_embedding=natural_question_embedding,
+                cache_namespace=f"natural_question_qwen_summary_{index_number}",
+                variant_names=DPR_QWEN_SUMMARY_FAISS_VARIANT_NAMES,
+            )
+            for index_number, natural_question_embedding in enumerate(
+                natural_questions_embeddings,
+                start=1,
+            )
+        ]
+        precomputed_components.append(
+            (
+                "natural_questions_avg_qwen_summary_faiss_score",
+                natural_questions_avg_qwen_summary_faiss_weight,
+                average_dense_component_results(natural_question_summary_results),
+            )
+        )
+
+    if (
         natural_questions_concat_faiss_weight > 0
         and natural_questions_concat_embedding is not None
     ):
@@ -590,6 +645,25 @@ def build_faiss_precomputed_components(
                     dpr_faiss_index_dir=dpr_faiss_index_dir,
                     query_embedding=natural_questions_concat_embedding,
                     cache_namespace="natural_questions_concat",
+                ),
+            )
+        )
+
+    if (
+        natural_questions_concat_qwen_summary_faiss_weight > 0
+        and natural_questions_concat_embedding is not None
+    ):
+        precomputed_components.append(
+            (
+                "natural_questions_concat_qwen_summary_faiss_score",
+                natural_questions_concat_qwen_summary_faiss_weight,
+                search_dpr_faiss(
+                    query_text,
+                    limit=component_limit,
+                    dpr_faiss_index_dir=dpr_faiss_index_dir,
+                    query_embedding=natural_questions_concat_embedding,
+                    cache_namespace="natural_questions_concat_qwen_summary",
+                    variant_names=DPR_QWEN_SUMMARY_FAISS_VARIANT_NAMES,
                 ),
             )
         )
@@ -1051,8 +1125,15 @@ def search_whoosh_weighted(
     first_two_sentences_weight: float = WEIGHTED_FIRST_TWO_SENTENCES_WEIGHT,
     first_paragraph_weight: float = WEIGHTED_FIRST_PARAGRAPH_WEIGHT,
     faiss_weight: float = WEIGHTED_FAISS_WEIGHT,
+    qwen_summary_faiss_weight: float = WEIGHTED_QWEN_SUMMARY_FAISS_WEIGHT,
     natural_questions_avg_faiss_weight: float = WEIGHTED_NATURAL_QUESTIONS_AVG_FAISS_WEIGHT,
     natural_questions_concat_faiss_weight: float = WEIGHTED_NATURAL_QUESTIONS_CONCAT_FAISS_WEIGHT,
+    natural_questions_avg_qwen_summary_faiss_weight: float = (
+        WEIGHTED_NATURAL_QUESTIONS_AVG_QWEN_SUMMARY_FAISS_WEIGHT
+    ),
+    natural_questions_concat_qwen_summary_faiss_weight: float = (
+        WEIGHTED_NATURAL_QUESTIONS_CONCAT_QWEN_SUMMARY_FAISS_WEIGHT
+    ),
     category_first_sentence_weight: float = WEIGHTED_CATEGORY_FIRST_SENTENCE_WEIGHT,
     category_first_two_sentences_weight: float = WEIGHTED_CATEGORY_FIRST_TWO_SENTENCES_WEIGHT,
     dpr_faiss_index_dir: Path = DEFAULT_DPR_FAISS_INDEX_DIR,
@@ -1204,10 +1285,17 @@ def search_whoosh_weighted(
                                     dpr_faiss_index_dir=dpr_faiss_index_dir,
                                     faiss_weight=faiss_weight,
                                     dense_query_embedding=dense_query_embedding,
+                                    qwen_summary_faiss_weight=qwen_summary_faiss_weight,
                                     natural_questions_avg_faiss_weight=natural_questions_avg_faiss_weight,
                                     natural_questions_embeddings=natural_questions_embeddings,
                                     natural_questions_concat_faiss_weight=natural_questions_concat_faiss_weight,
                                     natural_questions_concat_embedding=natural_questions_concat_embedding,
+                                    natural_questions_avg_qwen_summary_faiss_weight=(
+                                        natural_questions_avg_qwen_summary_faiss_weight
+                                    ),
+                                    natural_questions_concat_qwen_summary_faiss_weight=(
+                                        natural_questions_concat_qwen_summary_faiss_weight
+                                    ),
                                 ),
                                 component_cache_context=component_cache_context,
                                 redirect_searcher=redirect_searcher,
@@ -1238,8 +1326,15 @@ def search_whoosh_weighted_cole(
     first_two_sentences_weight: float = WEIGHTED_FIRST_TWO_SENTENCES_WEIGHT,
     first_paragraph_weight: float = WEIGHTED_FIRST_PARAGRAPH_WEIGHT,
     faiss_weight: float = WEIGHTED_FAISS_WEIGHT,
+    qwen_summary_faiss_weight: float = WEIGHTED_QWEN_SUMMARY_FAISS_WEIGHT,
     natural_questions_avg_faiss_weight: float = WEIGHTED_NATURAL_QUESTIONS_AVG_FAISS_WEIGHT,
     natural_questions_concat_faiss_weight: float = WEIGHTED_NATURAL_QUESTIONS_CONCAT_FAISS_WEIGHT,
+    natural_questions_avg_qwen_summary_faiss_weight: float = (
+        WEIGHTED_NATURAL_QUESTIONS_AVG_QWEN_SUMMARY_FAISS_WEIGHT
+    ),
+    natural_questions_concat_qwen_summary_faiss_weight: float = (
+        WEIGHTED_NATURAL_QUESTIONS_CONCAT_QWEN_SUMMARY_FAISS_WEIGHT
+    ),
     year_match_weight: float = WEIGHTED_YEAR_MATCH_WEIGHT,
     quote_match_weight: float = WEIGHTED_QUOTE_MATCH_WEIGHT,
     category_first_sentence_weight: float = WEIGHTED_CATEGORY_FIRST_SENTENCE_WEIGHT,
@@ -1418,10 +1513,17 @@ def search_whoosh_weighted_cole(
                                     dpr_faiss_index_dir=dpr_faiss_index_dir,
                                     faiss_weight=faiss_weight,
                                     dense_query_embedding=dense_query_embedding,
+                                    qwen_summary_faiss_weight=qwen_summary_faiss_weight,
                                     natural_questions_avg_faiss_weight=natural_questions_avg_faiss_weight,
                                     natural_questions_embeddings=natural_questions_embeddings,
                                     natural_questions_concat_faiss_weight=natural_questions_concat_faiss_weight,
                                     natural_questions_concat_embedding=natural_questions_concat_embedding,
+                                    natural_questions_avg_qwen_summary_faiss_weight=(
+                                        natural_questions_avg_qwen_summary_faiss_weight
+                                    ),
+                                    natural_questions_concat_qwen_summary_faiss_weight=(
+                                        natural_questions_concat_qwen_summary_faiss_weight
+                                    ),
                                 ),
                                 component_cache_context=component_cache_context,
                                 redirect_searcher=redirect_searcher,
@@ -1453,8 +1555,15 @@ def multi_search_whoosh_weighted(
     first_two_sentences_weight: float = WEIGHTED_FIRST_TWO_SENTENCES_WEIGHT,
     first_paragraph_weight: float = WEIGHTED_FIRST_PARAGRAPH_WEIGHT,
     faiss_weight: float = WEIGHTED_FAISS_WEIGHT,
+    qwen_summary_faiss_weight: float = WEIGHTED_QWEN_SUMMARY_FAISS_WEIGHT,
     natural_questions_avg_faiss_weight: float = WEIGHTED_NATURAL_QUESTIONS_AVG_FAISS_WEIGHT,
     natural_questions_concat_faiss_weight: float = WEIGHTED_NATURAL_QUESTIONS_CONCAT_FAISS_WEIGHT,
+    natural_questions_avg_qwen_summary_faiss_weight: float = (
+        WEIGHTED_NATURAL_QUESTIONS_AVG_QWEN_SUMMARY_FAISS_WEIGHT
+    ),
+    natural_questions_concat_qwen_summary_faiss_weight: float = (
+        WEIGHTED_NATURAL_QUESTIONS_CONCAT_QWEN_SUMMARY_FAISS_WEIGHT
+    ),
     category_first_sentence_weight: float = WEIGHTED_CATEGORY_FIRST_SENTENCE_WEIGHT,
     category_first_two_sentences_weight: float = WEIGHTED_CATEGORY_FIRST_TWO_SENTENCES_WEIGHT,
     dpr_faiss_index_dir: Path = DEFAULT_DPR_FAISS_INDEX_DIR,
@@ -1627,10 +1736,17 @@ def multi_search_whoosh_weighted(
                                                 dpr_faiss_index_dir=dpr_faiss_index_dir,
                                                 faiss_weight=faiss_weight,
                                                 dense_query_embedding=dense_query_embedding,
+                                                qwen_summary_faiss_weight=qwen_summary_faiss_weight,
                                                 natural_questions_avg_faiss_weight=natural_questions_avg_faiss_weight,
                                                 natural_questions_embeddings=natural_questions_embedding,
                                                 natural_questions_concat_faiss_weight=natural_questions_concat_faiss_weight,
                                                 natural_questions_concat_embedding=natural_questions_concat_embedding,
+                                                natural_questions_avg_qwen_summary_faiss_weight=(
+                                                    natural_questions_avg_qwen_summary_faiss_weight
+                                                ),
+                                                natural_questions_concat_qwen_summary_faiss_weight=(
+                                                    natural_questions_concat_qwen_summary_faiss_weight
+                                                ),
                                             ),
                                             component_cache_context=component_cache_context,
                                             redirect_searcher=redirect_searcher,
@@ -1672,8 +1788,15 @@ def multi_search_whoosh_weighted_cole(
     first_two_sentences_weight: float = WEIGHTED_FIRST_TWO_SENTENCES_WEIGHT,
     first_paragraph_weight: float = WEIGHTED_FIRST_PARAGRAPH_WEIGHT,
     faiss_weight: float = WEIGHTED_FAISS_WEIGHT,
+    qwen_summary_faiss_weight: float = WEIGHTED_QWEN_SUMMARY_FAISS_WEIGHT,
     natural_questions_avg_faiss_weight: float = WEIGHTED_NATURAL_QUESTIONS_AVG_FAISS_WEIGHT,
     natural_questions_concat_faiss_weight: float = WEIGHTED_NATURAL_QUESTIONS_CONCAT_FAISS_WEIGHT,
+    natural_questions_avg_qwen_summary_faiss_weight: float = (
+        WEIGHTED_NATURAL_QUESTIONS_AVG_QWEN_SUMMARY_FAISS_WEIGHT
+    ),
+    natural_questions_concat_qwen_summary_faiss_weight: float = (
+        WEIGHTED_NATURAL_QUESTIONS_CONCAT_QWEN_SUMMARY_FAISS_WEIGHT
+    ),
     year_match_weight: float = WEIGHTED_YEAR_MATCH_WEIGHT,
     quote_match_weight: float = WEIGHTED_QUOTE_MATCH_WEIGHT,
     category_first_sentence_weight: float = WEIGHTED_CATEGORY_FIRST_SENTENCE_WEIGHT,
@@ -1873,10 +1996,17 @@ def multi_search_whoosh_weighted_cole(
                                                 dpr_faiss_index_dir=dpr_faiss_index_dir,
                                                 faiss_weight=faiss_weight,
                                                 dense_query_embedding=dense_query_embedding,
+                                                qwen_summary_faiss_weight=qwen_summary_faiss_weight,
                                                 natural_questions_avg_faiss_weight=natural_questions_avg_faiss_weight,
                                                 natural_questions_embeddings=natural_questions_embedding,
                                                 natural_questions_concat_faiss_weight=natural_questions_concat_faiss_weight,
                                                 natural_questions_concat_embedding=natural_questions_concat_embedding,
+                                                natural_questions_avg_qwen_summary_faiss_weight=(
+                                                    natural_questions_avg_qwen_summary_faiss_weight
+                                                ),
+                                                natural_questions_concat_qwen_summary_faiss_weight=(
+                                                    natural_questions_concat_qwen_summary_faiss_weight
+                                                ),
                                             ),
                                             component_cache_context=component_cache_context,
                                             redirect_searcher=redirect_searcher,

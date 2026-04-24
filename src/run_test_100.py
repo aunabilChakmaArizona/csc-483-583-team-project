@@ -33,12 +33,16 @@ try:
         EQUAL_FIRST_SENTENCE_WEIGHT,
         EQUAL_FIRST_TWO_SENTENCES_WEIGHT,
         EQUAL_NATURAL_QUESTIONS_AVG_FAISS_WEIGHT,
+        EQUAL_NATURAL_QUESTIONS_AVG_QWEN_SUMMARY_FAISS_WEIGHT,
         EQUAL_NATURAL_QUESTIONS_CONCAT_FAISS_WEIGHT,
+        EQUAL_NATURAL_QUESTIONS_CONCAT_QWEN_SUMMARY_FAISS_WEIGHT,
+        EQUAL_QWEN_SUMMARY_FAISS_WEIGHT,
         EQUAL_QUOTE_MATCH_WEIGHT,
         EQUAL_REDIRECT_WEIGHT,
         EQUAL_TITLE_WEIGHT,
         EQUAL_YEAR_MATCH_WEIGHT,
         DPR_FAISS_VARIANT_NAMES,
+        DPR_QWEN_SUMMARY_FAISS_VARIANT_NAMES,
         WEIGHTED_BODY_WEIGHT,
         WEIGHTED_CATEGORY_FIRST_SENTENCE_WEIGHT,
         WEIGHTED_CATEGORY_FIRST_TWO_SENTENCES_WEIGHT,
@@ -47,7 +51,10 @@ try:
         WEIGHTED_FIRST_SENTENCE_WEIGHT,
         WEIGHTED_FIRST_TWO_SENTENCES_WEIGHT,
         WEIGHTED_NATURAL_QUESTIONS_AVG_FAISS_WEIGHT,
+        WEIGHTED_NATURAL_QUESTIONS_AVG_QWEN_SUMMARY_FAISS_WEIGHT,
         WEIGHTED_NATURAL_QUESTIONS_CONCAT_FAISS_WEIGHT,
+        WEIGHTED_NATURAL_QUESTIONS_CONCAT_QWEN_SUMMARY_FAISS_WEIGHT,
+        WEIGHTED_QWEN_SUMMARY_FAISS_WEIGHT,
         WEIGHTED_QUOTE_MATCH_WEIGHT,
         WEIGHTED_REDIRECT_WEIGHT,
         WEIGHTED_TITLE_WEIGHT,
@@ -92,12 +99,16 @@ except ModuleNotFoundError:
         EQUAL_FIRST_SENTENCE_WEIGHT,
         EQUAL_FIRST_TWO_SENTENCES_WEIGHT,
         EQUAL_NATURAL_QUESTIONS_AVG_FAISS_WEIGHT,
+        EQUAL_NATURAL_QUESTIONS_AVG_QWEN_SUMMARY_FAISS_WEIGHT,
         EQUAL_NATURAL_QUESTIONS_CONCAT_FAISS_WEIGHT,
+        EQUAL_NATURAL_QUESTIONS_CONCAT_QWEN_SUMMARY_FAISS_WEIGHT,
+        EQUAL_QWEN_SUMMARY_FAISS_WEIGHT,
         EQUAL_QUOTE_MATCH_WEIGHT,
         EQUAL_REDIRECT_WEIGHT,
         EQUAL_TITLE_WEIGHT,
         EQUAL_YEAR_MATCH_WEIGHT,
         DPR_FAISS_VARIANT_NAMES,
+        DPR_QWEN_SUMMARY_FAISS_VARIANT_NAMES,
         WEIGHTED_BODY_WEIGHT,
         WEIGHTED_CATEGORY_FIRST_SENTENCE_WEIGHT,
         WEIGHTED_CATEGORY_FIRST_TWO_SENTENCES_WEIGHT,
@@ -106,7 +117,10 @@ except ModuleNotFoundError:
         WEIGHTED_FIRST_SENTENCE_WEIGHT,
         WEIGHTED_FIRST_TWO_SENTENCES_WEIGHT,
         WEIGHTED_NATURAL_QUESTIONS_AVG_FAISS_WEIGHT,
+        WEIGHTED_NATURAL_QUESTIONS_AVG_QWEN_SUMMARY_FAISS_WEIGHT,
         WEIGHTED_NATURAL_QUESTIONS_CONCAT_FAISS_WEIGHT,
+        WEIGHTED_NATURAL_QUESTIONS_CONCAT_QWEN_SUMMARY_FAISS_WEIGHT,
+        WEIGHTED_QWEN_SUMMARY_FAISS_WEIGHT,
         WEIGHTED_QUOTE_MATCH_WEIGHT,
         WEIGHTED_REDIRECT_WEIGHT,
         WEIGHTED_TITLE_WEIGHT,
@@ -483,8 +497,11 @@ def warmup_retrieval_resources(
         active_first_paragraph = True
         active_redirect = True
         active_faiss = True
+        active_qwen_summary_faiss = True
         active_natural_questions_avg_faiss = True
         active_natural_questions_concat_faiss = True
+        active_natural_questions_avg_qwen_summary_faiss = True
+        active_natural_questions_concat_qwen_summary_faiss = True
         active_category_first_sentence = True
         active_category_first_two_sentences = True
         active_year_match = weighted_cole
@@ -497,9 +514,16 @@ def warmup_retrieval_resources(
         active_first_paragraph = WEIGHTED_FIRST_PARAGRAPH_WEIGHT > 0
         active_redirect = WEIGHTED_REDIRECT_WEIGHT > 0
         active_faiss = WEIGHTED_FAISS_WEIGHT > 0
+        active_qwen_summary_faiss = WEIGHTED_QWEN_SUMMARY_FAISS_WEIGHT > 0
         active_natural_questions_avg_faiss = WEIGHTED_NATURAL_QUESTIONS_AVG_FAISS_WEIGHT > 0
         active_natural_questions_concat_faiss = (
             WEIGHTED_NATURAL_QUESTIONS_CONCAT_FAISS_WEIGHT > 0
+        )
+        active_natural_questions_avg_qwen_summary_faiss = (
+            WEIGHTED_NATURAL_QUESTIONS_AVG_QWEN_SUMMARY_FAISS_WEIGHT > 0
+        )
+        active_natural_questions_concat_qwen_summary_faiss = (
+            WEIGHTED_NATURAL_QUESTIONS_CONCAT_QWEN_SUMMARY_FAISS_WEIGHT > 0
         )
         active_category_first_sentence = WEIGHTED_CATEGORY_FIRST_SENTENCE_WEIGHT > 0
         active_category_first_two_sentences = WEIGHTED_CATEGORY_FIRST_TWO_SENTENCES_WEIGHT > 0
@@ -529,8 +553,11 @@ def warmup_retrieval_resources(
             or active_quote_match
             or active_redirect
             or active_faiss
+            or active_qwen_summary_faiss
             or active_natural_questions_avg_faiss
             or active_natural_questions_concat_faiss
+            or active_natural_questions_avg_qwen_summary_faiss
+            or active_natural_questions_concat_qwen_summary_faiss
         ):
             open_whoosh_cole_index()
         elif not weighted_cole and (
@@ -538,8 +565,11 @@ def warmup_retrieval_resources(
             or active_body
             or active_redirect
             or active_faiss
+            or active_qwen_summary_faiss
             or active_natural_questions_avg_faiss
             or active_natural_questions_concat_faiss
+            or active_natural_questions_avg_qwen_summary_faiss
+            or active_natural_questions_concat_qwen_summary_faiss
         ):
             open_whoosh_title_body_index()
         if active_category_first_sentence or active_category_first_two_sentences:
@@ -556,8 +586,11 @@ def warmup_retrieval_resources(
 
         if query_mode == "full" and (
             active_faiss
+            or active_qwen_summary_faiss
             or active_natural_questions_avg_faiss
             or active_natural_questions_concat_faiss
+            or active_natural_questions_avg_qwen_summary_faiss
+            or active_natural_questions_concat_qwen_summary_faiss
         ):
             dense_query_embeddings = get_precomputed_dense_query_embeddings(
                 questions,
@@ -567,16 +600,35 @@ def warmup_retrieval_resources(
                 load_dpr_question_encoder()
         elif query_mode != "full" and (
             active_faiss
+            or active_qwen_summary_faiss
             or active_natural_questions_avg_faiss
             or active_natural_questions_concat_faiss
+            or active_natural_questions_avg_qwen_summary_faiss
+            or active_natural_questions_concat_qwen_summary_faiss
         ):
             load_dpr_question_encoder()
 
-        if active_natural_questions_avg_faiss or active_natural_questions_concat_faiss:
+        if (
+            active_natural_questions_avg_faiss
+            or active_natural_questions_concat_faiss
+            or active_natural_questions_avg_qwen_summary_faiss
+            or active_natural_questions_concat_qwen_summary_faiss
+        ):
             get_precomputed_natural_question_dense_embeddings(questions)
 
-        if active_faiss or active_natural_questions_avg_faiss or active_natural_questions_concat_faiss:
+        if (
+            active_faiss
+            or active_qwen_summary_faiss
+            or active_natural_questions_avg_faiss
+            or active_natural_questions_concat_faiss
+            or active_natural_questions_avg_qwen_summary_faiss
+            or active_natural_questions_concat_qwen_summary_faiss
+        ):
             for variant_name in DPR_FAISS_VARIANT_NAMES:
+                variant_dir = DEFAULT_DPR_FAISS_INDEX_DIR / variant_name
+                if variant_dir.exists():
+                    load_dpr_faiss_variant(str(variant_dir))
+            for variant_name in DPR_QWEN_SUMMARY_FAISS_VARIANT_NAMES:
                 variant_dir = DEFAULT_DPR_FAISS_INDEX_DIR / variant_name
                 if variant_dir.exists():
                     load_dpr_faiss_variant(str(variant_dir))
@@ -670,8 +722,11 @@ def run_search_batch(
                     "first_two_sentences_weight": 1.0,
                     "first_paragraph_weight": 1.0,
                     "faiss_weight": 1.0,
+                    "qwen_summary_faiss_weight": 1.0,
                     "natural_questions_avg_faiss_weight": 1.0,
                     "natural_questions_concat_faiss_weight": 1.0,
+                    "natural_questions_avg_qwen_summary_faiss_weight": 1.0,
+                    "natural_questions_concat_qwen_summary_faiss_weight": 1.0,
                     "category_first_sentence_weight": 1.0,
                     "category_first_two_sentences_weight": 1.0,
                 }
@@ -987,8 +1042,15 @@ def print_metrics(
             "first_two_sentences_weight": EQUAL_FIRST_TWO_SENTENCES_WEIGHT,
             "first_paragraph_weight": EQUAL_FIRST_PARAGRAPH_WEIGHT,
             "faiss_weight": EQUAL_FAISS_WEIGHT,
+            "qwen_summary_faiss_weight": EQUAL_QWEN_SUMMARY_FAISS_WEIGHT,
             "natural_questions_avg_faiss_weight": EQUAL_NATURAL_QUESTIONS_AVG_FAISS_WEIGHT,
             "natural_questions_concat_faiss_weight": EQUAL_NATURAL_QUESTIONS_CONCAT_FAISS_WEIGHT,
+            "natural_questions_avg_qwen_summary_faiss_weight": (
+                EQUAL_NATURAL_QUESTIONS_AVG_QWEN_SUMMARY_FAISS_WEIGHT
+            ),
+            "natural_questions_concat_qwen_summary_faiss_weight": (
+                EQUAL_NATURAL_QUESTIONS_CONCAT_QWEN_SUMMARY_FAISS_WEIGHT
+            ),
             "category_first_sentence_weight": EQUAL_CATEGORY_FIRST_SENTENCE_WEIGHT,
             "category_first_two_sentences_weight": EQUAL_CATEGORY_FIRST_TWO_SENTENCES_WEIGHT,
         }
@@ -1004,8 +1066,15 @@ def print_metrics(
             "first_two_sentences_weight": WEIGHTED_FIRST_TWO_SENTENCES_WEIGHT,
             "first_paragraph_weight": WEIGHTED_FIRST_PARAGRAPH_WEIGHT,
             "faiss_weight": WEIGHTED_FAISS_WEIGHT,
+            "qwen_summary_faiss_weight": WEIGHTED_QWEN_SUMMARY_FAISS_WEIGHT,
             "natural_questions_avg_faiss_weight": WEIGHTED_NATURAL_QUESTIONS_AVG_FAISS_WEIGHT,
             "natural_questions_concat_faiss_weight": WEIGHTED_NATURAL_QUESTIONS_CONCAT_FAISS_WEIGHT,
+            "natural_questions_avg_qwen_summary_faiss_weight": (
+                WEIGHTED_NATURAL_QUESTIONS_AVG_QWEN_SUMMARY_FAISS_WEIGHT
+            ),
+            "natural_questions_concat_qwen_summary_faiss_weight": (
+                WEIGHTED_NATURAL_QUESTIONS_CONCAT_QWEN_SUMMARY_FAISS_WEIGHT
+            ),
             "category_first_sentence_weight": WEIGHTED_CATEGORY_FIRST_SENTENCE_WEIGHT,
             "category_first_two_sentences_weight": WEIGHTED_CATEGORY_FIRST_TWO_SENTENCES_WEIGHT,
         }

@@ -1,0 +1,252 @@
+Weighted-Cole Retrieval Notes
+
+Scope
+
+This note describes the retrieval path used by `python -m src.run_test_100 --weighted-cole`, including:
+- every configured weight, including the zero-weight components
+- what each corresponding index or component stores
+- what each component searches
+- how the query text is formed and processed
+- how the indexes were built starting from raw wiki articles
+- how scores are normalized and merged
+- a few important implementation details that are easy to miss
+
+
+1. Entry Point And Control Flow
+
+- `--weighted-cole` is the flag that activates the weighted Cole retrieval path.
+- When that flag is used, retrieval goes through `multi_search_whoosh_weighted_cole(...)`.
+- The actual weighted retrieval implementation is in `search_whoosh_weighted_with_searcher(...)`.
+
+
+2. All Current `WEIGHTED_*` Values Used By `--weighted-cole`
+
+- `WEIGHTED_TITLE_WEIGHT = 0.0`
+  Component: Cole title BM25 score.
+  Index: `index/whoosh_cole_index`.
+  Stored data: non-redirect wiki articles with cleaned `title` and cleaned full `body`.
+  Query used: transformed query text against the `title` field.
+  Normalization: sparse max normalization, `score / max_score`.
+
+- `WEIGHTED_REDIRECT_WEIGHT = 0.0`
+  Component: redirect-title evidence mapped onto canonical articles.
+  Index: `index/whoosh_cole_redirect_index`.
+  Stored data: redirect articles only, with redirect `title` and redirect `body`.
+  Query used: transformed query text against redirect `title`.
+  Redirect resolution: redirect hits are mapped to canonical non-redirect articles through the redirect lookup database.
+  Normalization: sparse max normalization before redirect-to-canonical transfer.
+
+- `WEIGHTED_BODY_WEIGHT = 20.0`
+  Component: Cole body BM25 score.
+  Index: `index/whoosh_cole_index`.
+  Stored data: non-redirect cleaned article bodies in the `body` field.
+  Query used: transformed query text against the `body` field.
+  Normalization: sparse max normalization.
+
+- `WEIGHTED_FIRST_SENTENCE_WEIGHT = 0.0`
+  Component: first-sentence BM25 score.
+  Index: `index/whoosh_cole_first_sentence_index`.
+  Stored data: non-redirect articles where the indexed `body` is just the first sentence of the cleaned first paragraph.
+  Query used: transformed query text against that lead-only `body` field.
+  Normalization: sparse max normalization.
+
+- `WEIGHTED_FIRST_TWO_SENTENCES_WEIGHT = 0.0`
+  Component: first-two-sentences BM25 score.
+  Index: `index/whoosh_cole_first_two_sentences_index`.
+  Stored data: non-redirect articles where indexed `body` is the first two sentences of the cleaned first paragraph.
+  Query used: transformed query text against that `body` field.
+  Normalization: sparse max normalization.
+
+- `WEIGHTED_FIRST_PARAGRAPH_WEIGHT = 0.0`
+  Component: first-paragraph BM25 score.
+  Index: `index/whoosh_cole_first_paragraph_index`.
+  Stored data: non-redirect articles where indexed `body` is the cleaned first paragraph only.
+  Query used: transformed query text against that `body` field.
+  Normalization: sparse max normalization.
+
+- `WEIGHTED_FAISS_WEIGHT = 1.0`
+  Component: default DPR dense score.
+  Indexes: all four FAISS document variants:
+  `title_first_sentence`, `title_first_two_sentences`, `title_first_paragraph`, `title_entire_article`.
+  Stored data: one DPR vector per non-redirect article per variant.
+  Query used: one DPR question embedding, either precomputed from the Jeopardy clue/category form or generated live.
+  Per-variant dense normalization: min-max normalization.
+  Cross-variant merge: for a document, keep the maximum normalized score it receives from any FAISS variant.
+
+- `WEIGHTED_NATURAL_QUESTIONS_AVG_FAISS_WEIGHT = 1.0`
+  Component: average dense score over 5 generated natural questions.
+  Indexes: the same 4 DPR FAISS document indexes used by the default FAISS component.
+  Stored data: the same document vectors as above.
+  Query used: 5 DPR question embeddings produced from 5 Qwen-generated natural-language questions per Jeopardy clue.
+  Merge rule: retrieve with each of the 5 embeddings separately, then average document scores across the 5 result sets.
+
+- `WEIGHTED_NATURAL_QUESTIONS_CONCAT_FAISS_WEIGHT = 1.0`
+  Component: dense score from one concatenated natural-question embedding.
+  Indexes: the same 4 DPR FAISS document indexes.
+  Stored data: the same document vectors as above.
+  Query used: one DPR embedding of the 5 generated natural questions concatenated into one string.
+  Normalization: the same per-variant min-max normalization.
+
+- `WEIGHTED_YEAR_MATCH_WEIGHT = 1.0`
+  Component: explicit year-match bonus.
+  Index: no separate index; this queries the main Cole index.
+  Stored data searched: `title` and `body` of the main Cole index.
+  Query used: extract 4-digit years from the transformed query and require each extracted year to appear in `title` or `body`.
+  Normalization: sparse max normalization.
+
+- `WEIGHTED_QUOTE_MATCH_WEIGHT = 0.0`
+  Component: explicit quote-match bonus.
+  Index: no separate index; this queries the main Cole index.
+  Stored data searched: `body` terms of the main Cole index.
+  Query used: extract quoted spans from the transformed query, tokenize each quote, and require all tokens for each quote.
+  Normalization: sparse max normalization.
+
+- `WEIGHTED_CATEGORY_FIRST_SENTENCE_WEIGHT = 0.0`
+  Component: semantic category match against title+first-sentence category tags.
+  Index: `index/whoosh_title_body_category_index`.
+  Stored data: lowercased keyword field `title_first_sentence_categories`, populated from semantic category matching.
+  Query used: `question.category` only, normalized and searched as a keyword term.
+
+- `WEIGHTED_CATEGORY_FIRST_TWO_SENTENCES_WEIGHT = 0.0`
+  Component: semantic category match against title+first-two-sentences category tags.
+  Index: `index/whoosh_title_body_category_index`.
+  Stored data: lowercased keyword field `title_first_two_sentences_categories`.
+  Query used: `question.category` only, normalized and searched as a keyword term.
+
+
+3. `EQUAL_*` Values For `--weight-equal`
+
+- All `EQUAL_*` weights are set to `1.0`.
+- The corresponding components are the same components listed above.
+- `--weight-equal` replaces the normal configured values with these equal values.
+
+
+4. Final Score Formula
+
+The weighted score is a straight weighted sum of normalized component scores.
+
+General formula used by `--weighted-cole`:
+
+`final_score(doc) =`
+`title_weight * title_score`
+`+ redirect_weight * redirect_score`
+`+ body_weight * body_score`
+`+ first_sentence_weight * first_sentence_score`
+`+ first_two_sentences_weight * first_two_sentences_score`
+`+ first_paragraph_weight * first_paragraph_score`
+`+ year_match_weight * year_match_score`
+`+ quote_match_weight * quote_match_score`
+`+ category_first_sentence_weight * category_first_sentence_score`
+`+ category_first_two_sentences_weight * category_first_two_sentences_score`
+`+ faiss_weight * faiss_score`
+`+ natural_questions_avg_faiss_weight * natural_questions_avg_faiss_score`
+`+ natural_questions_concat_faiss_weight * natural_questions_concat_faiss_score`
+
+With the current configured values, the effective formula is:
+
+`final_score(doc) =`
+`20 * body_score`
+`+ 1 * faiss_score`
+`+ 1 * natural_questions_avg_faiss_score`
+`+ 1 * natural_questions_concat_faiss_score`
+`+ 1 * year_match_score`
+
+because all other weights are currently `0.0`.
+
+
+5. Normalization Details
+
+- Sparse Whoosh-style component results use max normalization:
+  `normalized = raw_score / max_raw_score`
+
+- Dense FAISS results use min-max normalization:
+  `normalized = (raw_score - min_raw_score) / (max_raw_score - min_raw_score)`
+
+- Default FAISS merges the 4 document FAISS variants by taking the maximum normalized score a document receives across those variants.
+
+- Natural-question average FAISS averages the 5 natural-question result sets.
+
+
+6. Query Input And Processing
+
+- The base query text is the clue alone, or `category + " " + clue` when `--include-category` is enabled.
+
+- `query_mode="full"` keeps the base text unchanged.
+
+- `query_mode="entity"` keeps named entities plus additional nouns, proper nouns, and numbers from the base text.
+
+- If `--paraphrase` is enabled, the raw base query is expanded with T5 paraphrases before the query-mode transformation.
+
+- Sparse weighted components use the transformed query string directly.
+
+- Category-semantic components do not use the full transformed query string. They use `question.category` only, passed separately as `query_category`.
+
+- Default dense DPR query embeddings come from either:
+  `The clue is: {clue}`
+  or
+  `The category is: {category}. The clue is: {clue}`
+
+- Natural-question dense embeddings come from 5 Qwen-generated natural-language questions plus one concatenated version.
+
+
+7. Raw Wiki To Index Pipeline
+
+Step 1. Parse raw wiki files.
+- Raw files from `data/raw/wiki-subset-20140602` are split on `[[Title]]` article headers and stored in `data/processed/wiki_articles.sqlite3` with `title`, raw `body`, `source_file`, `article_index`, and `is_redirect`.
+
+Step 2. Build the cleaned article database.
+- Cleaning removes redirect lines, section headers, templates, references, file markup, category lines, and normalizes whitespace into `data/processed/wiki_articles_step1_clean.sqlite3`.
+
+Step 3. Build sparse indexes used by weighted-cole.
+- Main Cole index from cleaned non-redirect articles.
+- Redirect-only Cole index from cleaned redirect articles.
+- Lead-only indexes from raw parsed articles with internal cleaning that preserves paragraph structure.
+- Title/body/category index from cleaned articles plus semantic category tags.
+
+Step 4. Build the redirect lookup database.
+- Redirect chains are resolved and written to `data/processed/wiki_redirects.sqlite3`.
+
+Step 5. Build semantic category tags.
+- Unique Jeopardy categories are taken from the first 100 question rows.
+- Each category is embedded with `sentence-transformers/all-MiniLM-L6-v2`.
+- Each article is represented as `title + first sentence` and `title + first two sentences` and matched against the category embeddings.
+- The top 10 category names are stored, then copied into `whoosh_title_body_category_index`.
+
+Step 6. Build dense DPR document indexes.
+- Non-redirect articles are exported into `dpr_articles.jsonl.gz`.
+- The exported passage variants are:
+  `first_sentence_text`
+  `first_two_sentences_text`
+  `first_paragraph_text`
+  `entire_article_text`
+- Each `(title, passage_variant)` pair is encoded with `facebook/dpr-ctx_encoder-single-nq-base` and stored in a FAISS `IndexFlatIP` index.
+
+Step 7. Build dense DPR query embeddings.
+- Default clue and category+clue query embeddings are precomputed and saved.
+- Natural-question query embeddings are also precomputed and saved.
+
+
+8. Additional Details That Matter
+
+- `WEIGHTED_COMPONENT_LIMIT = 10000`, so each component can retrieve and normalize up to 10,000 candidates before the final top-k cut.
+
+- Result aggregation is by canonical `(source_file, article_index)` key.
+
+- Ties are broken by total weighted score first, then by per-component scores in a fixed order.
+
+- Retrieval component outputs are cached in SQLite using query text, category, component limit, index fingerprints, extra config, and query-embedding digest.
+
+- A Qwen-summary DPR index builder exists, but its variant name `title_qwen_summary` is not included in the FAISS variant list used by the current retrieval code, so `--weighted-cole` does not currently search that summary index.
+
+- There is a naming mismatch between the natural-question generator and the default embedding-builder input path:
+  the generator writes `questions_natural_qwen3_4b.json`
+  while the embedding builder defaults to `questions_natural_qwen3_14b.json`
+
+
+9. One-Screen Summary
+
+- Main sparse retrieval for `--weighted-cole`: Cole title/body index.
+- Extra sparse evidence: lead-only indexes, redirect-title index, semantic category keyword index, year-match query, quote-match query.
+- Dense evidence: 4 DPR FAISS document indexes searched by one default DPR query embedding, 5 natural-question DPR embeddings, and 1 concatenated natural-question DPR embedding.
+- Current non-zero weights: body `20`, faiss `1`, natural_questions_avg_faiss `1`, natural_questions_concat_faiss `1`, year_match `1`.
+- All other weighted-cole components are present in code but currently configured to `0`.

@@ -1,0 +1,122 @@
+Weighted-Cole Retrieval Notes - Short Version
+
+1. What `--weighted-cole` does
+
+- It runs the weighted Cole retrieval pipeline used by `src/run_test_100.py`.
+- Retrieval combines sparse Whoosh-style scores and dense DPR FAISS scores.
+- The final ranking is a weighted sum of normalized component scores.
+
+
+2. All weighted components
+
+- `title`: BM25 over article titles in the main Cole index. Weight `0.0`
+- `redirect`: BM25 over redirect titles, then mapped to the resolved canonical article. Weight `0.0`
+- `body`: BM25 over full cleaned article body in the main Cole index. Weight `20.0`
+- `first_sentence`: BM25 over the first sentence index. Weight `0.0`
+- `first_two_sentences`: BM25 over the first two sentences index. Weight `0.0`
+- `first_paragraph`: BM25 over the first paragraph index. Weight `0.0`
+- `faiss`: DPR dense retrieval over 4 document FAISS variants. Weight `1.0`
+- `natural_questions_avg_faiss`: average dense retrieval score from 5 generated natural-question embeddings. Weight `1.0`
+- `natural_questions_concat_faiss`: dense retrieval score from one concatenated natural-question embedding. Weight `1.0`
+- `year_match`: bonus score for explicit year matches in the main Cole index. Weight `1.0`
+- `quote_match`: bonus score for quoted phrase matches in the main Cole index. Weight `0.0`
+- `category_first_sentence`: semantic category keyword match on title+first-sentence tags. Weight `0.0`
+- `category_first_two_sentences`: semantic category keyword match on title+first-two-sentences tags. Weight `0.0`
+
+
+3. What the indexes store
+
+- Main Cole index: non-redirect articles with cleaned title and cleaned full body.
+- Redirect index: redirect articles only.
+- First sentence index: non-redirect articles with only the first sentence stored as searchable body.
+- First two sentences index: non-redirect articles with only the first two sentences stored as searchable body.
+- First paragraph index: non-redirect articles with only the first paragraph stored as searchable body.
+- Category index: cleaned title/body plus semantic category keyword fields.
+- DPR FAISS indexes: one dense vector per non-redirect article for 4 passage variants:
+  `title_first_sentence`
+  `title_first_two_sentences`
+  `title_first_paragraph`
+  `title_entire_article`
+
+
+4. What each component searches
+
+- Sparse title/body/lead components search the transformed query text.
+- Redirect component searches redirect titles, then transfers score to the resolved canonical article.
+- Category components search only the Jeopardy category text, not the whole clue.
+- `year_match` extracts 4-digit years from the query and checks that they appear in title or body.
+- `quote_match` extracts quoted spans from the query and matches their tokens in article body.
+- FAISS components search DPR document vectors using DPR query embeddings.
+
+
+5. Query input
+
+- Base query is either:
+  clue only
+  or category + clue if `--include-category` is used.
+
+- Query modes:
+  `full`: use the full base query text.
+  `entity`: keep named entities, nouns, proper nouns, and numbers.
+
+- Dense default DPR query embeddings are built from:
+  `The clue is: {clue}`
+  or
+  `The category is: {category}. The clue is: {clue}`
+
+- Natural-question dense queries come from 5 Qwen-generated natural-language questions for each clue, plus one concatenated version.
+
+
+6. How scores are merged
+
+- Sparse components are normalized by dividing by the component max score.
+- Dense FAISS components are normalized with min-max normalization.
+- Default FAISS merges the 4 document variants by taking the best score per document.
+- Natural-question average FAISS averages scores across the 5 generated-question retrieval runs.
+
+Final score:
+
+`final_score =`
+`title_w * title_score`
+`+ redirect_w * redirect_score`
+`+ body_w * body_score`
+`+ first_sentence_w * first_sentence_score`
+`+ first_two_sentences_w * first_two_sentences_score`
+`+ first_paragraph_w * first_paragraph_score`
+`+ year_match_w * year_match_score`
+`+ quote_match_w * quote_match_score`
+`+ category_first_sentence_w * category_first_sentence_score`
+`+ category_first_two_sentences_w * category_first_two_sentences_score`
+`+ faiss_w * faiss_score`
+`+ natural_questions_avg_faiss_w * natural_questions_avg_faiss_score`
+`+ natural_questions_concat_faiss_w * natural_questions_concat_faiss_score`
+
+Current effective formula:
+
+`final_score =`
+`20 * body_score`
+`+ 1 * faiss_score`
+`+ 1 * natural_questions_avg_faiss_score`
+`+ 1 * natural_questions_concat_faiss_score`
+`+ 1 * year_match_score`
+
+
+7. Raw wiki to retrieval pipeline
+
+- Parse raw wiki files into SQLite articles.
+- Clean article bodies into a cleaned SQLite database.
+- Build the Cole main index and redirect index from cleaned articles.
+- Build first-sentence, first-two-sentences, and first-paragraph indexes from cleaned lead text.
+- Build redirect lookup mappings from redirect articles to canonical targets.
+- Build semantic category matches from Jeopardy categories and article lead text.
+- Export non-redirect articles into DPR passage variants.
+- Encode document variants into 4 DPR FAISS indexes.
+- Encode clue/category queries and generated natural questions into DPR query embeddings.
+
+
+8. Important notes
+
+- The body score currently dominates because its weight is `20.0`.
+- Redirect, title, lead, quote, and category components exist in the system even though their current weights are `0.0`.
+- The retrieval code currently does not use the separate Qwen-summary DPR FAISS index.
+- Component results are cached, and each component can retrieve up to 10,000 candidates before final ranking.
