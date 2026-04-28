@@ -1,9 +1,11 @@
 from src.run_test_100 import (
     JeopardyQuestion,
     evaluate_questions,
+    fuse_initial_and_cross_encoder_results,
     get_precomputed_dense_query_embeddings,
     merge_ranked_results,
     question_queries,
+    rerank_results_with_cross_encoder,
     search_questions,
 )
 import numpy as np
@@ -18,6 +20,79 @@ def make_hit(title: str, score: float = 1.0, article_index: int = 0) -> dict:
         "is_redirect": 0,
         "score": score,
     }
+
+
+def test_stage2_fusion_normalizes_and_combines_initial_and_cross_encoder_scores():
+    results = [
+        {
+            **make_hit("Alpha", article_index=1),
+            "initial_rank": 1,
+            "initial_score": 10.0,
+            "cross_encoder_score": 0.0,
+        },
+        {
+            **make_hit("Beta", article_index=2),
+            "initial_rank": 2,
+            "initial_score": 0.0,
+            "cross_encoder_score": 10.0,
+        },
+        {
+            **make_hit("Gamma", article_index=3),
+            "initial_rank": 3,
+            "initial_score": 5.0,
+            "cross_encoder_score": 5.0,
+        },
+    ]
+
+    fused = fuse_initial_and_cross_encoder_results(results)
+
+    assert [result["title"] for result in fused] == ["Beta", "Gamma", "Alpha"]
+    assert fused[0]["fused_stage2_score"] == 1.0
+    assert fused[1]["fused_stage2_score"] == 1.0
+    assert fused[2]["fused_stage2_score"] == 1.0
+    assert fused[0]["normalized_initial_score"] == 0.0
+    assert fused[0]["normalized_cross_encoder_score"] == 1.0
+
+
+def test_cross_encoder_natural_questions_avg_scores_each_question(monkeypatch):
+    question = JeopardyQuestion(category="Science", clue="Raw clue", answer="Beta")
+    natural_questions = [f"Natural question {index}" for index in range(1, 6)]
+    captured_pairs = []
+
+    def fake_score_pairs(pairs, model_name, batch_size=16):
+        captured_pairs.extend(pairs)
+        return [
+            0.1,
+            0.2,
+            0.3,
+            0.4,
+            0.5,
+            0.9,
+            0.8,
+            0.7,
+            0.6,
+            0.5,
+        ]
+
+    monkeypatch.setattr("src.run_test_100.score_cross_encoder_pairs", fake_score_pairs)
+
+    reranked = rerank_results_with_cross_encoder(
+        question,
+        [
+            {**make_hit("Alpha", article_index=1), "body": "Alpha body"},
+            {**make_hit("Beta", article_index=2), "body": "Beta body"},
+        ],
+        model_name="fake-model",
+        mode="full_article",
+        query_mode="natural_questions_avg",
+        natural_questions=natural_questions,
+    )
+
+    assert [result["title"] for result in reranked] == ["Beta", "Alpha"]
+    assert np.isclose(reranked[0]["cross_encoder_score"], 0.7)
+    assert reranked[1]["cross_encoder_score"] == 0.3
+    assert [pair[0] for pair in captured_pairs[:5]] == natural_questions
+    assert captured_pairs[0][1] == "Title: Alpha\nArticle: Alpha body"
 
 
 def test_question_queries_adds_paraphrases_and_deduplicates(monkeypatch):
