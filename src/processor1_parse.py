@@ -87,7 +87,7 @@ def parse_articles_from_text(text: str, source_file: str = "<memory>") -> list[W
 
 
 def iter_articles_from_file(path: Path):
-    text = path.read_text(encoding="utf-8")
+    text = path.read_text(encoding="utf-8", errors="ignore")
     for article in parse_articles_from_text(text, source_file=path.name):
         yield article
 
