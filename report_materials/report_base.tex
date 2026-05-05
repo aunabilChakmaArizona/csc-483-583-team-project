@@ -1,8 +1,8 @@
 \documentclass[11pt]{article}
 \usepackage[margin=1in]{geometry}
 \usepackage{times}
-\usepackage{natbib}
-\usepackage{hyperref}
+\usepackage[square]{natbib}
+\usepackage[colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue]{hyperref}
 \usepackage{graphicx}
 \usepackage{amsmath}
 \usepackage{booktabs}
@@ -24,7 +24,7 @@ with a Three-Stage Retrieval Pipeline for Jeopardy!-Style Wikipedia Answer Selec
 \maketitle
 
 \begin{abstract}
-We study a retrieval formulation of Jeopardy!-style question answering in which each clue must be mapped to the title of a Wikipedia page. The project uses approximately 280,000 Wikipedia pages, and evaluation is performed on 100 Jeopardy clues whose gold answers are Wikipedia titles. We present a three-stage retrieval pipeline that uses increasingly expensive models only after the candidate set has been reduced. Stage 1 uses a weighted ranking of sparse and dense retrieval signals to produce an initial candidate list. Stage 2 reranks the top 100 candidates with a cross-encoder using natural-question reformulations of the clue. Stage 3 reranks only the top 10 candidates from the previous stage with Qwen3-Reranker-4B. This staged design improves Top-1 accuracy from 0.3100 after the initial weighted retrieval stage to 0.4100 after cross-encoder reranking and to 0.4700 after the final Qwen reranker. The main takeaway is that strong answer selection comes from combining broad early retrieval with progressively stronger semantic rerankers over much smaller candidate sets.
+We study a retrieval formulation of Jeopardy!-style question answering in which each clue must be mapped to the title of a Wikipedia page. The project uses approximately 280,000 Wikipedia pages, and evaluation is performed on 100 Jeopardy clues whose gold answers are Wikipedia titles. We present a three-stage retrieval pipeline that uses increasingly expensive models only after the candidate set has been reduced. Stage 1 uses a weighted ranking of sparse and dense retrieval signals to produce an initial candidate list. Stage 2 reranks the top 100 candidates with a cross-encoder using natural-question reformulations of the clue. Stage 3 reranks only the top 10 candidates from the previous stage with Qwen3-Reranker-4B, a larger reranker model. This staged design improves the P@1 score from 0.31 after the initial weighted retrieval stage to 0.41 after cross-encoder reranking and to 0.47 after the final Qwen reranker. The main takeaway is that strong answer selection comes from combining broad early retrieval with progressively stronger semantic rerankers over much smaller candidate sets.
 \end{abstract}
 
 \section{Introduction}
@@ -33,9 +33,9 @@ Jeopardy!-style clue answering is a difficult retrieval problem because the clue
 
 In this project, we treat the task as page retrieval over Wikipedia. Given a Jeopardy category and clue, the goal is to predict the Wikipedia page title that matches the gold answer. This avoids full generative question answering and turns the task into candidate generation and reranking over approximately 280,000 pages. The main challenge is to retrieve the right page despite noisy Wikipedia markup, long article bodies, redirect pages, and clues whose phrasing differs sharply from natural encyclopedia prose.
 
-Our core design principle is to use simpler and cheaper methods early, then apply larger semantic models later only to narrowed candidate sets. The resulting system is a three-stage retrieval pipeline. Stage 1 uses weighted hybrid retrieval, which combines BM25 ranking over cleaned article text with Dense Passage Retrieval (DPR) embeddings \citep{karpukhin-etal-2020-dpr} indexed in FAISS \citep{johnson2019billion}. Stage 2 reranks the top 100 candidates using a cross-encoder trained for passage ranking \citep{nogueira-cho-2019-passage}. Stage 3 exports only the top 10 candidates from the combined second-stage ranking and reranks them with Qwen3-Reranker-4B \citep{qwen3technicalreport}. We also reformulate each clue into five natural-language questions so that the dense retriever and rerankers see inputs that better match question-versus-passage training distributions.
+Our core design principle is to use simpler and cheaper methods early, then apply larger semantic models later only to narrowed candidate sets. The resulting system is a three-stage retrieval pipeline. Stage 1 uses weighted hybrid retrieval, which combines BM25 ranking over cleaned article text with Dense Passage Retrieval (DPR) embeddings \citep{karpukhin-etal-2020-dpr} indexed in FAISS \citep{johnson2019billion}. Stage 2 reranks the top 100 candidates using a cross-encoder trained for passage ranking \citep{nogueira-cho-2019-passage}. Stage 3 exports only the top 10 candidates from the combined second-stage ranking and reranks them with Qwen3-Reranker-4B, a larger reranker model \citep{qwen3technicalreport}. We also reformulate each clue into five natural-language questions so that the dense retriever and rerankers see inputs that better match question-versus-passage training distributions.
 
-This staged architecture yields consistent gains across the pipeline. The weighted hybrid retrieval stage reaches \(P@1 = 0.3100\), the combined second-stage ranking improves this to \(0.4100\), and the final Qwen reranker reaches \(0.4700\). These results support a simple conclusion: retrieval quality matters first, but stronger semantic reranking becomes effective once the correct page has been brought into a small candidate set.
+This staged architecture yields consistent gains across the pipeline. The weighted hybrid retrieval stage reaches a P@1 score of 0.31, the combined second-stage ranking improves this to 0.41, and the final Qwen reranker reaches 0.47. These results support a simple conclusion: retrieval quality matters first, but stronger semantic reranking becomes effective once the correct page has been brought into a small candidate set.
 
 \section{Core Implementation}
 
@@ -58,7 +58,7 @@ The first stage of the final system is a weighted hybrid retriever. It combines 
   \item DPR retrieval for the concatenation of those five natural questions
 \end{itemize}
 
-For the selected run, the sparse query uses the category concatenated with the clue text. The active weights are heavily dominated by the full-body BM25 score, with smaller contributions from the dense components. Concretely, the selected configuration uses body weight 15.0 and weight 1.0 for each active dense component.
+For the selected run, the sparse query uses the category concatenated with the clue text. The active weights are heavily dominated by the full-body BM25 score, with smaller contributions from the dense components. Concretely, the selected configuration uses body weight 15.00 and weight 1.00 for each active dense component.
 
 This stage is designed for broad recall and cheap filtering. It searches the whole collection, produces the first global ranking, and provides the candidate pool for the more expensive rerankers. The result is a hybrid retriever that is substantially stronger than plain sparse retrieval alone.
 
@@ -72,7 +72,7 @@ The natural-question prompt is constrained to preserve the same intended answer 
 
 The second stage reranks the top 100 candidates from the weighted hybrid retriever using a cross-encoder model, \texttt{cross-encoder/ms-marco-MiniLM-L-12-v2}. Each candidate article is represented by its title and cleaned article body, split into 100-token chunks. For each of the five generated natural questions, the system scores all chunks and keeps the best chunk score for that question. The final cross-encoder score for the candidate is the average across the five natural questions.
 
-We then combine the cross-encoder score with the initial first-stage score. Both scores are normalized within the top-100 candidate set, and the selected combination uses a weight of 1.0 for the initial score and 7.0 for the cross-encoder score. This stage is still local and relatively efficient because it only reads 100 candidates per clue, but it is much more semantically expressive than stage 1.
+We then combine the cross-encoder score with the initial first-stage score. Both scores are normalized within the top-100 candidate set, and the selected combination uses a weight of 1.00 for the initial score and 7.00 for the cross-encoder score. This stage is still local and relatively efficient because it only reads 100 candidates per clue, but it is much more semantically expressive than stage 1.
 
 \subsection{Stage 3: Qwen3-Reranker-4B}
 
@@ -118,25 +118,25 @@ Table~\ref{tab:main-results} presents the main system-stage comparison. Precisio
     \toprule
     \textbf{System stage} & \textbf{P@1} & \textbf{P@5} \\
     \midrule
-    Plain Whoosh body-only & 0.0600 & 0.1400 \\
-    Sparse body-only baseline, no category & 0.2100 & 0.4200 \\
-    Sparse body-only baseline + category & 0.2200 & 0.4600 \\
-    Weighted hybrid retrieval + category & 0.3100 & 0.5000 \\
-    Cross-encoder only & 0.4000 & 0.6200 \\
-    Fused initial + cross-encoder & 0.4100 & 0.6100 \\
-    Qwen chat verifier & 0.0400 & 0.2900 \\
-    Qwen3-Reranker-4B & \textbf{0.4700} & \textbf{0.5800} \\
+    Plain Whoosh body-only & 0.06 & 0.14 \\
+    Sparse body-only baseline, no category & 0.21 & 0.42 \\
+    Sparse body-only baseline + category & 0.22 & 0.46 \\
+    Weighted hybrid retrieval + category & 0.31 & 0.50 \\
+    Cross-encoder only & 0.40 & 0.62 \\
+    Combined first-stage + cross-encoder & 0.41 & 0.61 \\
+    Qwen chat verifier & 0.04 & 0.29 \\
+    Qwen3-Reranker-4B & \textbf{0.47} & \textbf{0.58} \\
     \bottomrule
   \end{tabular}
 \end{table}
 
-The largest early gains come from better retrieval. Plain Whoosh body-only retrieval performs poorly, reaching only \(P@1 = 0.0600\). A stronger sparse baseline raises this sharply, and the full weighted hybrid configuration reaches \(0.3100\). This shows that most of the early improvement comes from stronger candidate generation rather than from later reranking alone.
+The largest early gains come from better retrieval. Plain Whoosh body-only retrieval performs poorly, reaching only a P@1 score of 0.06. A stronger sparse baseline raises this sharply, and the full weighted hybrid configuration reaches 0.31. This shows that most of the early improvement comes from stronger candidate generation rather than from later reranking alone.
 
-The cross-encoder then improves answer selection inside the retrieved set. Using only the cross-encoder ranking over the top 100 candidates reaches \(P@1 = 0.4000\), and the combined second-stage ranking reaches \(0.4100\). This indicates that many first-stage errors are ranking mistakes rather than complete retrieval misses.
+The cross-encoder then improves answer selection inside the retrieved set. Using only the cross-encoder ranking over the top 100 candidates reaches a P@1 score of 0.40, and the combined second-stage ranking reaches 0.41. This indicates that many first-stage errors are ranking mistakes rather than complete retrieval misses.
 
-The final Qwen reranker gives the best Top-1 result, improving \(P@1\) from \(0.4100\) to \(0.4700\). However, this gain should be interpreted correctly: Qwen3-Reranker-4B only sees the exported top 10 candidates from the combined second-stage ranking. It improves final answer selection inside that top-10 set, but it does not improve recall beyond what earlier stages already retrieved.
+The final Qwen reranker gives the best Top-1 result, improving the P@1 score from 0.41 to 0.47. However, this gain should be interpreted correctly: Qwen3-Reranker-4B only sees the exported top 10 candidates from the combined second-stage ranking. It improves final answer selection inside that top-10 set, but it does not improve recall beyond what earlier stages already retrieved.
 
-One negative result is also important. The Qwen chat verifier performs very poorly, reaching only \(P@1 = 0.0400\). A yes/no chat probability is therefore not a useful final ranking signal for this task, even when the underlying model is much larger than the cross-encoder.
+One negative result is also important. The Qwen chat verifier performs very poorly, reaching only a P@1 score of 0.04. A yes/no chat probability is therefore not a useful final ranking signal for this task, even when the underlying model is much larger than the cross-encoder.
 
 \subsection{Grouped Category Analysis}
 
@@ -174,7 +174,7 @@ Qwen reranking helps most on \textit{People / Biography} and \textit{Geography /
 
 \subsection{What Did Not Work}
 
-Several explored ideas did not become part of the final system. Naively adding category text to plain Whoosh hurt badly, reducing \(P@1\) to 0.0200, which shows that raw category terms can distort simple sparse search when not balanced properly. Lead-only indexes based on the first sentence, first two sentences, or first paragraph all underperformed full-body retrieval as standalone signals. Title-only and redirect-only retrieval also failed as standalone rankers.
+Several explored ideas did not become part of the final system. Naively adding category text to plain Whoosh hurt badly, reducing the P@1 score to 0.02, which shows that raw category terms can distort simple sparse search when not balanced properly. Lead-only indexes based on the first sentence, first two sentences, or first paragraph all underperformed full-body retrieval as standalone signals. Title-only and redirect-only retrieval also failed as standalone rankers.
 
 We also explored clue paraphrasing for sparse retrieval, but it did not help enough. The paraphrases tended to preserve the same key nouns and proper nouns while only changing surface wording, so they did not create enough new lexical evidence for BM25-style matching. Finally, several other implemented components, including qwen-summary dense indexes and category-semantic variants, remained at zero weight in the selected configuration because they did not improve the final weighted hybrid pipeline enough to justify inclusion.
 
@@ -182,7 +182,7 @@ We also explored clue paraphrasing for sparse retrieval, but it did not help eno
 
 This project shows that Jeopardy-style Wikipedia answer selection benefits from a staged retrieval design in which stronger models are applied only after the candidate set has already been narrowed. The first-stage weighted hybrid retriever is responsible for the largest early gains because it brings the correct page into a competitive rank range. The cross-encoder then improves semantic ranking within the top 100 candidates, and the final Qwen3-Reranker-4B stage further improves answer selection within the top 10 candidates from the combined second-stage ranking.
 
-The final system reaches \(P@1 = 0.4700\), compared with \(0.3100\) after initial weighted hybrid retrieval and \(0.4100\) after the combined cross-encoder stage. This supports a clear design lesson: retrieval quality comes first, but larger semantic rerankers become valuable once the system has already produced a strong candidate set at low cost.
+The final system reaches a P@1 score of 0.47, compared with 0.31 after initial weighted hybrid retrieval and 0.41 after the combined cross-encoder stage. This supports a clear design lesson: retrieval quality comes first, but larger semantic rerankers become valuable once the system has already produced a strong candidate set at low cost.
 
 The remaining failures follow a small number of patterns. Some questions are still true retrieval misses, where the correct page is not present in the candidate set. Others are ranking misses caused by broad-topic distractors or semantically related wrong pages. Wordplay categories remain difficult because the clue may have little direct lexical overlap with the answer page. Finally, the Qwen reranker is limited by the exported top-10 evidence set, so it cannot recover answers that earlier stages failed to surface.
 

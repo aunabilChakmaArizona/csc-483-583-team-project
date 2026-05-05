@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.26 (TeX Live 2024) (preloaded format=pdflatex 2024.8.26)  5 MAY 2026 12:13
+This is pdfTeX, Version 3.141592653-2.6-1.40.26 (TeX Live 2024) (preloaded format=pdflatex 2024.8.26)  5 MAY 2026 12:29
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -128,6 +128,7 @@ File: puenc.def 2024-01-20 v7.01h Hyperref: PDF Unicode definition (HO)
 Now handling font encoding PU ...
 ... no UTF-8 mapping file for font encoding PU
 )
+Package hyperref Info: Option `colorlinks' set `true' on input line 4062.
 Package hyperref Info: Hyper figures OFF on input line 4179.
 Package hyperref Info: Link nesting OFF on input line 4184.
 Package hyperref Info: Hyper index ON on input line 4187.
@@ -158,7 +159,7 @@ Package hyperref Info: Hyper figures OFF on input line 6063.
 Package hyperref Info: Link nesting OFF on input line 6068.
 Package hyperref Info: Hyper index ON on input line 6071.
 Package hyperref Info: backreferencing OFF on input line 6078.
-Package hyperref Info: Link coloring OFF on input line 6083.
+Package hyperref Info: Link coloring ON on input line 6081.
 Package hyperref Info: Link coloring with OCG OFF on input line 6088.
 Package hyperref Info: PDF/A mode OFF on input line 6093.
 
@@ -394,7 +395,17 @@ LaTeX Font Info:    ... okay on input line 22.
 * \@reversemarginfalse
 * (1in=72.27pt=25.4mm, 1cm=28.453pt)
 
-Package hyperref Info: Link coloring OFF on input line 22.
+(/usr/local/texlive/2024/texmf-dist/tex/latex/graphics/color.sty
+Package: color 2022/01/06 v1.3d Standard LaTeX Color (DPC)
+
+(/usr/local/texlive/2024/texmf-dist/tex/latex/graphics-cfg/color.cfg
+File: color.cfg 2016/01/02 v1.6 sample color configuration
+)
+Package color Info: Driver file: pdftex.def on input line 149.
+
+(/usr/local/texlive/2024/texmf-dist/tex/latex/graphics/mathcolor.ltx))
+Package hyperref Info: Link coloring ON on input line 22.
+
 (./report_base.out) (./report_base.out)
 \@outlinefile=\write3
 \openout3 = `report_base.out'.
@@ -465,7 +476,7 @@ Package microtype Info: Loading generic protrusion settings for font family
 (microtype)             `pcr' (encoding: OT1).
 (microtype)             For optimal results, create family-specific settings.
 (microtype)             See the microtype manual for details.
-<qa_pipeline.pdf, id=83, 650.43pt x 253.94875pt>
+<qa_pipeline.pdf, id=81, 650.43pt x 253.94875pt>
 File: qa_pipeline.pdf Graphic file (type pdf)
 <use qa_pipeline.pdf>
 Package pdftex.def Info: qa_pipeline.pdf  used on input line 85.
@@ -479,23 +490,21 @@ Package rerunfilecheck Info: File `report_base.out' has not changed.
 (rerunfilecheck)             Checksum: B25CDA3F60D9A8974B123C4BCC0E9CF1;2279.
  ) 
 Here is how much of TeX's memory you used:
- 12273 strings out of 474116
- 190701 string characters out of 5743682
+ 12341 strings out of 474116
+ 191985 string characters out of 5743682
  1940187 words of memory out of 5000000
- 34250 multiletter control sequences out of 15000+600000
- 589113 words of font info for 207 fonts, out of 8000000 for 9000
+ 34308 multiletter control sequences out of 15000+600000
+ 588392 words of font info for 206 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 75i,8n,79p,1120b,456s stack positions out of 10000i,1000n,20000p,200000b,200000s
-</usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb
-></usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb><
-/usr/local/texlive/2024/texmf-dist/fonts/type1/urw/courier/ucrr8a.pfb></usr/loc
-al/texlive/2024/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/local/texlive
-/2024/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></usr/local/texlive/2024/texm
-f-dist/fonts/type1/urw/times/utmri8a.pfb>
-Output written on report_base.pdf (6 pages, 127867 bytes).
+ 75i,8n,79p,1138b,457s stack positions out of 10000i,1000n,20000p,200000b,200000s
+</usr/local/texlive/2024/texmf-dist/fonts/type1/urw/courier/ucrr8a.pfb></usr/
+local/texlive/2024/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/local/texl
+ive/2024/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></usr/local/texlive/2024/t
+exmf-dist/fonts/type1/urw/times/utmri8a.pfb>
+Output written on report_base.pdf (6 pages, 109435 bytes).
 PDF statistics:
- 161 PDF objects out of 1000 (max. 8388607)
- 133 compressed objects within 2 object streams
+ 151 PDF objects out of 1000 (max. 8388607)
+ 127 compressed objects within 2 object streams
  28 named destinations out of 1000 (max. 500000)
- 51310 words of extra memory for PDF output out of 51595 (max. 10000000)
+ 50798 words of extra memory for PDF output out of 51595 (max. 10000000)
 
