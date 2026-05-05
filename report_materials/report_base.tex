@@ -9,8 +9,7 @@
 \usepackage{microtype}
 \usepackage{url}
 
-\title{\textbf{Jeopardy!\ as a Question Answering Challenge:\\
-A Hybrid Sparse-Dense Retrieval Approach over Wikipedia}}
+\title{\textbf{A Three-Stage Retrieval Pipeline for Jeopardy!-Style Wikipedia Answer Selection}}
 
 \author{
   Aunabil Chakma, Cole Mobberly, Suhani Surana \\
@@ -24,342 +23,169 @@ A Hybrid Sparse-Dense Retrieval Approach over Wikipedia}}
 \maketitle
 
 \begin{abstract}
-We present \textsc{jeopardy\_program} which is a Q and A system that retrieved Wikipedia articles when provided with the questions.
-We rank approximately 280,000 Wikipedia pages and return the top 10, top 5 and top 1 likely answer title for each question.
-Our system combines BM25 sparse retrieval with Dense Passage Retrieval (DPR)in a weighted hybrid architecture. 
-
-NEED TO FILL THIS.
+We study a retrieval formulation of Jeopardy!-style question answering in which each clue must be mapped to the title of a Wikipedia page. Our collection contains approximately 280,000 Wikipedia pages, and evaluation is performed on 100 Jeopardy clues whose gold answers are Wikipedia titles. We present a three-stage retrieval pipeline that uses increasingly expensive models only after the candidate set has been reduced. Stage 1 uses Weighted-Cole retrieval, a weighted sparse+dense retriever that combines full-body BM25 with DPR-based dense retrieval. Stage 2 reranks the top 100 candidates with a cross-encoder using natural-question reformulations of the clue. Stage 3 reranks only the top 10 fused candidates with Qwen3-Reranker-4B. This staged design improves Top-1 accuracy from 0.3100 after initial Weighted-Cole retrieval to 0.4100 after cross-encoder fusion and to 0.4700 after the final Qwen reranker. The main takeaway is that strong answer selection comes from combining broad early retrieval with progressively stronger semantic rerankers over much smaller candidate sets.
 \end{abstract}
-
 
 \section{Introduction}
 
-The development of open-domain Question Answering (QA) systems has been a central challenge in natural language processing and information retrieval. IBM Watson demonstrated the ability to compete against humans on Jeopardy!. Such systems must interpret complex natural language clues, retrieve relevant information from vast corpora, and identify precise answers in real time. While the full pipeline involves sophisticated reasoning and evidence synthesis, a significant subset of QA tasks can be reframed as an information retrieval (IR) problem.
+Jeopardy!-style clue answering is a difficult retrieval problem because the clue is often indirect, category-dependent, and phrased differently from the text that appears in the target article. Rather than asking for a direct fact, many clues refer to an entity through paraphrase, role, quoted language, or historical description. This creates a lexical mismatch problem: the words in the clue are often not the words that appear most prominently in the correct Wikipedia page.
 
-In particular, many Jeopardy! clues have answers that are actually titles to the Wikipedia pages. This observation allows us to simplify the QA task into one of document retrieval which is, given a natural language clue, the goal is to identify the Wikipedia page whose title best matches the intended answer. This formulation shifts the focus from deep semantic reasoning to effective indexing, query construction, and similarity matching within a large textual corpus.
+In this project, we treat the task as page retrieval over Wikipedia. Given a Jeopardy category and clue, the goal is to predict the Wikipedia page title that matches the gold answer. This avoids full generative question answering and turns the task into candidate generation and reranking over approximately 280,000 pages. The main challenge is to retrieve the right page despite noisy Wikipedia markup, long article bodies, redirect pages, and clues whose phrasing differs sharply from natural encyclopedia prose.
 
-In this project, we explore this retrieval-based approach using a dataset consisting of 100 Jeopardy! clues paired with answers that appear as Wikipedia page titles, alongside a large corpus of approximately 280,000 Wikipedia articles. We implement an IR system to index these documents and design a retrieval pipeline that, given a clue, ranks candidate pages based on their relevance. Key challenges include preprocessing noisy and heterogeneous Wikipedia text, selecting informative query terms from often verbose or indirect clues, and optimizing retrieval performance.
+Our core design principle is to use simpler and cheaper methods early, then apply larger semantic models later only to narrowed candidate sets. The resulting system is a three-stage retrieval pipeline. Stage 1 uses Weighted-Cole retrieval, which combines full-body BM25 with Dense Passage Retrieval (DPR) embeddings \citep{karpukhin-etal-2020-dpr} indexed in FAISS \citep{johnson2019billion}. Stage 2 reranks the top 100 candidates using a cross-encoder trained for passage ranking \citep{nogueira-cho-2019-passage}. Stage 3 exports only the top 10 fused candidates and reranks them with Qwen3-Reranker-4B \citep{qwen3technicalreport}. We also reformulate each clue into five natural-language questions so that the dense retriever and rerankers see inputs that better match question-versus-passage training distributions.
 
-By systematically analyzing indexing strategies, term processing techniques, and query formulation methods, this work aims to evaluate how effectively a classical IR framework can approximate the behavior of a QA system in a constrained but realistic setting.
+This staged architecture yields consistent gains across the pipeline. Weighted-Cole retrieval reaches \(P@1 = 0.3100\), cross-encoder fusion improves this to \(0.4100\), and the final Qwen reranker reaches \(0.4700\). These results support a simple conclusion: retrieval quality matters first, but stronger semantic reranking becomes effective once the correct page has been brought into a small candidate set.
 
-%% -------------------------------------------------------
-%% SECTION 1: Core Implementation -- Indexing and Retrieval
-%% -------------------------------------------------------
-%%
-%% Drop this file into your main .tex with:
-%%   \input{section1_core_implementation}
-%% and make sure your preamble has:
-%%   \usepackage{amsmath, booktabs, graphicx, url}
-%% -------------------------------------------------------
+\section{Core Implementation}
 
-\section{Core Implementation: Indexing and Retrieval}
+\subsection{Wikipedia Preprocessing and Indexing}
 
-\subsection{Wikipedia Preprocessing}
+The Wikipedia collection contains approximately 280,000 pages distributed across 80 raw files. Each page begins with a title in double-square-bracket format, which allows us to parse the corpus into page-level documents rather than indexing each raw file as a single unit. We store parsed pages in SQLite, keep redirect pages separate from article pages, and clean article bodies by removing wiki markup, templates, section noise, and other non-content tokens.
 
-We first start with a  Wikipedia collection of approximately 280,000 articles. These articles are distributed across 80 raw files.
-These contain a sequence of multiple articles and each page is separated by a [[Title]] in this format.
-A preprocessing pipeline parses these files and stores each article as a separate record in a SQLite database, recording the title, raw body text, source file identifier, article index within that file, and a boolean flag
-indicating whether the article is a redirect. 
-This separation by articles gives us an advantage since when we index each wiki page as a separate document rather than concatenating all the documents into a single document, it allows our retrieval system to return a specific page title as the answer.
+This preprocessing supports the structure of the final task: the system must return a single Wikipedia page title as the answer. Redirects are therefore handled explicitly rather than treated as normal answer pages, and all retrieval stages operate over canonical article identities.
 
-Then, we strip the redirect lines, section headers, wiki markup templates,
-reference annotations, file and image markup, and category lines, and then
-normalize whitespace. Wikipedia pages contain a lot of dense markup and if we index it in the raw form, we introduce several non informative and high frequency tokens that would artificially inflate the term frequencies and distort BM25 scores. We also identify redirect articles during parsing and route them to redirect index since including such articles' body test in the main index would include noise as they include no significant original content and instead serve only as a redirect to the primary page. We describe this in detail, in Section~\ref{sec:sparse_indexes}.
+The final first-stage retriever uses one main sparse index and several dense indexes. The sparse component is a Whoosh BM25F index over cleaned full article bodies. The dense component is built from DPR passage representations, with vectors stored in FAISS for efficient nearest-neighbor search. We retain additional lead-only indexes and redirect/title signals in the codebase for experimentation, but they are not part of the final selected weighted configuration.
 
-All the clean and non redirect articles are stored in a SQLite database. This will now serve as a primary source for all the further processed indexes.
+\subsection{Stage 1: Weighted-Cole Retrieval}
 
-\subsection{Sparse Index Construction}
-\label{sec:sparse_indexes}
+The first stage of the final system is Weighted-Cole retrieval. It combines one strong sparse signal with three complementary dense signals:
 
-For sparse indexing, we use the Whoosh library which is a a fast, full-text indexing and searching library and it implements BM25F scoring. 
+\begin{itemize}
+  \item full cleaned body BM25
+  \item DPR retrieval for the category+clue query
+  \item DPR retrieval averaged over five generated natural questions
+  \item DPR retrieval for the concatenation of those five natural questions
+\end{itemize}
 
-We divide sparse indexing into two parts, for non redirect articles and redirect articles. 
-For non-redirect articles, we index it under two fields which are \texttt{title} field
-containing the cleaned article title, and a \texttt{body} field containing the
-full cleaned article text.
+For the selected run, the sparse query uses the category concatenated with the clue text. The active weights are heavily dominated by the full-body BM25 score, with smaller contributions from the dense components. Concretely, the selected configuration uses body weight 15.0 and weight 1.0 for each active dense component.
 
-We use Whoosh's default analyzer for spare index construction. It applies a standard tokenizer, a lowercase filter, and a stemming filter based on the Porter stemmer
-which reduces morphological variants to a common root form. To keep common filler words from skewing frequency data, Whoosh automatically filters out stop words using Whoosh's built-in stop word list.
+This stage is designed for broad recall and cheap filtering. It searches the whole collection, produces the first global ranking, and provides the candidate pool for the more expensive rerankers. The result is a hybrid retriever that is substantially stronger than plain sparse retrieval alone.
 
-We do not apply any additional lemmatization other than Porter stemming since it is cuffiecient 
-No additional lemmatization is applied beyond Porter stemming, since the Porter stemmer is robust enough to handle the typical word variations found in both Wikipedia articles and Jeopardy clues.
+\subsection{Why We Convert Clues into Natural Questions}
 
-We did this by indexing not just the full articles, but also three lead-text indexes; one for the first sentence, one for the first two sentences, and one for the first paragraph. This works well because Wikipedia articles usually start with the most important information ie the information in concentrated in the first paragraph.
-When we analyzed the 100 questions, majority of the questions had a single fact behind them and  typically corresponded
-to content appearing in the title or the first sentence or first paragraph of the
-target Wikipedia article. Thus, by providing these dedicated indexes over these lead variants allows the retrieval system to assign higher weights to documents whose most prominent content matches the clue without having to go through the whole main body which requires computational and storage resources and would go through unrelated terms.
+Jeopardy clues are often not written like ordinary search questions. They may be fragments, indirect descriptions, or clues whose meaning depends heavily on the category. DPR, cross-encoders, and reranker-style models are generally trained on more standard query-document or question-passage pairs. To reduce this mismatch, we rewrite each clue into five natural-language questions using Qwen3-4B \citep{qwen3technicalreport}.
 
+The natural-question prompt is constrained to preserve the same intended answer without introducing outside knowledge. These question reformulations are then used in two places: as dense DPR queries in the first stage and as query inputs for the cross-encoder and Qwen reranker in later stages. This lets the later models compare more natural question forms against Wikipedia evidence, which is particularly useful when the category contributes the answer type or hidden constraint.
 
-We handle redirect articles through a dedicated redirect index and a
-canonical resolution database. When a redirect article gets a high BM25 score for a query, we transfer that score to its final target article. We use a precomputed lookup table to resolve each redirect chain to its canonical page. This mechanism ensures that evidence from redirect titles adds to the score of the correct article rather than competing with it in the final ranking, and that our retrieval system never returns a redirect page title as its predicted answer.
+\subsection{Stage 2: Cross-Encoder Reranking}
 
+The second stage reranks the top 100 candidates from Weighted-Cole retrieval using the \texttt{cross-encoder/}\allowbreak\texttt{ms-marco-MiniLM-L-12-v2} model. Each candidate article is represented by its title and cleaned article body, split into 100-token chunks. For each of the five generated natural questions, the system scores all chunks and keeps the best chunk score for that question. The final cross-encoder score for the candidate is the average across the five natural questions.
 
-A final sparse index stores semantic category tags derived from the Jeopardy!\
-category field.
-Each unique Jeopardy!\ category is embedded using the
-\texttt{all-MiniLM-L6-v2} sentence encoder~\citep{reimers-2019-sentence-bert},
-and each article is represented as the concatenation of its title with its
-first sentence and, separately, with its first two sentences.
-The top-10 most semantically similar category names for each article
-representation are stored as a keyword field in a dedicated category index.
-At retrieval time, the category text of the incoming question is matched
-against these keyword fields, providing a domain-restriction signal that is
-particularly useful for clues in categories such as \textsc{Newspapers},
-\textsc{Broadway Lyrics}, or \textsc{African Cities}, where the category
-alone substantially narrows the plausible answer space.
+We then fuse the cross-encoder score with the initial Weighted-Cole score. Both scores are normalized within the top-100 candidate set, and the selected fusion uses a weight of 1.0 for the initial score and 7.0 for the cross-encoder score. This stage is still local and relatively efficient because it only reads 100 candidates per clue, but it is much more semantically expressive than stage 1.
 
-\begin{figure}
+\subsection{Stage 3: Qwen3-Reranker-4B}
+
+The final stage is an offline reranking experiment performed on the top 10 fused candidates. For each clue, we export the top 10 candidates together with the category, clue, gold answer, five generated natural questions, and a truncated evidence snippet from each candidate article. These exported rows are then scored in Colab with Qwen3-Reranker-4B.
+
+The Qwen reranker sees an instruction, one natural question, and one document evidence snippet. It outputs a yes/no-style relevance score, and the final candidate score is the average over the five natural questions for that clue. This stage cannot recover a correct answer that was not already present in the exported top 10, so it is a pure answer-selection stage rather than a recall-improvement stage.
+
+\begin{figure}[t]
     \centering
     \includegraphics[width=1.0\linewidth]{qa_pipeline.pdf}
-    \caption{Enter Caption}
-    \label{fig:placeholder}
+    \caption{Final three-stage pipeline. A Jeopardy category and clue are first mapped to a Weighted-Cole candidate ranking over Wikipedia. The top 100 candidates are reranked by a cross-encoder, the top 10 fused candidates are reranked by Qwen3-Reranker-4B, and the highest-ranked final page title is returned as the answer.}
+    \label{fig:pipeline}
 \end{figure}
 
-\subsection{Dense Index Construction}
+\section{Experimental Setup}
 
-To complement sparse lexical matching, we also build a dense retrieval component based on the Dense Passage Retrieval (DPR) framework. So, each article (which is non directed) is represented in four variants: (1) title + first sentence, (2) title + first two sentences, (3) title + first paragraph, and (4) title + full article body. This design allows the model to capture both highly focused and more complete contextual information.
+We evaluate on 100 Jeopardy clues whose gold answers correspond to Wikipedia page titles. The document collection is the full Wikipedia corpus used in the project, containing approximately 280,000 pages after parsing. Each page is indexed as a separate document.
 
-Each (title, passage variant) pair is encoded using the
-facebook/dpr-ctx\_encoder-single-nq-base model. Then, the resulting
-dense vectors are stored in a FAISS \texttt{IndexFlatIP}. This index performs exact nearest-neighbor search using inner product similarity.
+The final selected local pipeline uses the following configuration:
 
-We thus maintain four separate FAISS indexes (according to the required passage granularity). At query time, the system searches across all four indexes and lets the retrieval system match queries against different levels of article detail. It is not restricted to a single fixed passage length. Instead, it can retrieve documents based on whichever representation best captures the defining information.
+\begin{itemize}
+  \item category + clue query text
+  \item Weighted-Cole retrieval as the first stage
+  \item cross-encoder reranking over the top 100 candidates
+  \item natural-question averaging for the cross-encoder query mode
+  \item Qwen3-Reranker-4B reranking over the top 10 fused candidates
+\end{itemize}
 
+We evaluate by normalized title match between the top-ranked predicted page and the gold answer. The primary metric is Precision@1 (Top-1 accuracy), because the system must commit to one final answer. We report Precision@5 as a supporting metric to show whether the correct page is at least being brought near the top of the ranking before the final answer decision.
 
-\subsection{Query Construction}
-\label{sec:query}
-When we analysed the 100 clues, we identified several structural patterns. 61/100 clues had clear multi word, title-cased phrases. These usually refer to names of people, places, or works which act as strong anchors for retrieval.
-41/100 clues contained atleast one four digit year. 53/100 clues contained quoted text (most of them from song lyrics or book text or newspaper articles etc.). These often match article lead text for first paragraph of the body. 57/100 clues used "this" instead of the answer directly so the answer would have to be retrieved on the adjacent words to inform the system about the context.
+\section{Results and Analysis}
 
-Thus, based on this analysis, we made it support two query construction modes. 
-In \textit{full} mode, the complete clue text is submitted to the retrieval
-components unchanged, preserving all terms including function words.
-In \textit{entity} mode, the query is reduced to named entities, nouns,
-proper nouns, and numerical tokens extracted from the clue using a spaCy
-NLP pipeline, discarding function words,
-modifier terms, and stylistic connectives that mostly would not appear in
-the target article.
-We conclude that the entity mode works very well for clues using the
-\textit{this \ldots} construction, where function words such as
-\textit{this}, \textit{it}, \textit{so}, and \textit{its} would otherwise
-dilute the query signal.
+\subsection{Main Results}
 
-The base query text is formed from the clue alone, or from the category and
-clue concatenated when the \texttt{--include-category} flag is enabled.
-Category inclusion is most beneficial for domain-specific categories that
-strongly constrain the answer type, such as media categories or geographic
-categories, but can introduce noise for generic categories.
-
-For sparse retrieval, the transformed query string is submitted directly to
-the Whoosh index.
-A dedicated year-match component extracts all four-digit year tokens from the
-query and issues a conjunctive Boolean query requiring each extracted year to
-appear in the candidate article's title or body.
-This provides a targeted high-precision signal for the 41\% of clues that
-contain explicit temporal anchors, and is normalized separately before
-being incorporated into the final score.
-
-For dense retrieval, query embeddings are produced using the DPR question
-encoder.
-The default embedding is derived from the prompt
-\textit{``The clue is: \{clue\}''} or, when the category is included,
-\textit{``The category is: \{category\}. The clue is: \{clue\}''}.
-To address the lexical mismatch between Jeopardy!\ clue phrasing and Wikipedia
-article vocabulary, the system additionally uses a Qwen-3 4B language
-model~\citep{qwen2025qwen25technicalreport} to reformulate each clue into
-five natural-language questions.
-For example, a clue such as \textit{``This woman who won consecutive heptathlons
-at the Olympics went to UCLA on a basketball scholarship''} might be
-reformulated as \textit{``Which athlete won back-to-back heptathlons at the
-Olympics and attended UCLA?''}, a phrasing that more closely resembles the
-language of the target Wikipedia article.
-Each of the five generated questions is encoded separately with the DPR
-question encoder; their retrieval scores are then averaged to produce a
-dense signal that is robust to any single reformulation.
-A sixth embedding is produced from the concatenation of all five questions
-into a single input string, providing a complementary dense query signal.
-All query embeddings are precomputed and cached to avoid repeated model
-inference during evaluation.
-
-\subsection{Score Normalization and Final Ranking}
-
-Because sparse BM25 scores and dense inner-product scores occupy
-incommensurable ranges, each retrieval component normalizes its scores before
-they are combined.
-Sparse components apply max normalization:
-\begin{equation}
-  s_{\text{norm}} = \frac{s_{\text{raw}}}{\max_{d} s_{\text{raw}}(d)}
-  \label{eq:max_norm}
-\end{equation}
-Dense FAISS components apply min-max normalization:
-\begin{equation}
-  s_{\text{norm}} = \frac{s_{\text{raw}} - \min_{d} s_{\text{raw}}(d)}
-                        {\max_{d} s_{\text{raw}}(d) - \min_{d} s_{\text{raw}}(d)}
-  \label{eq:minmax_norm}
-\end{equation}
-For the default FAISS component, which searches all four passage-granularity
-indexes, the normalized score assigned to a document is the maximum it
-receives across the four variants.
-For the natural-question average FAISS component, the per-document score is
-computed by first taking the maximum across the four FAISS variants for each
-of the five generated questions, and then averaging across the five
-question-level scores.
-
-The final document score is a weighted linear combination of all normalized
-component scores:
-\begin{align}
-  \text{score}(d) \;=\; &\; w_{\text{body}} \cdot s_{\text{body}}(d)
-    \;+\; w_{\text{faiss}} \cdot s_{\text{faiss}}(d) \nonumber \\
-    &+\; w_{\text{nq-avg}} \cdot s_{\text{nq-avg}}(d)
-    \;+\; w_{\text{nq-concat}} \cdot s_{\text{nq-concat}}(d) \nonumber \\
-    &+\; w_{\text{year}} \cdot s_{\text{year}}(d)
-  \label{eq:final_score}
-\end{align}
-where the current non-zero weights are
-$w_{\text{body}} = 20$,
-$w_{\text{faiss}} = w_{\text{nq-avg}} = w_{\text{nq-concat}} = w_{\text{year}} = 1$.
-The body BM25 score receives the highest weight because lexical matching over
-the full article body is the most reliable signal for the majority of clues;
-the dense and year-match components provide complementary evidence that
-improves recall on clues where lexical overlap between the clue and the
-correct article is limited.
-Each component retrieves up to 10,000 candidate articles before score merging,
-and component results are cached in SQLite using the query text, category,
-component limit, index fingerprints, and query-embedding digest as cache keys.
-
-%% -------------------------------------------------------
-%% SECTION 3: Measuring Performance
-%% -------------------------------------------------------
-%%
-%% Drop this file into your main .tex with:
-%%   \input{section3_performance}
-%% and make sure your preamble has:
-%%   \usepackage{amsmath, booktabs, multirow, siunitx}
-%% -------------------------------------------------------
-
-\section{Measuring Performance}
-
-\subsection{Evaluation Metric}
-
-We evaluate our system using two complementary retrieval metrics:
-Precision at 1 (P@1) and Mean Reciprocal Rank (MRR).
-P@1 measures the fraction of the 100 Jeopardy!\ questions for which the
-correct Wikipedia article appears as the top-ranked result, and is the
-primary metric for this task.
-It is the natural choice here because each question has exactly one correct
-answer and the system is expected to commit to a single prediction, mirroring
-the structure of the Jeopardy!\ game itself.
-Normalized Discounted Cumulative Gain (NDCG), while appropriate for ranked
-retrieval tasks with graded relevance, is less suitable here because there is
-no meaningful notion of partial relevance: an article is either the correct
-answer or it is not.
-MRR is reported as a secondary metric because it gives partial credit when the
-correct answer appears at rank 2 or 3, providing a softer signal that is useful
-for diagnosing whether errors are near misses or complete failures.
-Formally, for a set of $N$ questions:
-
-\begin{equation}
-  \text{P@1} = \frac{1}{N} \sum_{i=1}^{N} \mathbf{1}[\text{rank}_i = 1]
-  \label{eq:pat1}
-\end{equation}
-
-\begin{equation}
-  \text{MRR} = \frac{1}{N} \sum_{i=1}^{N} \frac{1}{\text{rank}_i}
-  \label{eq:mrr}
-\end{equation}
-
-\noindent where $\text{rank}_i$ is the rank of the correct article for
-question $i$, and the sum in MRR is taken only over questions where the
-correct article appears in the top-$k$ returned results ($k = 10$ in our
-experiments).
-
-\subsection{Results}
-
-Table~\ref{tab:ablation} presents P@1 and MRR across five system configurations
-in an ablation study that isolates the contribution of each retrieval component.
-The baseline system uses only BM25 body retrieval.
-Subsequent rows add the default DPR FAISS component, the natural-question
-average FAISS component, the concatenated natural-question FAISS component,
-and finally the full \textsc{jeopardy\_program} system which additionally
-incorporates the year-match bonus.
+Table~\ref{tab:main-results} presents the main system-stage comparison. Precision@1 is the primary metric because it directly measures whether the final predicted page title is correct. Precision@5 is included only as supporting context.
 
 \begin{table}[t]
   \centering
   \small
-  \caption{
-    Ablation results on the 100-question Jeopardy!\ benchmark.
-    P@1 is the primary metric; MRR is reported as a secondary measure.
-    Each row adds one retrieval component over the previous configuration.
-    Best results per column are in \textbf{bold}.
-  }
-  \label{tab:ablation}
-  \renewcommand{\arraystretch}{1.2}
+  \caption{Main system-stage comparison. Precision@1 is the primary metric; Precision@5 is supporting.}
+  \label{tab:main-results}
   \begin{tabular}{lcc}
     \toprule
-    \textbf{System Configuration} & \textbf{P@1} & \textbf{MRR} \\
+    \textbf{System stage} & \textbf{P@1} & \textbf{P@5} \\
     \midrule
-    Body BM25 (baseline)                          & \textit{XX.X} & \textit{XX.X} \\
-    \quad + FAISS (DPR default)                   & \textit{XX.X} & \textit{XX.X} \\
-    \quad + NQ avg FAISS                          & \textit{XX.X} & \textit{XX.X} \\
-    \quad + NQ concat FAISS                       & \textit{XX.X} & \textit{XX.X} \\
-    \quad + Year match (\textsc{jeopardy\_program}) & \textbf{\textit{XX.X}} & \textbf{\textit{XX.X}} \\
+    Plain Whoosh body-only & 0.0600 & 0.1400 \\
+    Cole body-only, no category & 0.2100 & 0.4200 \\
+    Cole body-only + category & 0.2200 & 0.4600 \\
+    Weighted-Cole + category & 0.3100 & 0.5000 \\
+    Cross-encoder only & 0.4000 & 0.6200 \\
+    Fused initial + cross-encoder & 0.4100 & 0.6100 \\
+    Qwen chat verifier & 0.0400 & 0.2900 \\
+    Qwen3-Reranker-4B & \textbf{0.4700} & \textbf{0.5800} \\
     \bottomrule
   \end{tabular}
 \end{table}
 
-Table~\ref{tab:equal_weights} compares the tuned weighted configuration against
-a uniform-weight baseline in which all active components are assigned equal
-weight ($w = 1.0$), isolating the effect of weight tuning from the effect of
-component selection.
+The largest early gains come from better retrieval. Plain Whoosh body-only retrieval performs poorly, reaching only \(P@1 = 0.0600\). A cleaner Cole-style sparse baseline raises this sharply, and the full Weighted-Cole configuration reaches \(0.3100\). This shows that most of the early improvement comes from stronger candidate generation rather than from later reranking alone.
+
+The cross-encoder then improves answer selection inside the retrieved set. Using only the cross-encoder ranking over the top 100 candidates reaches \(P@1 = 0.4000\), and the fused stage reaches \(0.4100\). This indicates that many first-stage errors are ranking mistakes rather than complete retrieval misses.
+
+The final Qwen reranker gives the best Top-1 result, improving \(P@1\) from \(0.4100\) to \(0.4700\). However, this gain should be interpreted correctly: Qwen3-Reranker-4B only sees the exported top 10 fused candidates. It improves final answer selection inside that top-10 set, but it does not improve recall beyond what earlier stages already retrieved.
+
+One negative result is also important. The Qwen chat verifier performs very poorly, reaching only \(P@1 = 0.0400\). A yes/no chat probability is therefore not a useful final ranking signal for this task, even when the underlying model is much larger than the cross-encoder.
+
+\subsection{Grouped Category Analysis}
+
+To make the category-level behavior interpretable, we group the 30 original Jeopardy categories into 9 super-categories. Table~\ref{tab:grouped-categories} shows Top-1 counts at each stage.
 
 \begin{table}[t]
   \centering
-  \small
-  \caption{
-    Comparison of the equal-weight configuration (\texttt{--weight-equal},
-    all active components set to $w = 1.0$) against the tuned
-    \textsc{jeopardy\_program} configuration
-    ($w_{\text{body}}=20$, all other active components $w=1$).
-    Best results per column are in \textbf{bold}.
-  }
-  \label{tab:equal_weights}
-  \renewcommand{\arraystretch}{1.2}
-  \begin{tabular}{lcc}
+  \scriptsize
+  \caption{Top-1 correct counts after grouping the 30 Jeopardy categories into 9 super-categories.}
+  \label{tab:grouped-categories}
+  \begin{tabular}{lrrrrrr}
     \toprule
-    \textbf{Configuration} & \textbf{P@1} & \textbf{MRR} \\
+    \textbf{Super-category} & \textbf{N} & \textbf{Vanilla} & \textbf{Weighted} & \textbf{Cross-enc.} & \textbf{Fused} & \textbf{Qwen} \\
     \midrule
-    Equal weights (\texttt{--weight-equal})            & \textit{XX.X} & \textit{XX.X} \\
-    Tuned weights (\textsc{jeopardy\_program})         & \textbf{\textit{XX.X}} & \textbf{\textit{XX.X}} \\
+    People / Biography & 19 & 2 & 9 & 10 & 11 & 14 \\
+    Geography / Places & 17 & 0 & 4 & 4 & 5 & 8 \\
+    History / Politics & 25 & 0 & 4 & 10 & 8 & 9 \\
+    Entertainment / Pop Culture & 14 & 1 & 6 & 7 & 7 & 5 \\
+    Business / Companies & 5 & 0 & 2 & 0 & 0 & 2 \\
+    Media / Journalism & 5 & 1 & 2 & 2 & 2 & 3 \\
+    Organizations / Institutions & 3 & 1 & 2 & 2 & 2 & 2 \\
+    Language / Wordplay & 3 & 0 & 0 & 0 & 0 & 1 \\
+    Mixed / General Knowledge & 9 & 1 & 2 & 5 & 6 & 3 \\
+    \midrule
+    \textbf{Total} & \textbf{100} & \textbf{6} & \textbf{31} & \textbf{40} & \textbf{41} & \textbf{47} \\
     \bottomrule
   \end{tabular}
 \end{table}
 
-\subsection{Discussion}
+The grouped analysis shows that Weighted-Cole retrieval is especially important for \textit{People / Biography}, \textit{Entertainment / Pop Culture}, and \textit{Geography / Places}. These categories often depend on identifying a named entity, role, or location from article-body evidence, which is well matched by a strong sparse retriever with dense support.
 
-We draw several observations from these results.
-First, adding DPR dense retrieval on top of BM25 body retrieval improves
-both P@1 and MRR, confirming that dense and sparse signals are complementary:
-BM25 handles clues with strong lexical overlap between the clue and the target
-article, while DPR recovers articles where the clue and article use different
-vocabulary to express the same concept.
-Second, the natural-question augmentation components provide additional
-gains, with the averaged embeddings over five reformulations outperforming
-the single concatenated embedding, suggesting that averaging over diverse
-query phrasings produces a more robust dense signal than concatenation.
-Third, the year-match bonus provides a meaningful improvement on the full
-benchmark, consistent with the dataset analysis showing that 41 of the
-100 clues contain explicit four-digit years that appear in the target article.
-Finally, Table~\ref{tab:equal_weights} shows that assigning higher weight to the
-body BM25 component is beneficial: with equal weights, the dense components
-can overwhelm the sparse signal on clues where lexical matching is in fact
-the stronger retrieval mechanism, whereas the tuned configuration preserves
-the primacy of BM25 while still benefiting from the complementary dense
-evidence.
+The cross-encoder helps most on \textit{History / Politics}, where the jump from 4 to 10 correct answers is the largest stage-to-stage improvement in the grouped table. These clues often require better local semantic alignment between a clue-like question and a supporting passage. The cross-encoder is much less reliable on \textit{Business / Companies}, where semantically related company, product, and subsidiary pages are strong distractors.
 
-%% -------------------------------------------------------
-%% Bibliography
-%% -------------------------------------------------------
-\bibliographystyle{acl_natbib}
+Qwen reranking helps most on \textit{People / Biography} and \textit{Geography / Places}, where it adds three more correct top-ranked answers in each group. This suggests that once the correct answer is already inside the top 10 and the evidence snippet is explicit, the larger reranker can make better final distinctions than the cross-encoder alone. In contrast, \textit{Entertainment / Pop Culture} and \textit{Mixed / General Knowledge} become worse under Qwen reranking, indicating that the final yes/no-style evidence judgment is less stable for broad, indirect, or comparative clues.
+
+\subsection{What Did Not Work}
+
+Several explored ideas did not become part of the final system. Naively adding category text to plain Whoosh hurt badly, reducing \(P@1\) to 0.0200, which shows that raw category terms can distort simple sparse search when not balanced properly. Lead-only indexes based on the first sentence, first two sentences, or first paragraph all underperformed full-body retrieval as standalone signals. Title-only and redirect-only retrieval also failed as standalone rankers.
+
+We also explored clue paraphrasing for sparse retrieval, but it did not help enough. The paraphrases tended to preserve the same key nouns and proper nouns while only changing surface wording, so they did not create enough new lexical evidence for BM25-style matching. Finally, several other implemented components, including qwen-summary dense indexes and category-semantic variants, remained at zero weight in the selected configuration because they did not improve the final Weighted-Cole pipeline enough to justify inclusion.
+
+\section{Conclusion}
+
+This project shows that Jeopardy-style Wikipedia answer selection benefits from a staged retrieval design in which stronger models are applied only after the candidate set has already been narrowed. The first-stage Weighted-Cole retriever is responsible for the largest early gains because it brings the correct page into a competitive rank range. The cross-encoder then improves semantic ranking within the top 100 candidates, and the final Qwen3-Reranker-4B stage further improves answer selection within the top 10 fused candidates.
+
+The final system reaches \(P@1 = 0.4700\), compared with \(0.3100\) after initial Weighted-Cole retrieval and \(0.4100\) after cross-encoder fusion. This supports a clear design lesson: retrieval quality comes first, but larger semantic rerankers become valuable once the system has already produced a strong candidate set at low cost.
+
+The remaining failures follow a small number of patterns. Some questions are still true retrieval misses, where the correct page is not present in the candidate set. Others are ranking misses caused by broad-topic distractors or semantically related wrong pages. Wordplay categories remain difficult because the clue may have little direct lexical overlap with the answer page. Finally, the Qwen reranker is limited by the exported top-10 evidence set, so it cannot recover answers that earlier stages failed to surface.
+
+\bibliographystyle{plainnat}
 \bibliography{references}
 
 \end{document}
