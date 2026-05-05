@@ -5,6 +5,7 @@
 \usepackage[colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue]{hyperref}
 \usepackage{graphicx}
 \usepackage{amsmath}
+\usepackage{array}
 \usepackage{booktabs}
 \usepackage{microtype}
 \usepackage{url}
@@ -24,14 +25,14 @@ with a Three-Stage Retrieval Pipeline for Jeopardy!-Style Wikipedia Answer Selec
 \maketitle
 
 \begin{abstract}
-We study a retrieval formulation of Jeopardy!-style question answering in which each clue must be mapped to the title of a Wikipedia page. The project uses approximately 280,000 Wikipedia pages, and evaluation is performed on 100 Jeopardy clues whose gold answers are Wikipedia titles. We present a three-stage retrieval pipeline that uses increasingly expensive models only after the candidate set has been reduced. Stage 1 uses a weighted ranking of sparse and dense retrieval signals to produce an initial candidate list. Stage 2 reranks the top 100 candidates with a cross-encoder using natural-question reformulations of the clue. Stage 3 reranks only the top 10 candidates from the previous stage with Qwen3-Reranker-4B, a larger reranker model. This staged design improves the P@1 score from 0.31 after the initial weighted retrieval stage to 0.41 after cross-encoder reranking and to 0.47 after the final Qwen reranker. The main takeaway is that strong answer selection comes from combining broad early retrieval with progressively stronger semantic rerankers over much smaller candidate sets.
+We study a retrieval formulation of Jeopardy!-style question answering in which each clue must be mapped to the title of a Wikipedia page. We use approximately 280,000 Wikipedia pages, and we evaluate on 100 Jeopardy clues whose gold answers are Wikipedia titles. We present a three-stage retrieval pipeline that uses increasingly expensive models only after the candidate set has been reduced. Stage 1 uses a weighted ranking of sparse and dense retrieval signals to produce an initial candidate list. Stage 2 reranks the top 100 candidates with a cross-encoder using natural-question reformulations of the clue. Stage 3 reranks only the top 10 candidates from the previous stage with Qwen3-Reranker-4B, a larger reranker model. This staged design improves the P@1 score from 0.31 after the initial weighted retrieval stage to 0.41 after cross-encoder reranking and to 0.47 after the final Qwen reranker. The main takeaway is that strong answer selection comes from combining broad early retrieval with progressively stronger semantic rerankers over much smaller candidate sets.
 \end{abstract}
 
 \section{Introduction}
 
 Jeopardy!-style clue answering is a difficult retrieval problem because the clue is often indirect, category-dependent, and phrased differently from the text that appears in the target article. Rather than asking for a direct fact, many clues refer to an entity through paraphrase, role, quoted language, or historical description. This creates a lexical mismatch problem: the words in the clue are often not the words that appear most prominently in the correct Wikipedia page.
 
-In this project, we treat the task as page retrieval over Wikipedia. Given a Jeopardy category and clue, the goal is to predict the Wikipedia page title that matches the gold answer. This avoids full generative question answering and turns the task into candidate generation and reranking over approximately 280,000 pages. The main challenge is to retrieve the right page despite noisy Wikipedia markup, long article bodies, redirect pages, and clues whose phrasing differs sharply from natural encyclopedia prose.
+We treat the task as page retrieval over Wikipedia. Given a Jeopardy category and clue, the goal is to predict the Wikipedia page title that matches the gold answer. This avoids full generative question answering and turns the task into candidate generation and reranking over approximately 280,000 pages. The main challenge is to retrieve the right page despite noisy Wikipedia markup, long article bodies, redirect pages, and clues whose phrasing differs sharply from natural encyclopedia prose.
 
 Our core design principle is to use simpler and cheaper methods early, then apply larger semantic models later only to narrowed candidate sets. The resulting system is a three-stage retrieval pipeline. Stage 1 uses weighted hybrid retrieval, which combines BM25 ranking over cleaned article text with Dense Passage Retrieval (DPR) embeddings \citep{karpukhin-etal-2020-dpr} indexed in FAISS \citep{johnson2019billion}. Stage 2 reranks the top 100 candidates using a cross-encoder trained for passage ranking \citep{nogueira-cho-2019-passage}. Stage 3 exports only the top 10 candidates from the combined second-stage ranking and reranks them with Qwen3-Reranker-4B, a larger reranker model \citep{qwen3technicalreport}. We also reformulate each clue into five natural-language questions so that the dense retriever and rerankers see inputs that better match question-versus-passage training distributions. Throughout the paper, Precision@1 (P@1) is the main evaluation metric because the system must return one final Wikipedia title as its answer.
 
@@ -39,52 +40,81 @@ This staged architecture yields consistent gains across the pipeline. The weight
 
 \section{Task and Dataset}
 
-The task in this project is to answer Jeopardy-style clues by retrieving the Wikipedia page whose title matches the gold answer. Each example contains a category, a clue, and one correct Wikipedia title. This makes the problem a page-ranking task rather than a fully generative question answering task: given the category and clue, the system must rank candidate Wikipedia pages and place the correct title at the top.
+Our task is to answer Jeopardy-style clues by retrieving the Wikipedia page whose title matches the gold answer. Each example contains a category, a clue, and one correct Wikipedia title. This makes the problem a page-ranking task rather than a fully generative question answering task: given the category and clue, we must rank candidate Wikipedia pages and place the correct title at the top.
 
-The dataset provided in the project consists of 100 Jeopardy clues whose answers appear as Wikipedia page titles, together with a Wikipedia collection of approximately 280,000 pages. Each Wikipedia page must be treated as a separate document in the index. This setup creates two main challenges. First, the collection is large enough that retrieval quality matters immediately. Second, Jeopardy clues are often indirect and category-dependent, so the wording of the clue may differ substantially from the wording used in the correct Wikipedia article.
+We use a dataset of 100 Jeopardy clues whose answers appear as Wikipedia page titles, together with a Wikipedia collection of approximately 280,000 pages. Each Wikipedia page must be treated as a separate document in the index. This setup creates two main challenges. First, the collection is large enough that retrieval quality matters immediately. Second, Jeopardy clues are often indirect and category-dependent, so the wording of the clue may differ substantially from the wording used in the correct Wikipedia article.
 
 \section{Core Implementation}
 
-\subsection{Wikipedia Preprocessing and Indexing}
+\subsection{Wikipedia Preprocessing}
 
-The Wikipedia collection contains approximately 280,000 pages distributed across 80 raw files. Each page begins with a title in double-square-bracket format, which allows us to parse the corpus into page-level documents rather than indexing each raw file as a single unit. We store parsed pages in SQLite, keep redirect pages separate from article pages, and clean article bodies by removing wiki markup, templates, section noise, and other non-content tokens.
+We index the collection with Whoosh, treating each Wikipedia page as a separate document rather than indexing one document per source file. This matches the requirement that the final answer must be a Wikipedia page title, so the indexing unit has to be the individual page. We store parsed pages in SQLite, keep redirect pages separate from article pages, and build the retrieval pipeline over page-level article records.
 
-This preprocessing supports the structure of the final task: the system must return a single Wikipedia page title as the answer. Redirects are therefore handled explicitly rather than treated as normal answer pages, and all retrieval stages operate over canonical article identities.
+We also prepared the text specifically for Wikipedia content. In the cleaning stage, we removed redirect lines, section headers, template markup, reference markup, file/image markup, and category lines, then normalized whitespace. Redirect pages were handled explicitly instead of being treated as normal article bodies, because they do not contain meaningful page content and should not be indexed as ordinary evidence-bearing articles in the final system.
 
-The final first-stage retriever uses one main sparse index and several dense indexes. The sparse component is a Whoosh BM25F index over cleaned full article bodies. The dense component is built from DPR passage representations, with vectors stored in FAISS for efficient nearest-neighbor search. We retain additional lead-only indexes and redirect/title signals in the codebase for experimentation, but they are not part of the final selected weighted configuration.
+For term preparation, we tried two paths. The first was a custom normalization pipeline built in our preprocessing code: lowercasing, whitespace tokenization, boundary-punctuation stripping, stop-word removal using spaCy's English stop-word list, removal of non-word characters, and splitting on underscores and hyphens. The second was to index the cleaned article text directly with Whoosh's default analyzer, which applies its own tokenization, lowercasing, stop-word filtering, and stemming. In our experiments, the default Whoosh analyzer was better, so the final system uses that default analyzer rather than the custom tokenized representation.
+
+\subsection{Indexing}
+We create multiple sparse and dense indexes so that different evidence sources can be tested inside one weighted retrieval framework. Table~\ref{tab:index-inventory} summarizes the index variants we built.
+
+\begin{table}[t]
+  \centering
+  \small
+  \caption{Indexes used in the retrieval experiments. 
+  Except the top mentioned index, all are processed by Whoosh's default analyzer.}
+  \label{tab:index-inventory}
+  \begin{tabular}{ll}
+    \toprule
+    \textbf{Index} & \textbf{Description} \\
+    \midrule
+    Body only index & Body text indexed (proccessed with custom tokenization and normalization) \\
+    Joint title+body index & sparse index over article titles together with article body text \\
+    Redirect index & redirect-page titles stored as alternative page-name strings \\
+    First-sentence index & sparse index over only the first sentence of each article \\
+    First-two-sentences index & sparse index over only the first two lead sentences \\
+    First-paragraph index & sparse index over only the opening paragraph text \\
+    Category index & sparse index over article category labels linked to each page \\
+    DPR first-sentence FAISS & dense vector index over title plus first-sentence text \\
+    DPR first-two-sentences FAISS & dense vector index over title plus first two sentences \\
+    DPR first-paragraph FAISS & dense vector index over title plus opening paragraph \\
+    DPR entire-article FAISS & dense vector index over title plus full cleaned article text \\
+    Qwen-summary FAISS & dense vector index over Qwen-generated article summaries \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Beyond these indexes, we also implemented two simple pattern-based bonuses: one checks whether a four-digit year from the clue also appears in the candidate article, and the other checks whether quoted text from the clue appears in the candidate article. We also tested category-enriched dense variants that append article category labels to the dense text representation. 
+Because Jeopardy clues are often fragments rather than natural questions, we also rewrote each clue into five natural-language questions with Qwen3-8B. 
+We used these generated questions as dense-retrieval queries in stage 1 and as inputs to the later reranking stages. Appendix Figure~\ref{fig:prompt-templates} lists the text templates for inputs and prompts used for our system.
 
 \subsection{Stage 1: Weighted Hybrid Retrieval}
 
-The first stage of the final system is a weighted hybrid retriever. It combines one strong sparse signal with three complementary dense signals:
+In stage 1, we build an initial ranking over the full Wikipedia collection using the category text plus the clue text as the query. This stage combines one sparse retrieval score with three dense retrieval scores and is responsible for broad candidate generation before the more expensive rerankers are applied.
+
+For the final selected run, the active stage-1 components are:
 
 \begin{itemize}
-  \item full cleaned body BM25
-  \item DPR retrieval for the category+clue query
-  \item DPR retrieval averaged over five generated natural questions
-  \item DPR retrieval for the concatenation of those five natural questions
+  \item BM25 over custom-processed article body text, weight 15.00
+  \item DPR retrieval for the category+clue query, weight 1.00
+  \item DPR retrieval averaged over five generated natural questions, weight 1.00
+  \item DPR retrieval for the concatenation of those five generated natural questions, weight 1.00
 \end{itemize}
 
-For the selected run, the sparse query uses the category concatenated with the clue text. The active weights are heavily dominated by the full-body BM25 score, with smaller contributions from the dense components. Concretely, the selected configuration uses body weight 15.00 and weight 1.00 for each active dense component.
+Each DPR retrieval score is computed over four dense document indexes: title plus first sentence, title plus first two sentences, title plus first paragraph, and title plus full article text. For a given query, we keep the maximum score returned by these four DPR indexes for each candidate page. In the natural-question mode, we first run DPR separately for each of the five generated questions and then average those candidate scores. We retained title, redirect, lead-only, Qwen-summary, year-based matching, quoted-text matching, and category-enriched dense variants in the codebase, but all of them received zero weight in the final configuration.
 
-This stage is designed for broad recall and cheap filtering. It searches the whole collection, produces the first global ranking, and provides the candidate pool for the more expensive rerankers. The result is a hybrid retriever that is substantially stronger than plain sparse retrieval alone.
-
-\subsection{Why We Convert Clues into Natural Questions}
-
-Jeopardy clues are often not written like ordinary search questions. They may be fragments, indirect descriptions, or clues whose meaning depends heavily on the category. DPR, cross-encoders, and reranker-style models are generally trained on more standard query-document or question-passage pairs. To reduce this mismatch, we rewrite each clue into five natural-language questions using Qwen3-4B \citep{qwen3technicalreport}.
-
-The natural-question prompt is constrained to preserve the same intended answer without introducing outside knowledge. These question reformulations are then used in two places: as dense DPR queries in the first stage and as query inputs for the cross-encoder and Qwen reranker in later stages. This lets the later models compare more natural question forms against Wikipedia evidence, which is particularly useful when the category contributes the answer type or hidden constraint.
+This stage gives us a strong but still inexpensive global ranking. It searches the whole collection, surfaces the top candidates for each clue, and supplies the top 100 pages to the cross-encoder stage.
 
 \subsection{Stage 2: Cross-Encoder Reranking}
 
-The second stage reranks the top 100 candidates from the weighted hybrid retriever using a cross-encoder model, \texttt{cross-encoder/ms-marco-MiniLM-L-12-v2}. Each candidate article is represented by its title and cleaned article body, split into 100-token chunks. For each of the five generated natural questions, the system scores all chunks and keeps the best chunk score for that question. The final cross-encoder score for the candidate is the average across the five natural questions.
+The second stage reranks the top 100 candidates from the weighted hybrid retriever using a cross-encoder model, \texttt{cross-encoder/ms-marco-MiniLM-L-12-v2} (33M). Each candidate article is represented by its title and cleaned article body, split into 100-token chunks. For each of the five generated natural questions, the system scores all chunks and keeps the best chunk score for that question. The final cross-encoder score for the candidate is the average across the five natural questions. The exact query and document text formats are shown in Appendix Figure~\ref{fig:prompt-templates}.
 
 We then combine the cross-encoder score with the initial first-stage score. Both scores are normalized within the top-100 candidate set, and the selected combination uses a weight of 1.00 for the initial score and 7.00 for the cross-encoder score. This stage is still local and relatively efficient because it only reads 100 candidates per clue, but it is much more semantically expressive than stage 1.
 
 \subsection{Stage 3: Qwen3-Reranker-4B}
 
-The final stage is an offline reranking experiment performed on the top 10 candidates from the combined second-stage ranking. For each clue, we export the top 10 candidates together with the category, clue, gold answer, five generated natural questions, and a truncated evidence snippet from each candidate article. These exported rows are then scored in Colab with Qwen3-Reranker-4B.
+The final stage is an offline reranking experiment performed on the top 10 candidates from the combined second-stage ranking. For each clue, we export the top 10 candidates together with the category, clue, gold answer, five generated natural questions, and a truncated evidence snippet from each candidate article. These exported rows are then scored with Qwen3-Reranker-4B.
 
-The Qwen reranker sees an instruction, one natural question, and one document evidence snippet. It outputs a yes/no-style relevance score, and the final candidate score is the average over the five natural questions for that clue. This stage cannot recover a correct answer that was not already present in the exported top 10, so it is a pure answer-selection stage rather than a recall-improvement stage.
+We also tried a separate Qwen3-4B chat-model verifier that used a direct yes/no prompt over the same evidence snippets. That approach was not effective as a final ranking method, whereas Qwen3-Reranker-4B, which is a dedicated reranker rather than a chat model, performs much better in the final-stage reranking setting (Section~\ref{sec:results}). The exact chat-verifier prompt and reranker input structure are listed in Appendix Figure~\ref{fig:prompt-templates}. This final stage cannot recover a correct answer that was not already present in the exported top 10, so it is a pure answer-selection stage rather than a recall-improvement stage.
 
 \begin{figure}[t]
     \centering
@@ -95,7 +125,7 @@ The Qwen reranker sees an instruction, one natural question, and one document ev
 
 \section{Experimental Setup}
 
-We evaluate on 100 Jeopardy clues whose gold answers correspond to Wikipedia page titles. The document collection is the full Wikipedia corpus used in the project, containing approximately 280,000 pages after parsing. Each page is indexed as a separate document.
+We evaluate on 100 Jeopardy clues whose gold answers correspond to Wikipedia page titles. The document collection is the full Wikipedia corpus we use, containing approximately 280,000 pages after parsing. Each page is indexed as a separate document.
 
 The final selected local pipeline uses the following configuration:
 
@@ -112,6 +142,7 @@ We evaluate by normalized title match between the top-ranked predicted page and 
 \section{Results and Analysis}
 
 \subsection{Main Results}
+\label{sec:results}
 
 Table~\ref{tab:main-results} presents the main system-stage comparison. Precision@1 is the primary metric because it directly measures whether the final predicted page title is correct. Precision@5 is included only as supporting context.
 
@@ -124,7 +155,6 @@ Table~\ref{tab:main-results} presents the main system-stage comparison. Precisio
     \toprule
     \textbf{System stage} & \textbf{P@1} & \textbf{P@5} \\
     \midrule
-    Plain Whoosh body-only & 0.06 & 0.14 \\
     Sparse body-only baseline, no category & 0.21 & 0.42 \\
     Sparse body-only baseline + category & 0.22 & 0.46 \\
     Weighted hybrid retrieval + category & 0.31 & 0.50 \\
@@ -136,7 +166,7 @@ Table~\ref{tab:main-results} presents the main system-stage comparison. Precisio
   \end{tabular}
 \end{table}
 
-The largest early gains come from better retrieval. Plain Whoosh body-only retrieval performs poorly, reaching only a P@1 score of 0.06. A stronger sparse baseline raises this sharply, and the full weighted hybrid configuration reaches 0.31. This shows that most of the early improvement comes from stronger candidate generation rather than from later reranking alone.
+The largest early gains come from better retrieval. The sparse-only baselines reach P@1 scores of 0.21 and 0.22, while the full weighted hybrid configuration reaches 0.31. This shows that most of the early improvement comes from stronger candidate generation rather than from later reranking alone.
 
 The cross-encoder then improves answer selection inside the retrieved set. Using only the cross-encoder ranking over the top 100 candidates reaches a P@1 score of 0.40, and the combined second-stage ranking reaches 0.41. This indicates that many first-stage errors are ranking mistakes rather than complete retrieval misses.
 
@@ -180,19 +210,53 @@ Qwen reranking helps most on \textit{People / Biography} and \textit{Geography /
 
 \subsection{What Did Not Work}
 
-Several explored ideas did not become part of the final system. Naively adding category text to plain Whoosh hurt badly, reducing the P@1 score to 0.02, which shows that raw category terms can distort simple sparse search when not balanced properly. Lead-only indexes based on the first sentence, first two sentences, or first paragraph all underperformed full-body retrieval as standalone signals. Title-only and redirect-only retrieval also failed as standalone rankers.
+Several explored ideas did not become part of the final system. We tried a custom tokenization and normalization pipeline with explicit lowercasing, stop-word removal, punctuation stripping, and token splitting, but Whoosh's default analyzer performed better in the final sparse index. Lead-only indexes based on the first sentence, first two sentences, or first paragraph all underperformed full-body retrieval as standalone signals. Title-only and redirect-only retrieval also failed as standalone rankers.
 
 We also explored clue paraphrasing for sparse retrieval, but it did not help enough. The paraphrases tended to preserve the same key nouns and proper nouns while only changing surface wording, so they did not create enough new lexical evidence for BM25-style matching. Finally, several other implemented components, including qwen-summary dense indexes and category-semantic variants, remained at zero weight in the selected configuration because they did not improve the final weighted hybrid pipeline enough to justify inclusion.
 
 \section{Conclusion}
 
-This project shows that Jeopardy-style Wikipedia answer selection benefits from a staged retrieval design in which stronger models are applied only after the candidate set has already been narrowed. The first-stage weighted hybrid retriever is responsible for the largest early gains because it brings the correct page into a competitive rank range. The cross-encoder then improves semantic ranking within the top 100 candidates, and the final Qwen3-Reranker-4B stage further improves answer selection within the top 10 candidates from the combined second-stage ranking.
+We show that Jeopardy-style Wikipedia answer selection benefits from a staged retrieval design in which stronger models are applied only after the candidate set has already been narrowed. The first-stage weighted hybrid retriever is responsible for the largest early gains because it brings the correct page into a competitive rank range. The cross-encoder then improves semantic ranking within the top 100 candidates, and the final Qwen3-Reranker-4B stage further improves answer selection within the top 10 candidates from the combined second-stage ranking.
 
 The final system reaches a P@1 score of 0.47, compared with 0.31 after initial weighted hybrid retrieval and 0.41 after the combined cross-encoder stage. This supports a clear design lesson: retrieval quality comes first, but larger semantic rerankers become valuable once the system has already produced a strong candidate set at low cost.
 
 The remaining failures follow a small number of patterns. Some questions are still true retrieval misses, where the correct page is not present in the candidate set. Others are ranking misses caused by broad-topic distractors or semantically related wrong pages. Wordplay categories remain difficult because the clue may have little direct lexical overlap with the answer page. Finally, the Qwen reranker is limited by the exported top-10 evidence set, so it cannot recover answers that earlier stages failed to surface.
 
+
 \bibliographystyle{plainnat}
 \bibliography{references}
+
+\appendix
+
+\section{Prompt and Text Templates}
+
+\begin{figure}[t]
+\centering
+\scriptsize
+\caption{Prompt and text templates used in the implemented pipeline and related experiments.}
+\label{fig:prompt-templates}
+\begin{tabular}{p{0.18\linewidth} p{0.22\linewidth} p{0.52\linewidth}}
+\toprule
+\textbf{Component} & \textbf{Where used} & \textbf{Template or format} \\
+\midrule
+Sparse query text & Stage 1 retrieval & Category and clue concatenated into one query string: \texttt{\{category\} \{clue\}}. \\
+\addlinespace
+Natural-question generation with Qwen3-8B & Question rewriting before stage 1 and later reranking & System: ``You rewrite Jeopardy-style clues into natural search and QA questions. Return valid JSON only.'' User: ``Write exactly 5 natural-language questions from the category and clue ... Use only the information in the category and clue ... Do not reveal the answer ... Return exactly this JSON shape and nothing else: \{"questions":["...","...","...","...","..."]\}.'' Input fields: \texttt{Category: \{category\}} and \texttt{Clue: \{clue\}}. \\
+\addlinespace
+Cross-encoder query text & Stage 2 reranking & Each of the five generated natural questions is used directly as the query text. \\
+\addlinespace
+Cross-encoder document text & Stage 2 reranking & \texttt{Title: \{title\}\textbackslash nArticle: \{cleaned\_article\_chunk\}} \\
+\addlinespace
+Qwen summary prompt & Qwen-summary dense-index experiment & System: ``You summarize Wikipedia-style articles for retrieval. Preserve unique facts, names, dates, places, aliases, and distinguishing details. Return valid JSON only.'' User: ``Write one concise factual summary for dense retrieval. Use 3 to 5 sentences ... Return exactly this JSON shape and nothing else: \{"summary":"..."\}.'' Input fields: \texttt{Title: \{title\}} and \texttt{Article text: \{article\_text\}}. \\
+\addlinespace
+Chat-verifier prompt & Failed Qwen3-4B chat-model verifier & \texttt{Question: \{natural\_question\}\textbackslash nArticle: \{evidence\}\textbackslash n\textbackslash n=============\textbackslash n\textbackslash nDoes this article contain the answer to the question? Answer with exactly one word: Yes or No.} \\
+\addlinespace
+Reranker content text & Final Qwen3-Reranker-4B stage & \texttt{<Instruct>: \{instruction\}\textbackslash n<Query>: \{natural\_question\}\textbackslash n<Document>: \{evidence\}} \\
+\addlinespace
+Reranker instruction & Final Qwen3-Reranker-4B stage & ``Given a Jeopardy clue rewritten as a natural question, retrieve articles that contain enough information to identify the answer.'' The model is further wrapped with a system prefix that restricts the decision to ``yes'' or ``no.'' \\
+\bottomrule
+\end{tabular}
+\end{figure}
+
 
 \end{document}
