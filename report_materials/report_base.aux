@@ -10,15 +10,15 @@
 \citation{qwen3technicalreport}
 \@writefile{toc}{\contentsline {section}{\numberline {2}Core Implementation}{2}{section.2}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {2.1}Wikipedia Preprocessing and Indexing}{2}{subsection.2.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.2}Stage 1: Weighted-Cole Retrieval}{2}{subsection.2.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.2}Stage 1: Weighted Hybrid Retrieval}{2}{subsection.2.2}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {2.3}Why We Convert Clues into Natural Questions}{2}{subsection.2.3}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Final three-stage pipeline. A Jeopardy category and clue are first mapped to a Weighted-Cole candidate ranking over Wikipedia. The top 100 candidates are reranked by a cross-encoder, the top 10 fused candidates are reranked by Qwen3-Reranker-4B, and the highest-ranked final page title is returned as the answer.}}{3}{figure.1}\protected@file@percent }
-\newlabel{fig:pipeline}{{1}{3}{Final three-stage pipeline. A Jeopardy category and clue are first mapped to a Weighted-Cole candidate ranking over Wikipedia. The top 100 candidates are reranked by a cross-encoder, the top 10 fused candidates are reranked by Qwen3-Reranker-4B, and the highest-ranked final page title is returned as the answer}{figure.1}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Final three-stage pipeline. A Jeopardy category and clue are first mapped to a weighted hybrid candidate ranking over Wikipedia. The top 100 candidates are reranked by a cross-encoder, the top 10 candidates from the combined second-stage ranking are reranked by Qwen3-Reranker-4B, and the highest-ranked final page title is returned as the answer.}}{3}{figure.1}\protected@file@percent }
+\newlabel{fig:pipeline}{{1}{3}{Final three-stage pipeline. A Jeopardy category and clue are first mapped to a weighted hybrid candidate ranking over Wikipedia. The top 100 candidates are reranked by a cross-encoder, the top 10 candidates from the combined second-stage ranking are reranked by Qwen3-Reranker-4B, and the highest-ranked final page title is returned as the answer}{figure.1}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {2.4}Stage 2: Cross-Encoder Reranking}{3}{subsection.2.4}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {2.5}Stage 3: Qwen3-Reranker-4B}{3}{subsection.2.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {3}Experimental Setup}{3}{section.3}\protected@file@percent }
 \@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Main system-stage comparison. Precision@1 is the primary metric; Precision@5 is supporting.}}{4}{table.1}\protected@file@percent }
 \newlabel{tab:main-results}{{1}{4}{Main system-stage comparison. Precision@1 is the primary metric; Precision@5 is supporting}{table.1}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {3}Experimental Setup}{4}{section.3}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {4}Results and Analysis}{4}{section.4}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Main Results}{4}{subsection.4.1}\protected@file@percent }
 \@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Top-1 correct counts after grouping the 30 Jeopardy categories into 9 super-categories.}}{5}{table.2}\protected@file@percent }
