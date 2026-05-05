@@ -180,8 +180,10 @@ CROSS_ENCODER_FUSION_INITIAL_WEIGHT = 1.0
 CROSS_ENCODER_FUSION_CROSS_ENCODER_WEIGHT = 7.0
 FINAL_RANKING_CACHE_SCHEMA_VERSION = "final_ranking_cache_v1"
 CROSS_ENCODER_CACHE_SCHEMA_VERSION = "cross_encoder_cache_v1"
+STAGE2_RANKING_CACHE_SCHEMA_VERSION = "stage2_ranking_cache_v1"
 FINAL_RANKING_CACHE_STATS = {"hits": 0, "misses": 0}
 CROSS_ENCODER_CACHE_STATS = {"hits": 0, "misses": 0}
+STAGE2_RANKING_CACHE_STATS = {"hits": 0, "misses": 0}
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CROSS_ENCODER_NATURAL_QUESTIONS_PATH = (
     PROJECT_ROOT / "data/processed/questions_natural_qwen3_8b.json"
@@ -354,6 +356,8 @@ def reset_stage_cache_stats() -> None:
     FINAL_RANKING_CACHE_STATS["misses"] = 0
     CROSS_ENCODER_CACHE_STATS["hits"] = 0
     CROSS_ENCODER_CACHE_STATS["misses"] = 0
+    STAGE2_RANKING_CACHE_STATS["hits"] = 0
+    STAGE2_RANKING_CACHE_STATS["misses"] = 0
 
 
 def active_weight_config(weight_equal: bool, weighted: bool, weighted_cole: bool) -> dict:
@@ -499,6 +503,90 @@ def store_cached_final_ranking(
         component_name="final_combined_ranking",
         results=results,
     )
+
+
+def stage2_ranking_cache_config(
+    *,
+    cross_encoder_model: str,
+    cross_encoder_mode: str,
+    cross_encoder_query_mode: str,
+    cross_encoder_natural_questions_path: Path,
+) -> dict:
+    return {
+        "cache_schema_version": STAGE2_RANKING_CACHE_SCHEMA_VERSION,
+        "cross_encoder_model": cross_encoder_model,
+        "cross_encoder_mode": cross_encoder_mode,
+        "cross_encoder_query_mode": cross_encoder_query_mode,
+        "cross_encoder_natural_questions_path": str(cross_encoder_natural_questions_path.resolve()),
+        "candidate_limit": CROSS_ENCODER_CANDIDATE_LIMIT,
+        "fusion_initial_weight": CROSS_ENCODER_FUSION_INITIAL_WEIGHT,
+        "fusion_cross_encoder_weight": CROSS_ENCODER_FUSION_CROSS_ENCODER_WEIGHT,
+    }
+
+
+def stage2_ranking_cache_key(
+    *,
+    query_text: str,
+    query_category: str,
+    cache_config: dict,
+) -> str:
+    return build_component_cache_key(
+        component_name="stage2_cross_encoder_ranking",
+        query_text=query_text,
+        query_category=query_category,
+        component_limit=CROSS_ENCODER_CANDIDATE_LIMIT,
+        index_paths=[Path(cache_config["cross_encoder_natural_questions_path"])],
+        extra_config=cache_config,
+    )
+
+
+def load_cached_stage2_ranking(
+    *,
+    query_text: str,
+    query_category: str,
+    cache_config: dict,
+) -> dict | None:
+    cached = load_cached_component_results(
+        stage2_ranking_cache_key(
+            query_text=query_text,
+            query_category=query_category,
+            cache_config=cache_config,
+        )
+    )
+    if cached is None:
+        STAGE2_RANKING_CACHE_STATS["misses"] += 1
+        return None
+
+    STAGE2_RANKING_CACHE_STATS["hits"] += 1
+    return cached[0]
+
+
+def store_cached_stage2_ranking(
+    *,
+    query_text: str,
+    query_category: str,
+    cache_config: dict,
+    cross_encoder_results: list[dict],
+    fused_results: list[dict],
+) -> None:
+    store_component_results(
+        cache_key=stage2_ranking_cache_key(
+            query_text=query_text,
+            query_category=query_category,
+            cache_config=cache_config,
+        ),
+        component_name="stage2_cross_encoder_ranking",
+        results=[
+            {
+                "cross_encoder_results": strip_cached_result_bodies(cross_encoder_results),
+                "fused_results": strip_cached_result_bodies(fused_results),
+            }
+        ],
+    )
+
+
+def strip_cached_result_bodies(results: list[dict]) -> list[dict]:
+    return [{**result, "body": ""} for result in results]
 
 
 def is_correct_at_k(results: list[dict], answers: set[str], k: int) -> bool:
@@ -1707,6 +1795,91 @@ def fuse_searches_with_cross_encoder(
     ]
 
 
+def build_stage2_searches(
+    questions: list[JeopardyQuestion],
+    searches: list[dict],
+    *,
+    cross_encoder_model: str,
+    cross_encoder_mode: str,
+    cross_encoder_query_mode: str,
+    cross_encoder_natural_questions_path: Path,
+    natural_question_groups: list[list[str]] | None,
+) -> tuple[list[dict], list[dict]]:
+    cache_config = stage2_ranking_cache_config(
+        cross_encoder_model=cross_encoder_model,
+        cross_encoder_mode=cross_encoder_mode,
+        cross_encoder_query_mode=cross_encoder_query_mode,
+        cross_encoder_natural_questions_path=cross_encoder_natural_questions_path,
+    )
+    reranked_searches = []
+    fused_searches = []
+    misses = []
+
+    for question_index, (question, search_result) in enumerate(zip(questions, searches)):
+        cached = load_cached_stage2_ranking(
+            query_text=search_result["query"],
+            query_category=question.category,
+            cache_config=cache_config,
+        )
+        if cached is None:
+            misses.append((question_index, question, search_result))
+            reranked_searches.append(None)
+            fused_searches.append(None)
+            continue
+
+        reranked_searches.append(
+            {
+                **search_result,
+                "initial_results": search_result["results"],
+                "results": cached["cross_encoder_results"],
+            }
+        )
+        fused_searches.append(
+            {
+                **search_result,
+                "cross_encoder_results": cached["cross_encoder_results"],
+                "results": cached["fused_results"],
+            }
+        )
+
+    if misses:
+        missed_questions = [item[1] for item in misses]
+        missed_searches = [item[2] for item in misses]
+        missed_natural_question_groups = (
+            [natural_question_groups[item[0]] for item in misses]
+            if natural_question_groups is not None
+            else None
+        )
+        missed_reranked = rerank_searches_with_cross_encoder(
+            missed_questions,
+            missed_searches,
+            model_name=cross_encoder_model,
+            mode=cross_encoder_mode,
+            query_mode=cross_encoder_query_mode,
+            natural_question_groups=missed_natural_question_groups,
+        )
+        missed_fused = fuse_searches_with_cross_encoder(missed_reranked)
+        for (question_index, question, search_result), reranked, fused in zip(
+            misses,
+            missed_reranked,
+            missed_fused,
+        ):
+            reranked_searches[question_index] = reranked
+            fused_searches[question_index] = fused
+            store_cached_stage2_ranking(
+                query_text=search_result["query"],
+                query_category=question.category,
+                cache_config=cache_config,
+                cross_encoder_results=reranked["results"],
+                fused_results=fused["results"],
+            )
+
+    return (
+        [search for search in reranked_searches if search is not None],
+        [search for search in fused_searches if search is not None],
+    )
+
+
 def compute_metrics_from_searches(
     questions: list[JeopardyQuestion],
     searches: list[dict],
@@ -1824,21 +1997,23 @@ def evaluate_questions(
     if not cross_encoder:
         return initial_metrics
 
-    natural_question_groups = None
-    if cross_encoder_query_mode == "natural_questions_avg":
-        natural_question_groups = get_cross_encoder_natural_questions(
-            questions,
-            cross_encoder_natural_questions_path,
-        )
+    natural_question_groups = get_cross_encoder_natural_questions(
+        questions,
+        cross_encoder_natural_questions_path,
+    )
 
     cross_encoder_start_time = time.time()
-    reranked_searches = rerank_searches_with_cross_encoder(
+    cross_encoder_natural_question_groups = (
+        natural_question_groups if cross_encoder_query_mode == "natural_questions_avg" else None
+    )
+    reranked_searches, fused_searches = build_stage2_searches(
         questions,
         searches,
-        model_name=cross_encoder_model,
-        mode=cross_encoder_mode,
-        query_mode=cross_encoder_query_mode,
-        natural_question_groups=natural_question_groups,
+        cross_encoder_model=cross_encoder_model,
+        cross_encoder_mode=cross_encoder_mode,
+        cross_encoder_query_mode=cross_encoder_query_mode,
+        cross_encoder_natural_questions_path=cross_encoder_natural_questions_path,
+        natural_question_groups=cross_encoder_natural_question_groups,
     )
     cross_encoder_end_time = time.time()
     print(
@@ -1847,24 +2022,26 @@ def evaluate_questions(
     )
     print(f"Cross-encoder cache hits: {CROSS_ENCODER_CACHE_STATS['hits']}")
     print(f"Cross-encoder cache misses: {CROSS_ENCODER_CACHE_STATS['misses']}")
+    print(f"Stage-2 ranking cache hits: {STAGE2_RANKING_CACHE_STATS['hits']}")
+    print(f"Stage-2 ranking cache misses: {STAGE2_RANKING_CACHE_STATS['misses']}")
     cross_encoder_metrics = compute_metrics_from_searches(
         questions,
         reranked_searches,
         CROSS_ENCODER_TOP_K_VALUES,
         print_question_results=print_question_results,
     )
-    fused_searches = fuse_searches_with_cross_encoder(reranked_searches)
     fused_metrics = compute_metrics_from_searches(
         questions,
         fused_searches,
         CROSS_ENCODER_TOP_K_VALUES,
         print_question_results=False,
     )
-    return {
+    metrics = {
         "initial": initial_metrics,
         "cross_encoder": cross_encoder_metrics,
         "stage2_fused": fused_metrics,
     }
+    return metrics
 
 
 def print_metrics(

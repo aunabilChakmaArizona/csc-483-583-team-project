@@ -44,7 +44,11 @@ def test_stage2_fusion_normalizes_and_combines_initial_and_cross_encoder_scores(
         },
     ]
 
-    fused = fuse_initial_and_cross_encoder_results(results)
+    fused = fuse_initial_and_cross_encoder_results(
+        results,
+        initial_weight=1.0,
+        cross_encoder_weight=1.0,
+    )
 
     assert [result["title"] for result in fused] == ["Beta", "Gamma", "Alpha"]
     assert fused[0]["fused_stage2_score"] == 1.0
