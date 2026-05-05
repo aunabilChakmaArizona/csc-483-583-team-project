@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.26 (TeX Live 2024) (preloaded format=pdflatex 2024.8.26)  5 MAY 2026 14:09
+This is pdfTeX, Version 3.141592653-2.6-1.40.26 (TeX Live 2024) (preloaded format=pdflatex 2024.8.26)  5 MAY 2026 15:47
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -420,80 +420,80 @@ Package microtype Info: Loading generic protrusion settings for font family
 (microtype)             For optimal results, create family-specific settings.
 (microtype)             See the microtype manual for details.
  [3]
-<qa_pipeline.pdf, id=99, 650.43pt x 253.94875pt>
+<qa_pipeline.pdf, id=106, 650.43pt x 253.94875pt>
 File: qa_pipeline.pdf Graphic file (type pdf)
 <use qa_pipeline.pdf>
 Package pdftex.def Info: qa_pipeline.pdf  used on input line 121.
 (pdftex.def)             Requested size: 469.75502pt x 183.41257pt.
- [4 <./qa_pipeline.pdf>] [5] [6] (./report_base.bbl)
-LaTeX Font Info:    Trying to load font information for OMS+pcr on input line 242.
+ [4 <./qa_pipeline.pdf>] [5] [6] (./report_base.bbl [7])
+LaTeX Font Info:    Trying to load font information for OMS+pcr on input line 247.
  (/usr/local/texlive/2024/texmf-dist/tex/latex/psnfss/omspcr.fd
 File: omspcr.fd 
 )
 LaTeX Font Info:    Font shape `OMS/pcr/m/n' in size <8> not available
-(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 242.
+(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 247.
 
-Underfull \hbox (badness 5533) in paragraph at lines 244--244
+Underfull \hbox (badness 5533) in paragraph at lines 249--249
 []|\OT1/ptm/m/n/8 (+20) Natural-question gen-er-a-
  []
 
-LaTeX Font Info:    Trying to load font information for OMS+ptm on input line 244.
+LaTeX Font Info:    Trying to load font information for OMS+ptm on input line 249.
 (/usr/local/texlive/2024/texmf-dist/tex/latex/psnfss/omsptm.fd
 File: omsptm.fd 
 )
 LaTeX Font Info:    Font shape `OMS/ptm/m/n' in size <8> not available
-(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 244.
+(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 249.
 
-Underfull \hbox (badness 1960) in paragraph at lines 248--248
+Underfull \hbox (badness 1960) in paragraph at lines 253--253
 []|\OT1/ptm/m/n/8 (+20) Cross-encoder doc-u-ment
  []
 
 
-Underfull \hbox (badness 2027) in paragraph at lines 252--252
+Underfull \hbox (badness 2027) in paragraph at lines 257--257
 []|\OT1/ptm/m/n/8 (+20) Failed Qwen3-4B chat-model
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 252--253
+Underfull \hbox (badness 10000) in paragraph at lines 257--258
 []|\OT1/pcr/m/n/8 Question: \OMS/cmsy/m/n/8 f\OT1/pcr/m/n/8 natural[]question\OMS/cmsy/m/n/8 gn\OT1/pcr/m/n/8 nArticle:
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 252--253
+Underfull \hbox (badness 10000) in paragraph at lines 257--258
 \OMS/cmsy/m/n/8 f\OT1/pcr/m/n/8 evidence\OMS/cmsy/m/n/8 gn\OT1/pcr/m/n/8 n\OMS/cmsy/m/n/8 n\OT1/pcr/m/n/8 n=============\OMS/cmsy/m/n/8 n\OT1/pcr/m/n/8 n\OMS/cmsy/m/n/8 n\OT1/pcr/m/n/8 nDoes this article
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 252--253
+Underfull \hbox (badness 10000) in paragraph at lines 257--258
 \OT1/pcr/m/n/8 contain the answer to the question? Answer with
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 254--255
+Underfull \hbox (badness 10000) in paragraph at lines 259--260
 []|\OT1/pcr/m/n/8 <Instruct>: \OMS/cmsy/m/n/8 f\OT1/pcr/m/n/8 instruction\OMS/cmsy/m/n/8 gn\OT1/pcr/m/n/8 n<Query>:
  []
 
-[7] [8] (./report_base.aux)
+[8] (./report_base.aux)
  ***********
 LaTeX2e <2023-11-01> patch level 1
 L3 programming layer <2024-02-20>
  ***********
 Package rerunfilecheck Info: File `report_base.out' has not changed.
-(rerunfilecheck)             Checksum: 271D2ABE9E069B604AA837BB81C8DCAE;2324.
+(rerunfilecheck)             Checksum: 900B8758308DEEE4AF403250887C48E5;2646.
  ) 
 Here is how much of TeX's memory you used:
- 12492 strings out of 474116
- 194341 string characters out of 5743682
- 1940187 words of memory out of 5000000
- 34411 multiletter control sequences out of 15000+600000
- 590163 words of font info for 229 fonts, out of 8000000 for 9000
+ 12511 strings out of 474116
+ 194530 string characters out of 5743682
+ 1942187 words of memory out of 5000000
+ 34413 multiletter control sequences out of 15000+600000
+ 590758 words of font info for 239 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 75i,11n,79p,1189b,529s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 75i,11n,79p,1252b,577s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/local/texlive/2024/texmf-dist/fonts/type1/urw/courier/ucrr8a.pfb></usr/local/texlive/2024/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/local/texlive/2024/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></usr/local/texlive/2024/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
-Output written on report_base.pdf (8 pages, 127746 bytes).
+Output written on report_base.pdf (8 pages, 129801 bytes).
 PDF statistics:
- 180 PDF objects out of 1000 (max. 8388607)
- 152 compressed objects within 2 object streams
- 34 named destinations out of 1000 (max. 500000)
- 51326 words of extra memory for PDF output out of 51595 (max. 10000000)
+ 188 PDF objects out of 1000 (max. 8388607)
+ 160 compressed objects within 2 object streams
+ 36 named destinations out of 1000 (max. 500000)
+ 51342 words of extra memory for PDF output out of 51595 (max. 10000000)
 

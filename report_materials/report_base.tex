@@ -25,14 +25,14 @@ with a Three-Stage Retrieval Pipeline for Jeopardy!-Style Wikipedia Answer Selec
 \maketitle
 
 \begin{abstract}
-We study a retrieval formulation of Jeopardy!-style question answering in which each clue must be mapped to the title of a Wikipedia page. We use approximately 280,000 Wikipedia pages, and we evaluate on 100 Jeopardy clues whose gold answers are Wikipedia titles. We present a three-stage retrieval pipeline that uses increasingly expensive models only after the candidate set has been reduced. Stage 1 uses a weighted ranking of sparse and dense retrieval signals to produce an initial candidate list. Stage 2 reranks the top 100 candidates with a cross-encoder using natural-question reformulations of the clue. Stage 3 reranks only the top 10 candidates from the previous stage with Qwen3-Reranker-4B, a larger reranker model. This staged design improves the P@1 score from 0.31 after the initial weighted retrieval stage to 0.41 after cross-encoder reranking and to 0.47 after the final Qwen reranker. The main takeaway is that strong answer selection comes from combining broad early retrieval with progressively stronger semantic rerankers over much smaller candidate sets.
+We study a retrieval formulation of Jeopardy!-style question answering in which each clue must be mapped to the title of a Wikipedia page. We use a parsed Wikipedia collection of approximately 280,000 pages and index 152,042 non-redirect articles, and we evaluate on 100 Jeopardy clues whose gold answers are Wikipedia titles. We present a three-stage retrieval pipeline that uses increasingly expensive models only after the candidate set has been reduced. Stage 1 uses a weighted ranking of sparse and dense retrieval signals to produce an initial candidate list. Stage 2 reranks the top 100 candidates with a cross-encoder using natural-question reformulations of the clue. Stage 3 reranks only the top 10 candidates from the previous stage with Qwen3-Reranker-4B, a larger reranker model. This staged design improves the P@1 score from 0.31 after the initial weighted retrieval stage to 0.41 after cross-encoder reranking and to 0.47 after the final Qwen reranker. The main takeaway is that strong answer selection comes from combining broad early retrieval with progressively stronger semantic rerankers over much smaller candidate sets.
 \end{abstract}
 
 \section{Introduction}
 
 Jeopardy!-style clue answering is a difficult retrieval problem because the clue is often indirect, category-dependent, and phrased differently from the text that appears in the target article. Rather than asking for a direct fact, many clues refer to an entity through paraphrase, role, quoted language, or historical description. This creates a lexical mismatch problem: the words in the clue are often not the words that appear most prominently in the correct Wikipedia page.
 
-We treat the task as page retrieval over Wikipedia. Given a Jeopardy category and clue, the goal is to predict the Wikipedia page title that matches the gold answer. This avoids full generative question answering and turns the task into candidate generation and reranking over approximately 280,000 pages. The main challenge is to retrieve the right page despite noisy Wikipedia markup, long article bodies, redirect pages, and clues whose phrasing differs sharply from natural encyclopedia prose.
+We treat the task as page retrieval over Wikipedia. Given a Jeopardy category and clue, the goal is to predict the Wikipedia page title that matches the gold answer. This avoids full generative question answering and turns the task into candidate generation and reranking over 152,042 indexed non-redirect articles. The main challenge is to retrieve the right page despite noisy Wikipedia markup, long article bodies, redirect pages, and clues whose phrasing differs sharply from natural encyclopedia prose.
 
 Our core design principle is to use simpler and cheaper methods early, then apply larger semantic models later only to narrowed candidate sets. The resulting system is a three-stage retrieval pipeline. Stage 1 uses weighted hybrid retrieval, which combines BM25 ranking over cleaned article text with Dense Passage Retrieval (DPR) embeddings \citep{karpukhin-etal-2020-dpr} indexed in FAISS \citep{johnson2019billion}. Stage 2 reranks the top 100 candidates using a cross-encoder trained for passage ranking \citep{nogueira-cho-2019-passage}. Stage 3 exports only the top 10 candidates from the combined second-stage ranking and reranks them with Qwen3-Reranker-4B, a larger reranker model \citep{qwen3technicalreport}. We also reformulate each clue into five natural-language questions so that the dense retriever and rerankers see inputs that better match question-versus-passage training distributions. Throughout the paper, Precision@1 (P@1) is the main evaluation metric because the system must return one final Wikipedia title as its answer.
 
@@ -42,13 +42,13 @@ This staged architecture yields consistent gains across the pipeline. The weight
 
 Our task is to answer Jeopardy-style clues by retrieving the Wikipedia page whose title matches the gold answer. Each example contains a category, a clue, and one correct Wikipedia title. This makes the problem a page-ranking task rather than a fully generative question answering task: given the category and clue, we must rank candidate Wikipedia pages and place the correct title at the top.
 
-We use a dataset of 100 Jeopardy clues whose answers appear as Wikipedia page titles, together with a Wikipedia collection of approximately 280,000 pages. Each Wikipedia page must be treated as a separate document in the index. This setup creates two main challenges. First, the collection is large enough that retrieval quality matters immediately. Second, Jeopardy clues are often indirect and category-dependent, so the wording of the clue may differ substantially from the wording used in the correct Wikipedia article.
+We use a dataset of 100 Jeopardy clues whose answers appear as Wikipedia page titles, together with a parsed Wikipedia collection of approximately 280,000 pages. After separating redirects from ordinary articles, we index 152,042 non-redirect article pages. This setup creates two main challenges. First, the collection is large enough that retrieval quality matters immediately. Second, Jeopardy clues are often indirect and category-dependent, so the wording of the clue may differ substantially from the wording used in the correct Wikipedia article.
 
 \section{Core Implementation}
 
 \subsection{Wikipedia Preprocessing}
 
-We index the collection with Whoosh, treating each Wikipedia page as a separate document rather than indexing one document per source file. This matches the requirement that the final answer must be a Wikipedia page title, so the indexing unit has to be the individual page. We store parsed pages in SQLite, keep redirect pages separate from article pages, and build the retrieval pipeline over page-level article records.
+We index the collection with Whoosh, treating each Wikipedia page as a separate document rather than indexing one document per source file. This matches the requirement that the final answer must be a Wikipedia page title, so the indexing unit has to be the individual page. We store parsed pages in SQLite, keep redirect pages separate from article pages, and build the retrieval pipeline over page-level article records. In the final system, we index only the non-redirect article pages, which leaves 152,042 indexed documents out of the roughly 280,000 parsed pages.
 
 We also prepared the text specifically for Wikipedia content. In the cleaning stage, we removed redirect lines, section headers, template markup, reference markup, file/image markup, and category lines, then normalized whitespace. Redirect pages were handled explicitly instead of being treated as normal article bodies, because they do not contain meaningful page content and should not be indexed as ordinary evidence-bearing articles in the final system.
 
@@ -123,21 +123,26 @@ We also tried a separate Qwen3-4B chat-model verifier that used a direct yes/no 
     \label{fig:pipeline}
 \end{figure}
 
-\section{Experimental Setup}
+\subsection{Compute Environment}
 
-We evaluate on 100 Jeopardy clues whose gold answers correspond to Wikipedia page titles. The document collection is the full Wikipedia corpus we use, containing approximately 280,000 pages after parsing. Each page is indexed as a separate document.
+We developed and ran the project across two environments: a local MacBook setup and Google Colab. The local machine was used for the main retrieval codebase, indexing, weight tuning, and most iterative debugging. Google Colab was used for the larger model runs, especially the Qwen-based question generation, summary generation, and reranking experiments.
 
-The final selected local pipeline uses the following configuration:
+\subsection{Implementation Workflow}
 
-\begin{itemize}
-  \item category + clue query text
-  \item weighted hybrid retrieval as the first stage
-  \item cross-encoder reranking over the top 100 candidates
-  \item natural-question averaging for the cross-encoder query mode
-  \item Qwen3-Reranker-4B reranking over the top 10 candidates from the combined second-stage ranking
-\end{itemize}
+We used ChatGPT extensively during implementation to generate code templates, propose project-directory structure, suggest model choices, and help debug basic errors. In particular, it was useful for scaffolding new components quickly, suggesting the cross-encoder reranking approach, surfacing candidate models through search guidance, and helping us think through alternative retrieval designs. We also used it as a consultation tool while deciding how to organize the codebase and which experimental branches were worth implementing.
+
+However, the generated code was not used blindly. We still had to put substantial amount of time reading the generated code carefully, correcting subtle mistakes, and adapting many pieces to the actual behavior of the Wikipedia data and our retrieval pipeline. 
+In practice, the LLM assistance reduced implementation time and improved development speed, but it also required manual review and debugging to make the final code correct and coherent.
+
+\section{Evaluation Setup}
+
+As mentioned earlier, we evaluate on the same 100 Jeopardy clues used throughout development, over the final indexed collection of 152,042 non-redirect Wikipedia articles.
+
+The final evaluated system uses the Jeopardy category together with the clue text as the initial query. It first produces a global candidate ranking with the weighted hybrid retriever described in Section 3, then reranks the top 100 candidate pages with the cross-encoder by averaging scores across five generated natural questions, and finally reranks the top 10 candidates from that second-stage ranking with Qwen3-Reranker-4B.
 
 We evaluate by normalized title match between the top-ranked predicted page and the gold answer. The primary metric is Precision@1 (Top-1 accuracy), because the system must commit to one final answer. We report Precision@5 as a supporting metric to show whether the correct page is at least being brought near the top of the ranking before the final answer decision.
+
+We directly tuned retrieval weights and selected configurations on the same set of 100 Jeopardy questions used for evaluation. We did not use a separate training or development split, because the dataset is small. As a result, the reported scores should be interpreted as tuned performance on this 100-question set rather than as an unbiased estimate of generalization to unseen clues.
 
 \section{Results and Analysis}
 
@@ -230,7 +235,7 @@ The remaining failures follow a small number of patterns. Some questions are sti
 
 \section{Prompt and Text Templates}
 
-\begin{figure}[t]
+\begin{figure}[h]
 \centering
 \scriptsize
 \caption{Prompt and text templates used in the implemented pipeline and related experiments.}
