@@ -1,7 +1,7 @@
 \documentclass[11pt]{article}
 \usepackage[margin=1in]{geometry}
 \usepackage{times}
-\usepackage[square]{natbib}
+\usepackage{natbib}
 \usepackage[colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue]{hyperref}
 \usepackage{graphicx}
 \usepackage{amsmath}
@@ -33,9 +33,15 @@ Jeopardy!-style clue answering is a difficult retrieval problem because the clue
 
 In this project, we treat the task as page retrieval over Wikipedia. Given a Jeopardy category and clue, the goal is to predict the Wikipedia page title that matches the gold answer. This avoids full generative question answering and turns the task into candidate generation and reranking over approximately 280,000 pages. The main challenge is to retrieve the right page despite noisy Wikipedia markup, long article bodies, redirect pages, and clues whose phrasing differs sharply from natural encyclopedia prose.
 
-Our core design principle is to use simpler and cheaper methods early, then apply larger semantic models later only to narrowed candidate sets. The resulting system is a three-stage retrieval pipeline. Stage 1 uses weighted hybrid retrieval, which combines BM25 ranking over cleaned article text with Dense Passage Retrieval (DPR) embeddings \citep{karpukhin-etal-2020-dpr} indexed in FAISS \citep{johnson2019billion}. Stage 2 reranks the top 100 candidates using a cross-encoder trained for passage ranking \citep{nogueira-cho-2019-passage}. Stage 3 exports only the top 10 candidates from the combined second-stage ranking and reranks them with Qwen3-Reranker-4B, a larger reranker model \citep{qwen3technicalreport}. We also reformulate each clue into five natural-language questions so that the dense retriever and rerankers see inputs that better match question-versus-passage training distributions.
+Our core design principle is to use simpler and cheaper methods early, then apply larger semantic models later only to narrowed candidate sets. The resulting system is a three-stage retrieval pipeline. Stage 1 uses weighted hybrid retrieval, which combines BM25 ranking over cleaned article text with Dense Passage Retrieval (DPR) embeddings \citep{karpukhin-etal-2020-dpr} indexed in FAISS \citep{johnson2019billion}. Stage 2 reranks the top 100 candidates using a cross-encoder trained for passage ranking \citep{nogueira-cho-2019-passage}. Stage 3 exports only the top 10 candidates from the combined second-stage ranking and reranks them with Qwen3-Reranker-4B, a larger reranker model \citep{qwen3technicalreport}. We also reformulate each clue into five natural-language questions so that the dense retriever and rerankers see inputs that better match question-versus-passage training distributions. Throughout the paper, Precision@1 (P@1) is the main evaluation metric because the system must return one final Wikipedia title as its answer.
 
 This staged architecture yields consistent gains across the pipeline. The weighted hybrid retrieval stage reaches a P@1 score of 0.31, the combined second-stage ranking improves this to 0.41, and the final Qwen reranker reaches 0.47. These results support a simple conclusion: retrieval quality matters first, but stronger semantic reranking becomes effective once the correct page has been brought into a small candidate set.
+
+\section{Task and Dataset}
+
+The task in this project is to answer Jeopardy-style clues by retrieving the Wikipedia page whose title matches the gold answer. Each example contains a category, a clue, and one correct Wikipedia title. This makes the problem a page-ranking task rather than a fully generative question answering task: given the category and clue, the system must rank candidate Wikipedia pages and place the correct title at the top.
+
+The dataset provided in the project consists of 100 Jeopardy clues whose answers appear as Wikipedia page titles, together with a Wikipedia collection of approximately 280,000 pages. Each Wikipedia page must be treated as a separate document in the index. This setup creates two main challenges. First, the collection is large enough that retrieval quality matters immediately. Second, Jeopardy clues are often indirect and category-dependent, so the wording of the clue may differ substantially from the wording used in the correct Wikipedia article.
 
 \section{Core Implementation}
 
