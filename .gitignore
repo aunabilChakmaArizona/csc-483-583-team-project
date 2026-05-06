@@ -32,11 +32,45 @@ __pycache__/
 venv/
 env/
 
+# Local/debug scripts that are not part of the final reported pipeline
+src/temp_*.py
+src/run_test_specific.py
+src/generate_qwen_related_questions.py
+src/export_cross_encoder_pairs.py
+src/colab_score_cross_encoder_pairs.py
+
 # Build artifacts
 build/
 dist/
 out/
 bin/
+
+# LaTeX build artifacts
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+
+# Local notes, exploratory outputs, and converted scratch files
+100questions_features.txt
+report_steps.txt
+sample_commands_test.txt
+sbert_100q_results.txt
+sbert_100q_clue_results.txt
+temp_converted_to_questions.txt
+weighted_cole_retrieval_notes*.txt
+weighted_cole_scoring_formula_plain.txt
+
+# Exploratory notebooks and empty placeholder-only folders
+notebooks/
+configs/
+data/queries/
+
+# Local test suite used during development, not needed for the final report package
+tests/
 
 # IDEs
 .idea/
