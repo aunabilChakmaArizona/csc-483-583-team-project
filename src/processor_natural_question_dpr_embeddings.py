@@ -21,8 +21,8 @@ except ModuleNotFoundError:
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_INPUT_PATH = PROJECT_ROOT / "data/processed/questions_natural_qwen3_14b.json"
-DEFAULT_OUTPUT_PATH = PROJECT_ROOT / "data/processed/question_dpr_embeddings_qwen3_14b.npz"
+DEFAULT_INPUT_PATH = PROJECT_ROOT / "data/processed/questions_natural_qwen3_8b.json"
+DEFAULT_OUTPUT_PATH = PROJECT_ROOT / "data/processed/question_dpr_embeddings_qwen3_8b.npz"
 EXPECTED_QUESTION_COUNT = 5
 
 

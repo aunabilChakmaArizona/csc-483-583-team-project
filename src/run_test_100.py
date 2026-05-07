@@ -1331,13 +1331,6 @@ def cross_encoder_query_text(question: JeopardyQuestion) -> str:
 
 
 def fallback_natural_questions_path(path: Path) -> Path:
-    if path.exists():
-        return path
-
-    fallback_path = PROJECT_ROOT / "data/processed/questions_natural_qwen3_14b.json"
-    if fallback_path.exists():
-        return fallback_path
-
     return path
 
 

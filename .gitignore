@@ -1,15 +1,5 @@
 # Whoosh index artifacts
 index/*
-!index/.gitkeep
-!index/whoosh_index/
-index/whoosh_index/*
-!index/whoosh_index/.gitkeep
-!index/whoosh_default_index/
-index/whoosh_default_index/*
-!index/whoosh_default_index/.gitkeep
-!index/whoosh_title_body_index/
-index/whoosh_title_body_index/*
-!index/whoosh_title_body_index/.gitkeep
 write.lock
 data/processed/wiki_articles.sqlite3
 data/processed/wiki_articles_step1_remove_stop_words.sqlite3
@@ -22,6 +12,8 @@ data/processed/dpr_articles.jsonl.gz
 data/processed/dpr_articles_summary.json
 data/processed/question_dpr_embeddings.npz
 data/processed/question_dpr_embeddings_qwen3_14b.npz
+data/processed/question_dpr_embeddings_qwen3_8b.npz
+data/processed/questions_natural_qwen3_14b.json
 data/processed/cross_encoder_pairs.jsonl
 
 # Python cache and virtualenvs
@@ -32,18 +24,13 @@ __pycache__/
 venv/
 env/
 
-# Local/debug scripts that are not part of the final reported pipeline
-src/temp_*.py
-src/run_test_specific.py
-src/generate_qwen_related_questions.py
-src/export_cross_encoder_pairs.py
-src/colab_score_cross_encoder_pairs.py
-
 # Build artifacts
 build/
 dist/
 out/
 bin/
+.gitkeep
+setup.txt
 
 # LaTeX build artifacts
 *.aux
@@ -68,6 +55,7 @@ weighted_cole_scoring_formula_plain.txt
 notebooks/
 configs/
 data/queries/
+report_materials/
 
 # Local test suite used during development, not needed for the final report package
 tests/
