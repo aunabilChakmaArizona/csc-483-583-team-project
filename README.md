@@ -3,7 +3,7 @@
 This repository contains a CSC483/583 course project for answering clue-style questions by retrieving Wikipedia page titles. The final system uses three stages: weighted hybrid retrieval, cross-encoder reranking, and Qwen3-Reranker-4B reranking over the top candidates.
 
 Team Members: Cole Mobberly, Suhani Surana, and Aunabil Chakma.
-Drive Link for source code with indexes: [Link]([https://example.com](https://emailarizona-my.sharepoint.com/:u:/g/personal/aunabilchakma_arizona_edu/IQDfysXtrjVpT4qKaoolrWquAVQ_33EEePFTQEmLQ2iMXHA?e=63Ms52))
+Drive Link for source code with indexes: [Link](https://emailarizona-my.sharepoint.com/:u:/g/personal/aunabilchakma_arizona_edu/IQDfysXtrjVpT4qKaoolrWquAVQ_33EEePFTQEmLQ2iMXHA?e=63Ms52)
 ## Installation
 
 Create a conda environment and install the Python dependencies:
